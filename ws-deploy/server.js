@@ -13,10 +13,28 @@
  */
 
 const { WebSocketServer, WebSocket } = require('ws');
-const { spawn, exec }  = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const fs               = require('fs');
 const path             = require('path');
 const http             = require('http');
+
+// ── Binary resolver — cari path lengkap saat startup ────────────────────────
+function resolveBin(name) {
+  try {
+    return execSync(`which ${name} 2>/dev/null || command -v ${name} 2>/dev/null`, { shell: true })
+      .toString().trim() || null;
+  } catch { return null; }
+}
+
+const BIN = {
+  git: resolveBin('git') || 'git',
+  php: resolveBin('php') || 'php',
+  pm2: resolveBin('pm2') || null,      // null = tidak terinstall
+  rsync: resolveBin('rsync') || 'rsync',
+  ssh: resolveBin('ssh') || 'ssh',
+};
+
+console.log('  Binaries  :', Object.entries(BIN).map(([k,v])=>`${k}=${v||'❌ missing'}`).join(', '));
 
 const PORT        = process.env.WS_DEPLOY_PORT || 3002;
 const SECRET      = process.env.DEPLOY_SECRET   || 'prb-deploy-secret-2024';
@@ -30,22 +48,23 @@ const SSH_KEY     = process.env.SSH_KEY     || path.join(process.env.HOME || '/r
 const REMOTE_ROOT = process.env.REMOTE_ROOT || '/home/u454362045/domains/dokterkuklinik.com/public_html/apotik';
 
 // ── Whitelist command (lokal) ─────────────────────────────────────────────────
+// BIN.pm2 bisa null jika pm2 tidak terinstall — handler akan skip gracefully
 const COMMANDS = {
-  'git:status':        ['git', ['status', '--short']],
-  'git:log':           ['git', ['log', '--oneline', '-15', '--decorate']],
-  'git:pull':          ['git', ['pull', 'origin', 'main']],
-  'git:diff':          ['git', ['diff', '--stat', 'HEAD~1']],
-  'migrate':           ['php', ['artisan', 'migrate', '--force']],
-  'cache:clear':       ['php', ['artisan', 'cache:clear']],
-  'cache:build':       ['php', ['artisan', 'optimize']],
-  'view:clear':        ['php', ['artisan', 'view:clear']],
-  'route:cache':       ['php', ['artisan', 'route:cache']],
-  'queue:restart':     ['php', ['artisan', 'queue:restart']],
-  'storage:link':      ['php', ['artisan', 'storage:link']],
-  'pm2:list':          ['pm2', ['jlist']],
-  'pm2:restart:wa':    ['pm2', ['restart', 'wa-klinik',    '--update-env']],
-  'pm2:restart:queue': ['pm2', ['restart', 'queue-klinik', '--update-env']],
-  'pm2:start:wa':      ['pm2', ['start', path.join(APP_ROOT,'wa-service','server.js'), '--name', 'wa-klinik']],
+  'git:status':        [BIN.git, ['status', '--short']],
+  'git:log':           [BIN.git, ['log', '--oneline', '-15', '--decorate']],
+  'git:pull':          [BIN.git, ['pull', 'origin', 'main']],
+  'git:diff':          [BIN.git, ['diff', '--stat', 'HEAD~1']],
+  'migrate':           [BIN.php, ['artisan', 'migrate', '--force']],
+  'cache:clear':       [BIN.php, ['artisan', 'cache:clear']],
+  'cache:build':       [BIN.php, ['artisan', 'optimize']],
+  'view:clear':        [BIN.php, ['artisan', 'view:clear']],
+  'route:cache':       [BIN.php, ['artisan', 'route:cache']],
+  'queue:restart':     [BIN.php, ['artisan', 'queue:restart']],
+  'storage:link':      [BIN.php, ['artisan', 'storage:link']],
+  'pm2:list':          BIN.pm2 ? [BIN.pm2, ['jlist']] : null,
+  'pm2:restart:wa':    BIN.pm2 ? [BIN.pm2, ['restart', 'wa-klinik',    '--update-env']] : null,
+  'pm2:restart:queue': BIN.pm2 ? [BIN.pm2, ['restart', 'queue-klinik', '--update-env']] : null,
+  'pm2:start:wa':      BIN.pm2 ? [BIN.pm2, ['start', path.join(APP_ROOT,'wa-service','server.js'), '--name', 'wa-klinik']] : null,
   'deploy:full':       null,  // handled separately
   'deploy:hostinger':  null,  // handled separately
 };
@@ -184,7 +203,17 @@ async function runFullDeploy(ws) {
     }
 
     const def = COMMANDS[cmdKey];
-    if (!def) { send(ws, 'step', { label, status: 'ok' }); continue; }
+    if (!def) {
+      // Command null = binary tidak tersedia (misal: pm2 tidak terinstall)
+      if (cmdKey.startsWith('pm2:') && !BIN.pm2) {
+        sendLine(ws, `  ⚠️  pm2 tidak terinstall — step "${label}" dilewati`);
+        sendLine(ws, '      Install pm2: npm install -g pm2');
+        send(ws, 'step', { label, status: 'skip' });
+      } else {
+        send(ws, 'step', { label, status: 'ok' });
+      }
+      continue;
+    }
     const [bin, args] = def;
     const code = await spawnLocal(ws, bin, args);
     send(ws, 'step', { label, status: code === 0 ? 'ok' : 'fail' });

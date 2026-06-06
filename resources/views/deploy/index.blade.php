@@ -110,10 +110,11 @@
                 <template x-for="step in deploySteps" :key="step.label">
                     <div class="step-row">
                         <span class="step-status"
-                            :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':'color:#4a6a4a'"
-                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':'○'">
+                            :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#4a6a4a'"
+                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
                         </span>
-                        <span style="color:#a0c8a0;" x-text="step.label"></span>
+                        <span :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
+                              x-text="step.label + (step.status==='skip' ? ' (n/a)' : '')"></span>
                     </div>
                 </template>
             </div>
@@ -181,10 +182,11 @@
                 <template x-for="step in hostSteps" :key="step.label">
                     <div class="step-row">
                         <span class="step-status"
-                            :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':'color:#4a6a4a'"
-                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':'○'">
+                            :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#4a6a4a'"
+                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
                         </span>
-                        <span style="color:#a0c8a0;" x-text="step.label"></span>
+                        <span :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
+                              x-text="step.label + (step.status==='skip' ? ' (n/a)' : '')"></span>
                     </div>
                 </template>
             </div>
