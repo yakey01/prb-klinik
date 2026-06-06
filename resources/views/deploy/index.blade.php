@@ -93,6 +93,102 @@
         <div class="terminal" x-ref="terminal" x-html="termOutput"></div>
     </div>
 
+    {{-- ═══ SMART DEPLOY PANEL ═══ --}}
+    <div style="background:rgba(10,20,10,.7);border:1px solid rgba(63,207,142,.18);border-radius:.6rem;padding:.9rem 1rem;display:flex;flex-direction:column;gap:.6rem;">
+
+        {{-- Header --}}
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <div style="font-size:.8rem;font-weight:700;color:var(--emer2);letter-spacing:.06em;">⚡ SMART DEPLOY</div>
+                <div style="font-size:.7rem;color:var(--mut);margin-top:.1rem;">Detect perubahan lokal → Commit → Push GitHub → Deploy Hostinger</div>
+            </div>
+            <button @click="refreshChanges()" :disabled="!wsReady"
+                style="background:rgba(63,207,142,.08);color:var(--emer2);border:1px solid rgba(63,207,142,.2);border-radius:.35rem;padding:.3rem .65rem;font-size:.7rem;cursor:pointer;"
+                :style="!wsReady ? 'opacity:.4;cursor:not-allowed' : ''">
+                ↻ Refresh
+            </button>
+        </div>
+
+        {{-- Changed files list --}}
+        <div style="background:#070d07;border-radius:.4rem;border:1px solid rgba(63,207,142,.08);min-height:52px;padding:.5rem .65rem;">
+            <template x-if="!wsReady">
+                <div style="color:var(--mut);font-size:.72rem;font-style:italic;">Hubungkan WebSocket untuk melihat perubahan...</div>
+            </template>
+            <template x-if="wsReady && localChanges.length === 0">
+                <div style="color:#3fcf8e;font-size:.72rem;">✅ Tidak ada perubahan — working tree bersih</div>
+            </template>
+            <template x-if="wsReady && localChanges.length > 0">
+                <div>
+                    <div style="font-size:.68rem;color:var(--mut);margin-bottom:.3rem;"
+                         x-text="localChanges.length + ' file berubah'"></div>
+                    <div style="max-height:140px;overflow-y:auto;">
+                        <template x-for="f in localChanges" :key="f.path">
+                            <div style="display:flex;align-items:center;gap:.45rem;padding:.15rem 0;font-size:.72rem;font-family:monospace;">
+                                <span style="min-width:1.4rem;text-align:center;font-weight:700;border-radius:.25rem;padding:.05rem .3rem;"
+                                    :style="f.xy==='M'||f.xy==='MM'?'background:rgba(217,164,65,.15);color:#d9a441':
+                                            f.xy==='A'||f.xy==='?'||f.xy==='??'?'background:rgba(63,207,142,.12);color:#3fcf8e':
+                                            f.xy==='D'?'background:rgba(232,100,90,.12);color:#e8645a':
+                                            'background:rgba(111,177,224,.1);color:#6fb1e0'"
+                                    x-text="f.xy==='??'?'?':f.xy"></span>
+                                <span style="color:#c0d8c0;" x-text="f.path"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        {{-- Commit message input --}}
+        <div style="display:flex;flex-direction:column;gap:.3rem;">
+            <label style="font-size:.68rem;color:var(--mut);">Pesan commit <span style="color:#e8645a;">*</span></label>
+            <div style="display:flex;gap:.4rem;align-items:center;">
+                <select x-model="commitType"
+                    style="background:#0d180d;border:1px solid rgba(63,207,142,.2);color:var(--mut2);border-radius:.35rem;padding:.3rem .4rem;font-size:.72rem;cursor:pointer;min-width:90px;">
+                    <option value="feat">feat</option>
+                    <option value="fix">fix</option>
+                    <option value="style">style</option>
+                    <option value="refactor">refactor</option>
+                    <option value="chore">chore</option>
+                    <option value="deploy">deploy</option>
+                    <option value="docs">docs</option>
+                </select>
+                <input type="text" x-model="commitDesc"
+                    placeholder="deskripsi singkat perubahan..."
+                    style="flex:1;background:#0d180d;border:1px solid rgba(63,207,142,.2);color:#c0d8c0;border-radius:.35rem;padding:.3rem .55rem;font-size:.75rem;outline:none;"
+                    @keydown.enter="localChanges.length > 0 && commitDesc.trim() && !deploying && smartDeploy()" />
+            </div>
+            <div style="font-size:.66rem;color:var(--mut);font-family:monospace;"
+                 x-text="'→  ' + commitType + ': ' + (commitDesc.trim() || '...')"></div>
+        </div>
+
+        {{-- Smart Deploy steps tracker --}}
+        <template x-if="smartSteps.length">
+            <div style="background:#070d07;border-radius:.4rem;padding:.5rem .7rem;border:1px solid rgba(63,207,142,.1);">
+                <template x-for="step in smartSteps" :key="step.label">
+                    <div style="display:flex;align-items:center;gap:.5rem;padding:.15rem 0;">
+                        <span style="font-size:.8rem;min-width:1.2rem;"
+                            :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#3a5a3a'"
+                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
+                        </span>
+                        <span style="font-size:.73rem;"
+                            :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
+                            x-text="step.label"></span>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        {{-- Deploy button --}}
+        <button @click="smartDeploy()"
+            :disabled="!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()"
+            style="padding:.65rem;border-radius:.4rem;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;border:1px solid rgba(63,207,142,.4);background:rgba(63,207,142,.12);color:#3fcf8e;"
+            :style="(!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()) ? 'opacity:.4;cursor:not-allowed' : 'opacity:1'">
+            <span x-show="!deploying">🚀 Commit + Push + Deploy Hostinger</span>
+            <span x-show="deploying" style="animation:pulse 1s infinite">⏳ Deploying...</span>
+        </button>
+
+    </div>
+
     {{-- Action buttons --}}
     <div style="display:flex;flex-direction:column;gap:.5rem;">
         <div style="font-size:.7rem;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.2rem;">QUICK ACTIONS</div>
@@ -313,7 +409,13 @@ function deployPanel() {
         deploying: false,
         deploySteps: [],
         hostSteps: [],
+        smartSteps: [],
         hostingerOnline: false,
+
+        // Smart Deploy state
+        localChanges: [],
+        commitType: 'fix',
+        commitDesc: '',
 
         fileList: [],
         currentDir: '',
@@ -411,17 +513,24 @@ function deployPanel() {
                     this.deploying = false;
                     break;
                 case 'step': {
-                    const target = msg.target === 'hostinger' ? this.hostSteps : this.deploySteps;
+                    let target;
+                    if (msg.target === 'hostinger') target = this.hostSteps;
+                    else if (msg.target === 'smart') target = this.smartSteps;
+                    else target = this.deploySteps;
                     const i = target.findIndex(s => s.label === msg.label);
                     if (i >= 0) target[i].status = msg.status;
                     else target.push({ label: msg.label, status: msg.status });
-                    this.appendTerm(`  ${msg.status === 'ok' ? '✅' : msg.status === 'fail' ? '❌' : '⏳'} ${msg.label}`, msg.status === 'ok' ? 'ok' : '');
+                    const icon = msg.status==='ok'?'✅':msg.status==='fail'?'❌':msg.status==='skip'?'⊘':'⏳';
+                    this.appendTerm(`  ${icon} ${msg.label}`, msg.status==='ok'?'ok':'');
                     break;
                 }
                 case 'deploy_done':
                     this.deploying = false;
                     this.appendTerm('\n' + msg.msg, 'ok');
                     this.sendMsg('status');
+                    break;
+                case 'git_changes':
+                    this.localChanges = msg.files || [];
                     break;
                 case 'wa_status':
                     this.waStatus = msg;
@@ -463,6 +572,28 @@ function deployPanel() {
 
         runCmd(cmd) {
             this.sendMsg('cmd', { cmd });
+        },
+
+        refreshChanges() {
+            if (!this.wsReady) return;
+            this.sendMsg('git:changes');
+        },
+
+        smartDeploy() {
+            if (!this.wsReady || this.deploying) return;
+            if (this.localChanges.length === 0) {
+                this.appendTerm('ℹ️  Tidak ada perubahan untuk di-deploy', 'info');
+                return;
+            }
+            if (!this.commitDesc.trim()) {
+                this.appendTerm('⚠️  Isi pesan commit terlebih dahulu', 'stderr');
+                return;
+            }
+            const fullMsg = `${this.commitType}: ${this.commitDesc.trim()}`;
+            this.deploying = true;
+            this.smartSteps = [];
+            this.appendTerm(`\n🚀 Smart Deploy dimulai\n   Commit: "${fullMsg}"\n   Files: ${this.localChanges.length} perubahan`, 'info');
+            this.ws.send(JSON.stringify({ type: 'deploy:smart', commitMsg: fullMsg }));
         },
 
         fullDeploy() {

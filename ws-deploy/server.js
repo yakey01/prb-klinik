@@ -289,6 +289,57 @@ function spawnRemote(ws, remoteCmd) {
   return spawnPromise(ws, 'ssh', sshArgs(remoteCmd));
 }
 
+// ── Git status → kirim daftar file berubah ke client ─────────────────────────
+function sendGitChanges(ws) {
+  return new Promise(resolve => {
+    const proc = spawn(BIN.git, ['status', '--porcelain', '-u'], { cwd: APP_ROOT });
+    let out = '';
+    proc.stdout.on('data', d => { out += d.toString(); });
+    proc.stderr.on('data', d => { out += d.toString(); });
+    proc.on('close', () => {
+      const lines = out.trim().split('\n').filter(Boolean);
+      const files = lines.map(l => ({
+        xy: l.slice(0, 2).trim() || '?',
+        path: l.slice(3).trim(),
+      }));
+      send(ws, 'git_changes', { files, count: files.length });
+      resolve();
+    });
+    proc.on('error', () => { send(ws, 'git_changes', { files: [], count: 0 }); resolve(); });
+  });
+}
+
+// ── Smart Deploy: git add → commit → push → rsync → optimize ─────────────────
+async function runSmartDeploy(ws, commitMsg) {
+  const msg = (commitMsg || '').trim() || 'chore: update';
+  const steps = [
+    { label: 'Git Add',      fn: () => spawnLocal(ws, BIN.git, ['add', '-A']) },
+    { label: 'Git Commit',   fn: () => spawnLocal(ws, BIN.git, ['commit', '-m', msg]) },
+    { label: 'Git Push',     fn: () => spawnLocal(ws, BIN.git, ['push', 'origin', 'main']) },
+    { label: 'Rsync Files',  fn: () => spawnPromise(ws, BIN.rsync, buildRsyncArgs()) },
+    { label: 'Remote Cache', fn: () => spawnRemote(ws, `cd ${REMOTE_ROOT} && php artisan optimize`) },
+  ];
+
+  send(ws, 'deploy_start', { steps: steps.length, target: 'smart' });
+
+  for (const { label, fn } of steps) {
+    send(ws, 'step', { label, status: 'running', target: 'smart' });
+    const code = await fn();
+
+    // git commit exit 1 = "nothing to commit" → bukan error fatal
+    if (label === 'Git Commit' && code !== 0) {
+      sendLine(ws, '  ℹ️  Tidak ada perubahan baru untuk di-commit');
+      send(ws, 'step', { label, status: 'skip', target: 'smart' });
+      continue;
+    }
+    send(ws, 'step', { label, status: code === 0 ? 'ok' : 'fail', target: 'smart' });
+    if (code !== 0) { sendErr(ws, `Step "${label}" gagal (exit ${code})`); break; }
+  }
+
+  send(ws, 'deploy_done', { msg: 'Smart Deploy selesai ✅', target: 'smart' });
+  sendGitChanges(ws); // refresh daftar perubahan setelah deploy
+}
+
 // ── Run whitelisted local command, stream output ──────────────────────────────
 function runCommand(ws, cmdKey, extraArgs = []) {
   if (cmdKey === 'deploy:full')      return runFullDeploy(ws);
@@ -411,6 +462,8 @@ function sendStatusSnapshot(ws) {
     send(ws, 'git_info', { output: out || '' });
   });
 
+  sendGitChanges(ws); // kirim daftar file berubah saat connect
+
   exec('df -h . | tail -1 && php --version | head -1', { cwd: APP_ROOT }, (e, out) => {
     send(ws, 'system_info', { output: out || '' });
   });
@@ -449,6 +502,12 @@ wss.on('connection', (ws, req) => {
     switch (msg.type) {
       case 'cmd':
         runCommand(ws, msg.cmd, msg.args || []);
+        break;
+      case 'git:changes':
+        sendGitChanges(ws);
+        break;
+      case 'deploy:smart':
+        runSmartDeploy(ws, msg.commitMsg || '');
         break;
       case 'file:read':
         handleFileRead(ws, msg.path);
