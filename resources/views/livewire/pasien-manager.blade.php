@@ -84,17 +84,36 @@
         </h3>
         <button wire:click="cancel" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;line-height:1;padding:.25rem;">&times;</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;">
+
+    @if($errors->any())
+    <div style="margin-bottom:.9rem;padding:.75rem 1rem;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.35);border-radius:.5rem;display:flex;align-items:flex-start;gap:.6rem;">
+        <svg width="15" height="15" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:.1rem;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <div>
-            <label class="form-label">Nama Lengkap *</label>
+            <div style="font-size:.72rem;font-weight:700;color:var(--red);margin-bottom:.3rem;">Perbaiki kesalahan berikut sebelum menyimpan:</div>
+            <ul style="margin:0;padding-left:1rem;font-size:.71rem;color:var(--red);opacity:.9;">
+                @foreach($errors->all() as $err)
+                <li style="margin-bottom:.1rem;">{{ $err }}</li>
+                @endforeach
+            </ul>
+        </div>
+    </div>
+    @endif
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;">
+        {{-- Nama --}}
+        <div>
+            <label class="form-label">Nama Lengkap <span style="color:var(--red);">*</span></label>
             <input wire:model="nama" type="text" class="form-input" placeholder="Nama pasien">
             @error('nama')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
+        {{-- No. BPJS --}}
         <div>
-            <label class="form-label">No. BPJS</label>
-            <input wire:model="no_bpjs" type="text" class="form-input font-mono" placeholder="0001234567890" style="font-size:.78rem;">
+            <label class="form-label">No. BPJS <span style="color:var(--red);">*</span> <span style="color:var(--mut);font-weight:400;">(min 8 digit)</span></label>
+            <input wire:model="no_bpjs" type="text" inputmode="numeric" maxlength="13"
+                   class="form-input font-mono" placeholder="0001234567890" style="font-size:.78rem;"
+                   wire:keydown="$set('no_bpjs', $event.target.value.replace(/\D/g,'').substring(0,13))">
             @error('no_bpjs')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
+        {{-- Diagnosis --}}
         <div>
             <label class="form-label">Diagnosis</label>
             <select wire:model="kategori_diagnosis" class="form-input">
@@ -104,37 +123,74 @@
                 @endforeach
             </select>
         </div>
+        {{-- Tanggal Lahir --}}
         <div>
             <label class="form-label">Tanggal Lahir</label>
-            <input wire:model="tanggal_lahir" type="date" class="form-input">
+            <input wire:model="tanggal_lahir" type="date" class="form-input" max="{{ date('Y-m-d') }}">
             @error('tanggal_lahir')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
+        {{-- Jenis Kelamin --}}
         <div>
-            <label class="form-label">Jenis Kelamin</label>
+            <label class="form-label">Jenis Kelamin <span style="color:var(--red);">*</span></label>
             <select wire:model="jenis_kelamin" class="form-input">
                 <option value="">— Pilih —</option>
                 <option value="L">Laki-laki</option>
                 <option value="P">Perempuan</option>
             </select>
+            @error('jenis_kelamin')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
+        {{-- Telepon --}}
         <div>
-            <label class="form-label">Telepon</label>
-            <input wire:model="telepon" type="text" class="form-input" placeholder="08xx-xxxx-xxxx">
+            <label class="form-label">No. Handphone</label>
+            <input wire:model="telepon" type="text" inputmode="numeric" maxlength="15"
+                   class="form-input" placeholder="08123456789">
+            @error('telepon')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
+        {{-- Alamat --}}
         <div style="grid-column:span 2;">
             <label class="form-label">Alamat</label>
-            <input wire:model="alamat" type="text" class="form-input" placeholder="Alamat lengkap">
+            <input wire:model="alamat" type="text" class="form-input" placeholder="Alamat lengkap sesuai KTP">
+            @error('alamat')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
+        {{-- Catatan --}}
         <div>
             <label class="form-label">Catatan</label>
             <input wire:model="catatan" type="text" class="form-input" placeholder="Catatan tambahan">
         </div>
     </div>
-    <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end;">
+
+    {{-- ── Jadwal Ambil Obat ─────────────────────────────────────────── --}}
+    <div style="margin-top:.9rem;padding:.85rem;background:rgba(217,164,65,.07);border:1px solid rgba(217,164,65,.25);border-radius:.6rem;">
+        <div style="font-size:.72rem;font-weight:700;color:var(--gold2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.6rem;">
+            📅 Jadwal Ambil Obat Berikutnya
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 2fr;gap:.75rem;align-items:end;">
+            <div>
+                <label class="form-label">Tanggal Pengambilan</label>
+                <input wire:model="jadwal_ambil_obat" type="date" class="form-input"
+                       min="{{ date('Y-m-d') }}">
+                @error('jadwal_ambil_obat')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
+            </div>
+            <div style="font-size:.72rem;color:var(--mut);padding-bottom:.25rem;line-height:1.5;">
+                Jadwal ini akan tersimpan ke halaman <strong style="color:var(--ink);">Jadwal Pasien</strong>
+                dan muncul di reminder pengambilan obat kronis.
+                @if($jadwal_ambil_obat)
+                <br><span style="color:var(--gold2);">
+                    ≈ {{ \Carbon\Carbon::parse($jadwal_ambil_obat)->diffForHumans() }}
+                    ({{ \Carbon\Carbon::parse($jadwal_ambil_obat)->locale('id')->translatedFormat('d F Y') }})
+                </span>
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end;align-items:center;">
+        <span style="font-size:.68rem;color:var(--mut);">* wajib diisi</span>
         <button wire:click="cancel" class="btn-outline">Batal</button>
-        <button wire:click="save" class="btn-gold">
+        <button wire:click="save" class="btn-gold" wire:loading.attr="disabled">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            Simpan
+            <span wire:loading.remove>Simpan</span>
+            <span wire:loading>Menyimpan...</span>
         </button>
     </div>
 </div>

@@ -40,6 +40,7 @@ class PasienManager extends Component
     public string $tanggal_lahir = '';
     public string $jenis_kelamin = '';
     public string $catatan = '';
+    public string $jadwal_ambil_obat = '';  // tanggal jadwal pengambilan berikutnya
 
     protected function queryString(): array
     {
@@ -323,7 +324,8 @@ class PasienManager extends Component
 
     public function openAdd(): void
     {
-        $this->reset(['editId','nama','no_bpjs','kategori_diagnosis','telepon','alamat','tanggal_lahir','jenis_kelamin','catatan']);
+        $this->reset(['editId','nama','no_bpjs','kategori_diagnosis','telepon','alamat','tanggal_lahir','jenis_kelamin','catatan','jadwal_ambil_obat']);
+        $this->jadwal_ambil_obat = now()->addDays(30)->format('Y-m-d'); // default 30 hari
         $this->showForm = true;
     }
 
@@ -339,48 +341,89 @@ class PasienManager extends Component
         $this->tanggal_lahir       = $p->tanggal_lahir ? $p->tanggal_lahir->format('Y-m-d') : '';
         $this->jenis_kelamin       = $p->jenis_kelamin ?? '';
         $this->catatan             = $p->catatan ?? '';
+
+        // Load jadwal pengambilan berikutnya yang masih dijadwalkan
+        $jadwalAktif = PengambilanObat::where('pasien_id', $id)
+            ->where('status', 'dijadwalkan')
+            ->where('tanggal_pengambilan', '>=', now()->format('Y-m-d'))
+            ->orderBy('tanggal_pengambilan')
+            ->first();
+        $this->jadwal_ambil_obat = $jadwalAktif
+            ? $jadwalAktif->tanggal_pengambilan->format('Y-m-d')
+            : now()->addDays(30)->format('Y-m-d');
+
         $this->showForm = true;
     }
 
     public function cancel(): void
     {
         $this->showForm = false;
-        $this->reset(['editId','nama','no_bpjs','kategori_diagnosis','telepon','alamat','tanggal_lahir','jenis_kelamin','catatan']);
+        $this->reset(['editId','nama','no_bpjs','kategori_diagnosis','telepon','alamat','tanggal_lahir','jenis_kelamin','catatan','jadwal_ambil_obat']);
     }
 
     public function save(): void
     {
         $this->validate([
             'nama'               => 'required|min:2|max:150',
-            'no_bpjs'            => 'nullable|max:20|unique:pasien,no_bpjs,' . ($this->editId ?? 'NULL'),
+            'no_bpjs'            => 'required|string|min:8|max:20|unique:pasien,no_bpjs,' . ($this->editId ?? 'NULL'),
             'kategori_diagnosis' => 'nullable|max:100',
-            'telepon'            => 'nullable|max:20',
+            'telepon'            => ['nullable', 'regex:/^08[0-9]{8,11}$/', 'max:15'],
             'alamat'             => 'nullable|max:255',
-            'tanggal_lahir'      => 'nullable|date',
-            'jenis_kelamin'      => 'nullable|in:L,P',
+            'tanggal_lahir'      => 'nullable|date|before:today',
+            'jenis_kelamin'      => 'required|in:L,P',
+            'jadwal_ambil_obat'  => 'nullable|date|after_or_equal:today',
+        ], [
+            'no_bpjs.required'   => 'Nomor BPJS wajib diisi.',
+            'no_bpjs.min'        => 'Nomor BPJS minimal 8 digit.',
+            'no_bpjs.max'        => 'Nomor BPJS maksimal 20 karakter.',
+            'no_bpjs.unique'     => 'Nomor BPJS sudah terdaftar di pasien lain.',
+            'telepon.regex'      => 'Format nomor tidak valid. Contoh: 08123456789',
+            'tanggal_lahir.date' => 'Format tanggal tidak valid.',
+            'tanggal_lahir.before' => 'Tanggal lahir harus sebelum hari ini.',
+            'jenis_kelamin.required' => 'Jenis kelamin wajib dipilih.',
         ]);
 
         $data = [
             'nama'               => $this->nama,
-            'no_bpjs'            => $this->no_bpjs ?: null,
+            'no_bpjs'            => $this->no_bpjs,
             'kategori_diagnosis' => $this->kategori_diagnosis ?: null,
             'telepon'            => $this->telepon ?: null,
             'alamat'             => $this->alamat ?: null,
             'tanggal_lahir'      => $this->tanggal_lahir ?: null,
-            'jenis_kelamin'      => $this->jenis_kelamin ?: null,
+            'jenis_kelamin'      => $this->jenis_kelamin,
             'catatan'            => $this->catatan ?: null,
             'is_aktif'           => true,
         ];
 
         if ($this->editId) {
             Pasien::findOrFail($this->editId)->update($data);
+            $pasienId = $this->editId;
             ActivityLog::record('diubah', "Edit pasien: {$this->nama}", 'pasien', $this->editId);
         } else {
             $p = Pasien::create($data);
+            $pasienId = $p->id;
             ActivityLog::record('dibuat', "Tambah pasien: {$this->nama}", 'pasien', $p->id);
         }
+
+        // Simpan/update jadwal pengambilan obat
+        if ($this->jadwal_ambil_obat) {
+            // Hapus jadwal lama yang masih dijadwalkan, ganti dengan yang baru
+            PengambilanObat::where('pasien_id', $pasienId)
+                ->where('status', 'dijadwalkan')
+                ->where('tanggal_pengambilan', '>=', now()->format('Y-m-d'))
+                ->delete();
+
+            PengambilanObat::create([
+                'pasien_id'           => $pasienId,
+                'tanggal_pengambilan' => $this->jadwal_ambil_obat,
+                'status'              => 'dijadwalkan',
+                'total_item'          => 0,
+                'dicatat_oleh'        => auth()->id(),
+            ]);
+        }
+
         $this->cancel();
-        $this->dispatch('toast', type: 'success', message: 'Data pasien berhasil disimpan.');
+        $this->dispatch('toast', type: 'success', message: 'Data pasien dan jadwal berhasil disimpan.');
     }
 
     // Dispatch browser event so parent Alpine can switch to Catat Pengambilan tab
