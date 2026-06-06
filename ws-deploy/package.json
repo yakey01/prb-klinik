@@ -1,0 +1,9 @@
+{
+  "name": "prb-klinik-ws-deploy",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "ws": "^8.16.0",
+    "chokidar": "^3.6.0"
+  }
+}

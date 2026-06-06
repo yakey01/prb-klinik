@@ -1,0 +1,41 @@
+# =============================================================================
+# PRB Klinik — .gitattributes
+# Pastikan line endings konsisten di semua OS
+# =============================================================================
+
+* text=auto eol=lf
+
+# PHP
+*.php text eol=lf diff=php
+*.blade.php text eol=lf diff=html
+
+# Web
+*.js text eol=lf
+*.css text eol=lf diff=css
+*.html text eol=lf diff=html
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.md text eol=lf diff=markdown
+
+# Config
+*.env text eol=lf
+*.sh text eol=lf
+
+# Binary — jangan di-diff
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+
+# Export ignore (tidak masuk zip/tarball release)
+/.github export-ignore
+CHANGELOG.md export-ignore

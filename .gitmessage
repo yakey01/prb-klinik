@@ -1,0 +1,19 @@
+# <type>: <deskripsi singkat> (max 72 karakter)
+#
+# Body (opsional) — jelaskan APA dan MENGAPA, bukan HOW:
+#
+#
+# Footer (opsional):
+# Closes #<issue>
+# Breaking: <deskripsi perubahan breaking>
+#
+# Tipe yang valid:
+#   feat     Fitur baru
+#   fix      Perbaikan bug
+#   refactor Refactoring tanpa perubahan perilaku
+#   style    Perubahan CSS/UI/formatting
+#   chore    Update dependencies, config, tooling
+#   deploy   Konfigurasi deploy / Hostinger
+#   docs     Update dokumentasi
+#   test     Tambah atau update tests
+# ─────────────────────────────────────────────────────────────────────────────

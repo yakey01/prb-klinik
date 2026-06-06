@@ -1,0 +1,71 @@
+# =============================================================================
+# PRB Klinik — .gitignore
+# Laravel 12 · Node.js · Klinik Dokterku, Kabupaten Kediri
+# =============================================================================
+
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+/auth.json
+/storage/*.key
+
+# ── PHP / Laravel ─────────────────────────────────────────────────────────────
+/vendor/
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/pail/
+
+/public/storage
+/public/hot
+/public/build
+
+.phpunit.result.cache
+/.phpunit.cache
+phpunit.xml.bak
+composer.json.bak
+
+# ── Node.js ───────────────────────────────────────────────────────────────────
+/node_modules/
+/wa-service/node_modules/
+/ws-deploy/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── WA Service sessions (berisi session browser — data sensitif) ──────────────
+/wa-service/sessions/
+
+# ── Log files (root level) ────────────────────────────────────────────────────
+/logs/*.json
+
+# ── Claude Code session data ──────────────────────────────────────────────────
+/.claude/data/
+
+# ── IDE & OS ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+/.idea
+/.vscode
+/.zed
+/.nova
+/.fleet
+/.phpactor.json
+Homestead.json
+Homestead.yaml
+
+# ── Build artifacts ───────────────────────────────────────────────────────────
+*.log
+*.bak
+*.swp
+*.swo
+*~
