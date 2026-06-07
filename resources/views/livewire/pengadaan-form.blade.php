@@ -80,19 +80,19 @@
                     <tr style="border-left:3px solid {{ $isKronis ? 'rgba(63,207,142,.4)' : 'rgba(111,177,224,.4)' }};">
                         <td style="padding:.5rem .75rem;">
                             <div style="display:flex;align-items:center;gap:.5rem;">
-                                {{-- BPJS / UMUM toggle --}}
+                                {{-- KRONIS / NON KRONIS toggle --}}
                                 <div style="display:flex;border-radius:.5rem;overflow:hidden;border:1px solid var(--line2);flex-shrink:0;">
                                     <button type="button"
                                         wire:click="$set('rows.{{ $i }}.tipe_obat','kronis')"
                                         style="padding:.45rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer;border:none;line-height:1;transition:all .15s;letter-spacing:.03em;
                                             {{ $isKronis ? 'background:rgba(63,207,142,.22);color:var(--emer2);' : 'background:transparent;color:var(--mut);' }}">
-                                        BPJS
+                                        KRONIS
                                     </button>
                                     <button type="button"
                                         wire:click="$set('rows.{{ $i }}.tipe_obat','non_kronis')"
                                         style="padding:.45rem .85rem;font-size:.75rem;font-weight:700;cursor:pointer;border:none;border-left:1px solid var(--line2);line-height:1;transition:all .15s;letter-spacing:.03em;
                                             {{ !$isKronis ? 'background:rgba(111,177,224,.22);color:var(--blue);' : 'background:transparent;color:var(--mut);' }}">
-                                        UMUM
+                                        NON KRONIS
                                     </button>
                                 </div>
                                 {{-- Searchable obat picker --}}
@@ -115,7 +115,7 @@
                                         <option value="0">--</option>
                                         @foreach($this->obatList as $obat)
                                         <option value="{{ $obat->id }}"
-                                            data-nama="{{ $obat->nama_obat }}{{ $obat->tipe_obat==='non_kronis' ? ' [Umum]' : '' }}"
+                                            data-nama="{{ $obat->nama_obat }}{{ $obat->tipe_obat==='non_kronis' ? ' [Non Kronis]' : '' }}"
                                             data-tipe="{{ $obat->tipe_obat }}">
                                             {{ $obat->nama_obat }}
                                         </option>
@@ -269,7 +269,7 @@
                             <td style="padding:.3rem .5rem;">
                                 <span style="font-size:.65rem;font-weight:700;padding:.15rem .4rem;border-radius:.3rem;
                                     {{ $isKronis ? 'background:rgba(63,207,142,.12);color:var(--emer2);border:1px solid rgba(63,207,142,.25);' : 'background:rgba(111,177,224,.12);color:var(--blue);border:1px solid rgba(111,177,224,.25);' }}">
-                                    {{ $isKronis ? 'BPJS' : 'UMUM' }}
+                                    {{ $isKronis ? 'KRONIS' : 'NON KRONIS' }}
                                 </span>
                             </td>
                             <td style="padding:.3rem .5rem;color:var(--ink);">{{ $item->obat->nama_obat ?? '-' }}</td>

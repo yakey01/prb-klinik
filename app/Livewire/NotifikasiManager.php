@@ -193,11 +193,12 @@ class NotifikasiManager extends Component
         $tipe   = $diffH == 1 ? 'H1' : ($diffH < 0 ? 'OVERDUE' : 'HARIAN');
         $tplKey = $diffH < 0 ? 'template_overdue' : ($diffH == 1 ? 'template_h1' : 'template_harian');
 
-        $pesan = $svc->buildPesan($cfg->{$tplKey} ?? '', [
-            'nama'     => $po->pasien->nama,
-            'tanggal'  => $jadwal->format('d/m/Y'),
-            'diagnosa' => $po->pasien->kategori_diagnosis ?? '-',
-        ]);
+        if ($diffH < 0 && $svc->sudahKirimOverdueMaxHari($po->id)) {
+            $this->flash("Pengingat overdue {$po->pasien->nama} sudah mencapai batas 5 hari", 'error');
+            return;
+        }
+
+        $pesan = $svc->buildPesanUntuk($cfg->{$tplKey} ?? '', $po->pasien, $jadwal);
 
         $result = $svc->kirimWa($po->pasien->telepon, $pesan, $po->pasien_id, $po->id, $tipe);
         $this->flash($result['ok'] ? "WA terkirim ke {$po->pasien->nama}" : "Gagal: {$result['msg']}", $result['ok'] ? 'success' : 'error');
@@ -222,41 +223,52 @@ class NotifikasiManager extends Component
     public function kirimSemua(): void
     {
         $hariIni = today()->toDateString();
+        $besok   = Carbon::tomorrow()->toDateString();
         $selesai = ['selesai', 'batal'];
+        $svc     = app(NotifikasiService::class);
+        $cfg     = NotifikasiSetting::getSetting();
+        $ok      = 0;
+        $skip    = 0;
+
+        // H-1 dan hari ini
         $list = PengambilanObat::with('pasien')
-            ->whereIn('jadwal_berikutnya', [$hariIni, Carbon::tomorrow()->toDateString()])
+            ->whereIn('jadwal_berikutnya', [$hariIni, $besok])
             ->whereNotIn('status', $selesai)
             ->get();
 
-        $svc  = app(NotifikasiService::class);
-        $cfg  = NotifikasiSetting::getSetting();
-        $ok   = 0;
-        $skip = 0;
-
         foreach ($list as $po) {
             if (!$po->pasien?->telepon) continue;
-
-            // Anti-spam: skip jika sudah kirim hari ini
-            if ($svc->sudahKirimHariIni($po->id)) {
-                $skip++;
-                continue;
-            }
+            if ($svc->sudahKirimHariIni($po->id)) { $skip++; continue; }
 
             $jadwal = Carbon::parse($po->jadwal_berikutnya);
             $tplKey = $jadwal->isToday() ? 'template_harian' : 'template_h1';
-            $pesan  = $svc->buildPesan($cfg->{$tplKey} ?? '', [
-                'nama'     => $po->pasien->nama,
-                'tanggal'  => $jadwal->format('d/m/Y'),
-                'diagnosa' => $po->pasien->kategori_diagnosis ?? '-',
-            ]);
-            $result = $svc->kirimWa($po->pasien->telepon, $pesan, $po->pasien_id, $po->id,
-                $jadwal->isToday() ? 'HARIAN' : 'H1');
+            $tipe   = $jadwal->isToday() ? 'HARIAN' : 'H1';
+            $pesan  = $svc->buildPesanUntuk($cfg->{$tplKey} ?? '', $po->pasien, $jadwal);
+            $result = $svc->kirimWa($po->pasien->telepon, $pesan, $po->pasien_id, $po->id, $tipe);
+            if ($result['ok']) $ok++;
+        }
+
+        // Overdue — maks 5 hari pengingat per pasien
+        $overdueList = PengambilanObat::with('pasien')
+            ->where('jadwal_berikutnya', '<', $hariIni)
+            ->whereNotIn('status', $selesai)
+            ->whereNotNull('jadwal_berikutnya')
+            ->get();
+
+        foreach ($overdueList as $po) {
+            if (!$po->pasien?->telepon) continue;
+            if ($svc->sudahKirimHariIni($po->id)) { $skip++; continue; }
+            if ($svc->sudahKirimOverdueMaxHari($po->id)) { $skip++; continue; }
+
+            $jadwal = Carbon::parse($po->jadwal_berikutnya);
+            $pesan  = $svc->buildPesanUntuk($cfg->template_overdue ?? '', $po->pasien, $jadwal);
+            $result = $svc->kirimWa($po->pasien->telepon, $pesan, $po->pasien_id, $po->id, 'OVERDUE');
             if ($result['ok']) $ok++;
         }
 
         unset($this->stats, $this->jadwalList);
         $msg = "Kirim selesai: {$ok} terkirim";
-        if ($skip > 0) $msg .= ", {$skip} skip (sudah terkirim hari ini)";
+        if ($skip > 0) $msg .= ", {$skip} skip";
         $this->flash($msg);
     }
 

@@ -5,6 +5,7 @@ use App\Models\Obat;
 use App\Models\PurchaseOrder;
 use App\Models\BiayaOperasional;
 use App\Models\StokKeluar;
+use App\Models\RekonsiliasiiBpjs;
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Carbon\Carbon;
@@ -30,12 +31,54 @@ class LaporanBulanan extends Component
     #[Computed]
     public function ringkasan(): array
     {
-        // ── Segmen A: Obat Kronis — Revenue dari BPJS/JKN (non-tunai, formula PMK 3/2023) ──
-        $kronisObat = Obat::where('is_active', true)->where('tipe_obat', 'kronis')->get();
-        $pendBpjs   = (float) $kronisObat->sum('pendapatan_bulan');
-        $hppBpjs    = (float) $kronisObat->sum('biaya_bulan');
-        $labaBpjs   = $pendBpjs - $hppBpjs;
-        $marginBpjs = $pendBpjs > 0 ? round($labaBpjs / $pendBpjs * 100, 1) : 0;
+        // ── Segmen A: Obat Kronis BPJS ────────────────────────────────────────────
+        //
+        // HPP (biaya): dari item_pengambilan aktual bulan ini
+        //   = Σ jumlah_unit × harga_beli_snapshot (harga saat penyerahan)
+        //
+        // PENDAPATAN (revenue): dari rekonsiliasi_bpjs.tagihan_dibayar
+        //   = jumlah yang benar-benar dibayar BPJS untuk periode ini
+        //   NOTE: klaim bulan N dibayar di bulan N+1, sehingga bulan berjalan
+        //         cenderung NEGATIF sampai klaim disetujui.
+        //
+        // PROYEKSI: dari item_pengambilan × klaim_bpjs_rate (estimasi klaim)
+
+        // HPP aktual dari obat yang diserahkan bulan ini
+        $hppBpjs = (float) \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereYear('po.tanggal_pengambilan', $this->tahun)
+            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->where('po.status', 'selesai')
+            ->where('o.tipe_obat', 'kronis')
+            ->sum(\DB::raw('ip.jumlah_unit * ip.harga_beli_snapshot'));
+
+        // Proyeksi klaim dari item diserahkan (sebelum rekonsiliasi)
+        $proyeksiBpjs = (float) \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereYear('po.tanggal_pengambilan', $this->tahun)
+            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->where('po.status', 'selesai')
+            ->where('o.tipe_obat', 'kronis')
+            ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot'));
+
+        // Revenue aktual dari rekonsiliasi BPJS periode ini
+        $rekon = RekonsiliasiiBpjs::where('bulan', $this->bulan)
+            ->where('tahun', $this->tahun)->first();
+
+        $pendBpjs        = $rekon ? (float) $rekon->tagihan_dibayar : 0.0;
+        $diajukanBpjs    = $rekon ? (float) $rekon->tagihan_diajukan : 0.0;
+        $statusRekon     = $rekon?->status ?? 'belum_diajukan';
+        $selisihRekon    = $pendBpjs - $diajukanBpjs;
+
+        // Jika belum ada rekonsiliasi (bulan berjalan), revenue = 0 (pending)
+        // Tampilkan proyeksi sebagai estimasi
+        $pendBpjsDisplay = $pendBpjs > 0 ? $pendBpjs : $proyeksiBpjs;
+        $isPending       = ($pendBpjs === 0.0);
+
+        $labaBpjs   = $pendBpjsDisplay - $hppBpjs;
+        $marginBpjs = $pendBpjsDisplay > 0 ? round($labaBpjs / $pendBpjsDisplay * 100, 1) : 0;
 
         // ── Segmen B: Obat Non-Kronis — Revenue TUNAI dari Pasien Umum (stok keluar aktual) ──
         $skBulan   = StokKeluar::whereYear('tanggal_keluar', $this->tahun)
@@ -76,6 +119,8 @@ class LaporanBulanan extends Component
         return compact(
             // Segmen A: BPJS/Kronis
             'pendBpjs', 'hppBpjs', 'labaBpjs', 'marginBpjs',
+            // Rekonsiliasi BPJS detail
+            'proyeksiBpjs', 'diajukanBpjs', 'selisihRekon', 'statusRekon', 'isPending',
             // Segmen B: Tunai/Non-Kronis
             'pendTunai', 'hppTunai', 'labaTunai', 'marginTunai',
             // Konsolidasi
@@ -89,22 +134,42 @@ class LaporanBulanan extends Component
     #[Computed]
     public function detailBpjs()
     {
-        return Obat::where('is_active', true)->where('tipe_obat', 'kronis')
-            ->orderByDesc(\DB::raw('(klaim_bpjs_per_unit * faktor_jasa_farmasi - harga_beli_per_unit) * unit_per_bulan'))
-            ->get()
-            ->map(fn ($o) => [
-                'nama'       => $o->nama_obat,
-                'kategori'   => $o->kategori_diagnosis,
-                'pasien'     => $o->jumlah_pasien,
-                'unit'       => $o->unit_per_bulan,
-                'klaim'      => $o->klaim_bpjs_per_unit,
-                'faktor'     => $o->faktor_jasa_farmasi,
-                'bayar_bpjs' => round($o->klaim_bpjs_per_unit * $o->faktor_jasa_farmasi, 2),
-                'harga_beli' => $o->harga_beli_per_unit,
-                'pendapatan' => $o->pendapatan_bulan,
-                'biaya'      => $o->biaya_bulan,
-                'laba'       => $o->laba,
-            ]);
+        // Detail obat yang diserahkan bulan ini — basis HPP dan proyeksi klaim
+        $rows = \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereYear('po.tanggal_pengambilan', $this->tahun)
+            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->where('po.status', 'selesai')
+            ->where('o.tipe_obat', 'kronis')
+            ->select(
+                'o.id as obat_id',
+                'o.nama_obat', 'o.kategori_diagnosis',
+                \DB::raw('COUNT(DISTINCT po.pasien_id) AS pasien'),
+                \DB::raw('SUM(ip.jumlah_unit) AS total_unit'),
+                \DB::raw('AVG(ip.harga_klaim_bpjs_snapshot) AS klaim'),
+                \DB::raw('AVG(ip.faktor_jasa_farmasi_snapshot) AS faktor'),
+                \DB::raw('AVG(ip.harga_beli_snapshot) AS harga_beli'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) AS proyeksi'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS biaya')
+            )
+            ->groupBy('o.id', 'o.nama_obat', 'o.kategori_diagnosis')
+            ->orderByDesc('proyeksi')
+            ->get();
+
+        return $rows->map(fn ($r) => [
+            'nama'       => $r->nama_obat,
+            'kategori'   => $r->kategori_diagnosis,
+            'pasien'     => (int) $r->pasien,
+            'unit'       => (float) $r->total_unit,
+            'klaim'      => round((float) $r->klaim, 2),
+            'faktor'     => round((float) $r->faktor, 4),
+            'bayar_bpjs' => round((float) $r->klaim * (float) $r->faktor, 2),
+            'harga_beli' => round((float) $r->harga_beli, 2),
+            'pendapatan' => round((float) $r->proyeksi, 2),  // proyeksi klaim
+            'biaya'      => round((float) $r->biaya, 2),
+            'laba'       => round((float) $r->proyeksi - (float) $r->biaya, 2),
+        ])->values();
     }
 
     #[Computed]
@@ -132,16 +197,50 @@ class LaporanBulanan extends Component
     #[Computed]
     public function topLaba()
     {
-        return Obat::where('is_active', true)->get()
-            ->sortByDesc('laba')->take(10)->values();
+        // Top obat berdasarkan laba aktual bulan ini (proyeksi klaim - HPP)
+        return \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereYear('po.tanggal_pengambilan', $this->tahun)
+            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->where('po.status', 'selesai')
+            ->where('o.tipe_obat', 'kronis')
+            ->select(
+                'o.nama_obat',
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) AS proyeksi'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS biaya'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot)
+                         - SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS laba')
+            )
+            ->groupBy('o.id', 'o.nama_obat')
+            ->having('laba', '>', 0)
+            ->orderByDesc('laba')
+            ->limit(10)
+            ->get();
     }
 
     #[Computed]
     public function topRugi()
     {
-        return Obat::where('is_active', true)->get()
-            ->filter(fn ($o) => $o->laba < 0)
-            ->sortBy('laba')->take(10)->values();
+        return \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereYear('po.tanggal_pengambilan', $this->tahun)
+            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->where('po.status', 'selesai')
+            ->where('o.tipe_obat', 'kronis')
+            ->select(
+                'o.nama_obat',
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) AS proyeksi'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS biaya'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot)
+                         - SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS laba')
+            )
+            ->groupBy('o.id', 'o.nama_obat')
+            ->having('laba', '<', 0)
+            ->orderBy('laba')
+            ->limit(10)
+            ->get();
     }
 
     #[Computed]
@@ -152,9 +251,6 @@ class LaporanBulanan extends Component
         $pendTunaiData   = [];
         $pengeluaranData = [];
 
-        // Proyeksi BPJS/kronis sama setiap bulan (pendapatan_bulan adalah computed accessor)
-        $kronisTotal = (float) Obat::where('is_active', true)->where('tipe_obat', 'kronis')->get()->sum('pendapatan_bulan');
-
         for ($i = 5; $i >= 0; $i--) {
             $d = Carbon::create($this->tahun, $this->bulan, 1)->subMonths($i);
             $labels[] = $d->locale('id')->translatedFormat('M Y');
@@ -162,7 +258,15 @@ class LaporanBulanan extends Component
             $pengeluaranData[] = (float) PurchaseOrder::whereYear('tanggal_po', $d->year)
                 ->whereMonth('tanggal_po', $d->month)->sum('total_nilai');
 
-            $pendKronisData[] = $kronisTotal;
+            // Proyeksi BPJS kronis: dari item_pengambilan aktual per bulan
+            $pendKronisData[] = (float) \DB::table('item_pengambilan as ip')
+                ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+                ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+                ->whereYear('po.tanggal_pengambilan', $d->year)
+                ->whereMonth('po.tanggal_pengambilan', $d->month)
+                ->where('po.status', 'selesai')
+                ->where('o.tipe_obat', 'kronis')
+                ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot'));
 
             // Tunai non-kronis: aktual dari stok keluar per bulan
             $pendTunaiData[] = (float) StokKeluar::whereYear('tanggal_keluar', $d->year)

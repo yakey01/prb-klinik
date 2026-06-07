@@ -155,6 +155,31 @@ class PasienManager extends Component
             ->toArray();
     }
 
+    // Resep aktif per pasien (dari resep_pasien, bukan item_pengambilan)
+    #[Computed]
+    public function resepPerPasien(): array
+    {
+        $ids = $this->pasienList->pluck('id');
+        if ($ids->isEmpty()) return [];
+
+        $reseps = ResepPasien::whereIn('pasien_id', $ids)
+            ->where('is_aktif', true)
+            ->with('obat:id,nama_obat')
+            ->orderBy('urutan')
+            ->orderBy('id')
+            ->get();
+
+        $result = [];
+        foreach ($reseps as $r) {
+            $result[$r->pasien_id][] = [
+                'nama'   => $r->obat?->nama_obat ?? '—',
+                'jumlah' => $r->jumlah_default,
+                'satuan' => $r->satuan ?: 'tablet',
+            ];
+        }
+        return $result;
+    }
+
     #[Computed]
     public function drawerPasien(): ?Pasien
     {
@@ -365,21 +390,25 @@ class PasienManager extends Component
     {
         $this->validate([
             'nama'               => 'required|min:2|max:150',
-            'no_bpjs'            => 'required|string|min:8|max:20|unique:pasien,no_bpjs,' . ($this->editId ?? 'NULL'),
+            'no_bpjs'            => 'required|string|digits:13|unique:pasien,no_bpjs,' . ($this->editId ?? 'NULL'),
             'kategori_diagnosis' => 'nullable|max:100',
-            'telepon'            => ['nullable', 'regex:/^08[0-9]{8,11}$/', 'max:15'],
-            'alamat'             => 'nullable|max:255',
-            'tanggal_lahir'      => 'nullable|date|before:today',
+            'telepon'            => ['required', 'regex:/^08[0-9]{8,11}$/', 'max:15'],
+            'alamat'             => 'required|min:5|max:255',
+            'tanggal_lahir'      => 'required|date|before:today',
             'jenis_kelamin'      => 'required|in:L,P',
             'jadwal_ambil_obat'  => 'nullable|date|after_or_equal:today',
         ], [
-            'no_bpjs.required'   => 'Nomor BPJS wajib diisi.',
-            'no_bpjs.min'        => 'Nomor BPJS minimal 8 digit.',
-            'no_bpjs.max'        => 'Nomor BPJS maksimal 20 karakter.',
-            'no_bpjs.unique'     => 'Nomor BPJS sudah terdaftar di pasien lain.',
-            'telepon.regex'      => 'Format nomor tidak valid. Contoh: 08123456789',
-            'tanggal_lahir.date' => 'Format tanggal tidak valid.',
-            'tanggal_lahir.before' => 'Tanggal lahir harus sebelum hari ini.',
+            'nama.required'          => 'Nama pasien wajib diisi.',
+            'no_bpjs.required'       => 'Nomor BPJS wajib diisi.',
+            'no_bpjs.digits'         => 'Nomor BPJS harus tepat 13 digit angka.',
+            'no_bpjs.unique'         => 'Nomor BPJS sudah terdaftar di pasien lain.',
+            'telepon.required'       => 'Nomor handphone wajib diisi.',
+            'telepon.regex'          => 'Format tidak valid. Contoh: 08123456789 (10–13 digit).',
+            'alamat.required'        => 'Alamat wajib diisi.',
+            'alamat.min'             => 'Alamat terlalu singkat (minimal 5 karakter).',
+            'tanggal_lahir.required' => 'Tanggal lahir wajib diisi.',
+            'tanggal_lahir.date'     => 'Format tanggal tidak valid.',
+            'tanggal_lahir.before'   => 'Tanggal lahir harus sebelum hari ini.',
             'jenis_kelamin.required' => 'Jenis kelamin wajib dipilih.',
         ]);
 
@@ -416,6 +445,7 @@ class PasienManager extends Component
             PengambilanObat::create([
                 'pasien_id'           => $pasienId,
                 'tanggal_pengambilan' => $this->jadwal_ambil_obat,
+                'jadwal_berikutnya'   => $this->jadwal_ambil_obat,
                 'status'              => 'dijadwalkan',
                 'total_item'          => 0,
                 'dicatat_oleh'        => auth()->id(),

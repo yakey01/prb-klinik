@@ -34,19 +34,13 @@ class SendNotifikasi extends Command
         $this->info("[H-1] {$besokList->count()} pasien jadwal besok");
         foreach ($besokList as $p) {
             if (!$p->pasien?->telepon) continue;
-
-            // Anti-spam: skip jika sudah kirim hari ini
             if (!$dry && $svc->sudahKirimHariIni($p->id)) {
                 $this->line("  ⏭️  {$p->pasien->nama} — sudah terkirim hari ini, skip");
                 $skip++;
                 continue;
             }
-
-            $pesan = $svc->buildPesan($cfg->template_h1 ?? '', [
-                'nama'     => $p->pasien->nama,
-                'tanggal'  => Carbon::parse($p->jadwal_berikutnya)->format('d/m/Y'),
-                'diagnosa' => $p->pasien->kategori_diagnosis ?? '-',
-            ]);
+            $jadwal = Carbon::parse($p->jadwal_berikutnya);
+            $pesan  = $svc->buildPesanUntuk($cfg->template_h1 ?? '', $p->pasien, $jadwal);
             if (!$dry) {
                 $result = $svc->kirimWa($p->pasien->telepon, $pesan, $p->pasien_id, $p->id, 'H1');
                 $result['ok'] ? $kirim++ : $this->warn("  ❌ {$p->pasien->nama}: {$result['msg']}");
@@ -63,18 +57,13 @@ class SendNotifikasi extends Command
         $this->info("[Hari Ini] {$hariIniList->count()} pasien belum ambil");
         foreach ($hariIniList as $p) {
             if (!$p->pasien?->telepon) continue;
-
             if (!$dry && $svc->sudahKirimHariIni($p->id)) {
                 $this->line("  ⏭️  {$p->pasien->nama} — sudah terkirim hari ini, skip");
                 $skip++;
                 continue;
             }
-
-            $pesan = $svc->buildPesan($cfg->template_harian ?? '', [
-                'nama'     => $p->pasien->nama,
-                'tanggal'  => Carbon::parse($p->jadwal_berikutnya)->format('d/m/Y'),
-                'diagnosa' => $p->pasien->kategori_diagnosis ?? '-',
-            ]);
+            $jadwal = Carbon::parse($p->jadwal_berikutnya);
+            $pesan  = $svc->buildPesanUntuk($cfg->template_harian ?? '', $p->pasien, $jadwal);
             if (!$dry) {
                 $result = $svc->kirimWa($p->pasien->telepon, $pesan, $p->pasien_id, $p->id, 'HARIAN');
                 $result['ok'] ? $kirim++ : $this->warn("  ❌ {$p->pasien->nama}: {$result['msg']}");
@@ -82,7 +71,7 @@ class SendNotifikasi extends Command
             $this->line("  📱 {$p->pasien->nama}");
         }
 
-        // Overdue: lewat jadwal, belum selesai
+        // Overdue: lewat jadwal, belum selesai — maks 5 hari pengingat
         $overdueList = PengambilanObat::with('pasien')
             ->where('jadwal_berikutnya', '<', $hariIni)
             ->whereNotIn('status', ['selesai', 'batal'])
@@ -92,18 +81,18 @@ class SendNotifikasi extends Command
         $this->info("[Overdue] {$overdueList->count()} pasien lewat jadwal");
         foreach ($overdueList as $p) {
             if (!$p->pasien?->telepon) continue;
-
             if (!$dry && $svc->sudahKirimHariIni($p->id)) {
                 $this->line("  ⏭️  {$p->pasien->nama} — sudah terkirim hari ini, skip");
                 $skip++;
                 continue;
             }
-
-            $pesan = $svc->buildPesan($cfg->template_overdue ?? '', [
-                'nama'     => $p->pasien->nama,
-                'tanggal'  => Carbon::parse($p->jadwal_berikutnya)->format('d/m/Y'),
-                'diagnosa' => $p->pasien->kategori_diagnosis ?? '-',
-            ]);
+            if (!$dry && $svc->sudahKirimOverdueMaxHari($p->id)) {
+                $this->line("  🛑 {$p->pasien->nama} — batas 5 hari overdue tercapai, hentikan");
+                $skip++;
+                continue;
+            }
+            $jadwal = Carbon::parse($p->jadwal_berikutnya);
+            $pesan  = $svc->buildPesanUntuk($cfg->template_overdue ?? '', $p->pasien, $jadwal);
             if (!$dry) {
                 $result = $svc->kirimWa($p->pasien->telepon, $pesan, $p->pasien_id, $p->id, 'OVERDUE');
                 $result['ok'] ? $kirim++ : $this->warn("  ❌ {$p->pasien->nama}: {$result['msg']}");

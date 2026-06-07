@@ -6,6 +6,19 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? 'Manajemen Obat' }} — Klinik Dokterku</title>
 
+    {{-- PWA Meta --}}
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#11241c">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Apotik PRB">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/icons/icon-96.png">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -541,6 +554,91 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     @stack('scripts')
     <script>
+        // ── Service Worker Registration (PWA) ──
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(reg => {
+                        console.log('[PWA] SW registered, scope:', reg.scope);
+                        // Check for updates every 60 min
+                        setInterval(() => reg.update(), 3600000);
+                    })
+                    .catch(err => console.warn('[PWA] SW registration failed:', err));
+            });
+        }
+
+        // ── PWA Install Prompt ──
+        let deferredPrompt = null;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Show install banner after 3s if not dismissed
+            setTimeout(() => {
+                if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
+                    showPwaBanner();
+                }
+            }, 3000);
+        });
+
+        function showPwaBanner() {
+            if (document.getElementById('pwa-banner')) return;
+            const banner = document.createElement('div');
+            banner.id = 'pwa-banner';
+            banner.innerHTML = `
+                <div style="position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);
+                            background:#11241c;border:1px solid rgba(217,164,65,.35);
+                            border-radius:.85rem;padding:.85rem 1.1rem;
+                            display:flex;align-items:center;gap:.75rem;
+                            box-shadow:0 8px 32px rgba(0,0,0,.5);
+                            z-index:500;max-width:360px;width:calc(100% - 2rem);
+                            animation:slideUp .3s ease;">
+                    <div style="width:40px;height:40px;border-radius:.5rem;
+                                background:rgba(217,164,65,.15);border:1px solid rgba(217,164,65,.3);
+                                display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="20" height="20" fill="none" stroke="#d9a441" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+                        </svg>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:.8rem;font-weight:700;color:#eaf3ee;margin-bottom:.12rem;">Install Aplikasi</div>
+                        <div style="font-size:.68rem;color:#8fae9f;line-height:1.3;">Pasang di home screen untuk akses cepat</div>
+                    </div>
+                    <div style="display:flex;gap:.4rem;flex-shrink:0;">
+                        <button onclick="installPwa()" style="background:linear-gradient(135deg,#d9a441,#c4892e);color:#1a0e00;
+                                border:none;padding:.4rem .85rem;border-radius:.45rem;font-weight:700;font-size:.75rem;cursor:pointer;">
+                            Install
+                        </button>
+                        <button onclick="dismissPwa()" style="background:rgba(255,255,255,.07);color:#8fae9f;
+                                border:1px solid rgba(255,255,255,.1);padding:.4rem .6rem;border-radius:.45rem;font-size:.75rem;cursor:pointer;">
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(banner);
+        }
+
+        function installPwa() {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then(choice => {
+                if (choice.outcome === 'accepted') {
+                    document.getElementById('pwa-banner')?.remove();
+                }
+                deferredPrompt = null;
+            });
+        }
+
+        function dismissPwa() {
+            document.getElementById('pwa-banner')?.remove();
+            localStorage.setItem('pwa-dismissed', '1');
+        }
+
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('pwa-banner')?.remove();
+            deferredPrompt = null;
+        });
+
         function navToggle(id, btn) {
             const dd = document.getElementById(id);
             const allDDs = document.querySelectorAll('.nav-dropdown');

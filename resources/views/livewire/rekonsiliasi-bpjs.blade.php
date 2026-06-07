@@ -95,7 +95,7 @@
                 @php $selisih = $rec->tagihan_dibayar - $rec->tagihan_diajukan; @endphp
                 <tr>
                     <td class="font-mono" style="font-weight:600;">{{ \Carbon\Carbon::create($rec->tahun,$rec->bulan,1)->translatedFormat('F Y') }}</td>
-                    <td class="font-mono" style="text-align:right;color:var(--mut);font-size:.8rem;">{{ number_format($rec->proyeksi_pendapatan,0,',','.') }}</td>
+                    <td class="font-mono" style="text-align:right;color:var(--mut);font-size:.8rem;">{{ number_format($rec->proyeksi_aktual ?? $rec->proyeksi_pendapatan,0,',','.') }}</td>
                     <td class="font-mono" style="text-align:right;font-size:.82rem;">{{ number_format($rec->tagihan_diajukan,0,',','.') }}</td>
                     <td class="font-mono" style="text-align:right;font-size:.82rem;color:var(--emer2);">{{ number_format($rec->tagihan_dibayar,0,',','.') }}</td>
                     <td class="font-mono" style="text-align:right;font-size:.82rem;font-weight:700;color:{{ $selisih >= 0 ? 'var(--emer2)' : 'var(--red2)' }};">

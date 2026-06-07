@@ -36,7 +36,7 @@
             <button wire:click="$set('showImport',false)" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.1rem;">✕</button>
         </div>
         <div style="font-size:.75rem;color:var(--mut);margin-bottom:.75rem;">
-            Kolom CSV: <span class="font-mono" style="color:var(--gold2);font-size:.7rem;">nama_obat, kategori_diagnosis, kode_obat, jumlah_pasien, unit_per_bulan, harga_beli_per_unit, sumber_harga, klaim_bpjs_per_unit, faktor_jasa_farmasi</span>
+            Kolom CSV: <span class="font-mono" style="color:var(--gold2);font-size:.7rem;">nama_obat, kategori_diagnosis, kode_obat, jumlah_pasien, unit_per_bulan, harga_beli_per_unit, sumber_harga, klaim_bpjs_per_unit, faktor_jasa_farmasi, tipe_obat</span>
         </div>
         <form wire:submit="importCsv" style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap;">
             <div style="flex:1;min-width:220px;">
@@ -111,7 +111,7 @@
             </div>
 
             {{-- Row 2: Klaim BPJS --}}
-            <div style="display:grid; grid-template-columns:repeat(3,1fr) auto; gap:.85rem; margin-bottom:1rem; align-items:end;">
+            <div style="display:grid; grid-template-columns:repeat(4,1fr) auto; gap:.85rem; margin-bottom:1rem; align-items:end;">
                 <div>
                     <label class="form-label">Klaim BPJS / Unit (Rp) *
                         <span style="font-weight:400;color:var(--mut2);text-transform:none;letter-spacing:0;"> — KMK 730/2025</span>
@@ -125,6 +125,21 @@
                     </label>
                     <input wire:model.live.debounce.400ms="faktor_jasa_farmasi" type="number" min="0.01" max="9.99" step="0.01" class="form-input font-mono">
                     @error('faktor_jasa_farmasi')<div style="color:var(--red);font-size:.7rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+                </div>
+                <div>
+                    <label class="form-label">Tipe Obat</label>
+                    <div style="display:flex;border-radius:.5rem;overflow:hidden;border:1px solid var(--line2);height:2.6rem;">
+                        <button type="button" wire:click="$set('tipe_obat','kronis')"
+                            style="flex:1;font-size:.75rem;font-weight:700;cursor:pointer;border:none;line-height:1;transition:all .15s;letter-spacing:.03em;
+                                {{ $tipe_obat==='kronis' ? 'background:rgba(63,207,142,.22);color:var(--emer2);' : 'background:transparent;color:var(--mut);' }}">
+                            KRONIS
+                        </button>
+                        <button type="button" wire:click="$set('tipe_obat','non_kronis')"
+                            style="flex:1;font-size:.75rem;font-weight:700;cursor:pointer;border:none;border-left:1px solid var(--line2);line-height:1;transition:all .15s;letter-spacing:.03em;
+                                {{ $tipe_obat==='non_kronis' ? 'background:rgba(111,177,224,.22);color:var(--blue);' : 'background:transparent;color:var(--mut);' }}">
+                            NON KRONIS
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <label class="form-label">Status Obat</label>

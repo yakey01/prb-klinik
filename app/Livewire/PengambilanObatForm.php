@@ -8,6 +8,8 @@ use App\Models\Pasien;
 use App\Models\PengambilanObat;
 use App\Models\PersyaratanKlaim;
 use App\Models\ResepPasien;
+use App\Models\StokKeluar;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -54,7 +56,7 @@ class PengambilanObatForm extends Component
     #[Computed]
     public function obatList()
     {
-        return Obat::where('is_active', true)->orderBy('nama_obat')->get(['id','nama_obat','satuan','unit_per_bulan','kategori_diagnosis']);
+        return Obat::where('is_active', true)->where('tipe_obat', 'kronis')->orderBy('nama_obat')->get(['id','nama_obat','satuan','unit_per_bulan','kategori_diagnosis']);
     }
 
     #[Computed]
@@ -199,13 +201,42 @@ class PengambilanObatForm extends Component
         ]);
 
         foreach ($this->rows as $row) {
+            $obat = Obat::find($row['obat_id']);
+            $jumlah   = (int) $row['jumlah_unit'];
+            $satuan   = $row['satuan'] ?? 'tablet';
+            $beliBeli = (float) ($obat?->harga_beli_per_unit ?? 0);
+            $klaim    = (float) ($obat?->klaim_bpjs_per_unit ?? 0);
+            $faktor   = (float) ($obat?->faktor_jasa_farmasi ?? 1.15);
+
             ItemPengambilan::create([
-                'pengambilan_obat_id' => $pengambilan->id,
-                'obat_id'             => $row['obat_id'],
-                'jumlah_unit'         => $row['jumlah_unit'],
-                'satuan'              => $row['satuan'] ?? 'tablet',
-                'catatan'             => $row['catatan'] ?? null,
+                'pengambilan_obat_id'          => $pengambilan->id,
+                'obat_id'                      => $row['obat_id'],
+                'jumlah_unit'                  => $jumlah,
+                'satuan'                       => $satuan,
+                'catatan'                      => $row['catatan'] ?? null,
+                'harga_beli_snapshot'          => $beliBeli,
+                'harga_klaim_bpjs_snapshot'    => $klaim,
+                'faktor_jasa_farmasi_snapshot' => $faktor,
             ]);
+
+            // Catat stok keluar otomatis dari penyerahan obat kronis
+            StokKeluar::create([
+                'obat_id'              => $row['obat_id'],
+                'tanggal_keluar'       => $this->tanggalPengambilan,
+                'jumlah_unit'          => $jumlah,
+                'satuan'               => $satuan,
+                'harga_beli_snapshot'  => $beliBeli,
+                'harga_jual_per_unit'  => round($klaim * $faktor, 2),
+                'keterangan'           => 'Pengambilan: ' . $pasienNama,
+                'sumber'               => 'pengambilan',
+                'pengambilan_obat_id'  => $pengambilan->id,
+                'pasien_id'            => $this->selectedPasienId,
+                'dicatat_oleh'         => auth()->id(),
+            ]);
+
+            // Kurangi stok aktual
+            Obat::where('id', $row['obat_id'])
+                ->update(['stok_aktual' => DB::raw('stok_aktual - ' . $jumlah)]);
         }
 
         $pasienNama = $this->selectedPasien?->nama ?? '';

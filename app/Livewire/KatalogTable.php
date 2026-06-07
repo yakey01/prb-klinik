@@ -33,6 +33,7 @@ class KatalogTable extends Component
     public string $sumber_harga         = 'EST';
     public float  $klaim_bpjs_per_unit  = 0;
     public float  $faktor_jasa_farmasi  = 1.15;
+    public string $tipe_obat            = 'kronis';
     public bool   $is_active            = true;
 
     public const KATEGORIS = [
@@ -103,6 +104,7 @@ class KatalogTable extends Component
         $this->sumber_harga        = $obat->sumber_harga;
         $this->klaim_bpjs_per_unit = (float) $obat->klaim_bpjs_per_unit;
         $this->faktor_jasa_farmasi = (float) $obat->faktor_jasa_farmasi;
+        $this->tipe_obat           = $obat->tipe_obat ?? 'kronis';
         $this->is_active           = (bool)  $obat->is_active;
         $this->showForm            = true;
     }
@@ -122,8 +124,8 @@ class KatalogTable extends Component
             'kategori_diagnosis'  => trim($this->kategori_diagnosis) ?: null,
             'klaim_bpjs_per_unit' => $this->klaim_bpjs_per_unit,
             'faktor_jasa_farmasi' => $this->faktor_jasa_farmasi,
+            'tipe_obat'           => $this->tipe_obat,
             'is_active'           => $this->is_active,
-            'tipe_obat'           => 'kronis', // default; tipe ditentukan saat pengadaan
         ];
 
         if ($this->editId) {
@@ -168,7 +170,7 @@ class KatalogTable extends Component
                                             ? strtoupper($data['sumber_harga']) : 'EST',
                     'klaim_bpjs_per_unit' => (float) ($data['klaim_bpjs_per_unit'] ?? 0),
                     'faktor_jasa_farmasi' => (float) ($data['faktor_jasa_farmasi'] ?? 1.15),
-                    'tipe_obat'           => 'kronis',
+                    'tipe_obat'           => in_array($data['tipe_obat'] ?? '', ['kronis','non_kronis']) ? $data['tipe_obat'] : 'kronis',
                     'is_active'           => true,
                 ]
             );
@@ -227,7 +229,10 @@ class KatalogTable extends Component
                 $obat->unit_per_bulan = (float) $resepStats[$obat->id]->real_unit;
                 $obat->dari_resep     = true;
             } else {
-                $obat->dari_resep = false;
+                // Tidak ada resep aktif → tampilkan 0, bukan nilai hardcoded dari DB
+                $obat->jumlah_pasien  = 0;
+                $obat->unit_per_bulan = 0.0;
+                $obat->dari_resep     = false;
             }
         });
 
@@ -253,6 +258,7 @@ class KatalogTable extends Component
         $this->sumber_harga        = 'EST';
         $this->klaim_bpjs_per_unit = 0;
         $this->faktor_jasa_farmasi = 1.15;
+        $this->tipe_obat           = 'kronis';
         $this->is_active           = true;
         $this->resetValidation();
     }

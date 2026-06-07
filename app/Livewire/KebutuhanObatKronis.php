@@ -30,6 +30,7 @@ class KebutuhanObatKronis extends Component
             ->where('rp.is_aktif', true)
             ->where('p.is_aktif', true)
             ->where('o.is_active', true)
+            ->where('o.tipe_obat', 'kronis')
             ->when($this->filterDiagnosis, fn($q) => $q->where('o.kategori_diagnosis', $this->filterDiagnosis))
             ->when($this->search, fn($q) => $q->where('o.nama_obat', 'like', "%{$this->search}%"))
             ->select(
@@ -106,6 +107,7 @@ class KebutuhanObatKronis extends Component
             ->join('obat as o', 'sk.obat_id', '=', 'o.id')
             ->where('sk.tanggal_keluar', '>=', $tigaBulanLalu)
             ->where('o.is_active', true)
+            ->where('o.tipe_obat', 'non_kronis')
             ->when($this->search, fn($q) => $q->where('o.nama_obat', 'like', "%{$this->search}%"))
             ->select(
                 'o.id', 'o.nama_obat', 'o.kategori_diagnosis', 'o.satuan',

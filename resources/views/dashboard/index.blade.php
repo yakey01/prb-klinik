@@ -36,37 +36,39 @@
     <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; margin-bottom:2rem;">
 
         <div class="kpi-card">
-            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">Laba Kotor Obat/Bln</div>
+            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">Laba Kotor Bulan Ini</div>
             <div class="font-mono" style="font-size:1.5rem; font-weight:700; color:{{ $laba_kotor >= 0 ? 'var(--emer2)' : 'var(--red2)' }};">
                 {{ $laba_kotor >= 0 ? '+' : '' }}Rp {{ number_format($laba_kotor,0,',','.') }}
             </div>
             <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">
-                Margin: <span style="color:var(--gold2);">{{ $pendapatan_bpjs > 0 ? number_format(($laba_kotor/$pendapatan_bpjs)*100,1) : 0 }}%</span>
+                HPP aktual · Margin: <span style="color:var(--gold2);">{{ $pendapatan_bpjs > 0 ? number_format(($laba_kotor/$pendapatan_bpjs)*100,1) : 0 }}%</span>
             </div>
         </div>
 
         <div class="kpi-card">
-            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">Pendapatan BPJS</div>
+            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">Proyeksi Klaim BPJS</div>
             <div class="font-mono" style="font-size:1.5rem; font-weight:700; color:var(--ink);">
                 Rp {{ number_format($pendapatan_bpjs,0,',','.') }}
             </div>
-            <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">Klaim + jasa farmasi PMK 3/2023</div>
+            <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">Dari obat diserahkan ke pasien</div>
         </div>
 
         <div class="kpi-card">
-            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">Biaya Beli Obat</div>
+            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">HPP Obat Bulan Ini</div>
             <div class="font-mono" style="font-size:1.5rem; font-weight:700; color:var(--ink);">
                 Rp {{ number_format($biaya_beli,0,',','.') }}
             </div>
-            <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">Berdasarkan harga PO/REAL/EST</div>
+            <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">Harga beli saat penyerahan</div>
         </div>
 
         <div class="kpi-card">
-            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">Total Pasien Kronis</div>
+            <div class="font-label" style="font-size:.68rem; color:var(--mut); margin-bottom:.5rem;">Pasien Kronis Aktif</div>
             <div class="font-mono" style="font-size:1.5rem; font-weight:700; color:var(--ink);">
                 {{ number_format($total_pasien,0,',','.') }}
             </div>
-            <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">{{ $jumlah_obat_aktif }} jenis obat aktif</div>
+            <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">
+                {{ $pasien_bulan_ini ?? 0 }} ambil obat bulan ini
+            </div>
         </div>
 
         <div class="kpi-card">
@@ -77,6 +79,70 @@
             <div style="margin-top:.4rem; font-size:.75rem; color:var(--mut);">{{ $jumlah_po_bulan_ini }} PO bulan ini</div>
         </div>
 
+    </div>
+
+    {{-- BPJS CYCLE KPI STRIP --}}
+    @php
+    $rb = $rekon_bpjs ?? [];
+    $rbStatus = $rb['status'] ?? 'belum_diajukan';
+    $rbIsPending = $rb['is_pending'] ?? true;
+    $statusLabel = match($rbStatus) {
+        'diajukan'  => 'Diajukan',
+        'dibayar'   => 'Dibayar',
+        'selisih'   => 'Ada Selisih',
+        'draft'     => 'Draft',
+        default     => 'Belum Diajukan',
+    };
+    $statusColor = match($rbStatus) {
+        'diajukan'  => 'var(--gold2)',
+        'dibayar'   => 'var(--emer2)',
+        'selisih'   => 'var(--red2)',
+        default     => 'var(--mut2)',
+    };
+    @endphp
+    <div style="background:rgba(63,207,142,.04); border:1px solid rgba(63,207,142,.18); border-radius:.9rem; padding:1rem 1.3rem; margin-bottom:1.5rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:.8rem; flex-wrap:wrap; gap:.5rem;">
+            <div style="font-size:.7rem; text-transform:uppercase; letter-spacing:.1em; color:var(--emer2); font-weight:700;">Siklus Klaim BPJS — {{ now()->translatedFormat('F Y') }}</div>
+            <span style="font-size:.7rem; font-weight:700; color:{{ $statusColor }};">{{ $statusLabel }}</span>
+        </div>
+        @if($rbIsPending)
+        <div style="font-size:.68rem; color:var(--gold2); background:rgba(217,164,65,.08); border:1px solid rgba(217,164,65,.18); border-radius:.5rem; padding:.45rem .7rem; margin-bottom:.8rem;">
+            Pembayaran BPJS bulan ini belum masuk — angka proyeksi berdasarkan obat yang diserahkan ke pasien.
+            Klaim baru dibayar bulan berikutnya.
+        </div>
+        @endif
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:.7rem;">
+            <div style="background:rgba(0,0,0,.2); border-radius:.6rem; padding:.7rem .85rem; border:1px solid var(--line);">
+                <div style="font-size:.58rem; text-transform:uppercase; letter-spacing:.07em; color:var(--mut); font-weight:700; margin-bottom:.25rem;">Proyeksi Klaim</div>
+                <div class="font-mono" style="font-size:1rem; font-weight:800; color:var(--blue);">Rp {{ number_format($rb['proyeksi'] ?? 0,0,',','.') }}</div>
+                <div style="font-size:.6rem; color:var(--mut); margin-top:.15rem;">Dari obat diserahkan</div>
+            </div>
+            <div style="background:rgba(0,0,0,.2); border-radius:.6rem; padding:.7rem .85rem; border:1px solid var(--line);">
+                <div style="font-size:.58rem; text-transform:uppercase; letter-spacing:.07em; color:var(--mut); font-weight:700; margin-bottom:.25rem;">Diajukan</div>
+                <div class="font-mono" style="font-size:1rem; font-weight:800; color:var(--gold2);">
+                    {{ ($rb['diajukan'] ?? 0) > 0 ? 'Rp '.number_format($rb['diajukan'],0,',','.') : '—' }}
+                </div>
+                <div style="font-size:.6rem; color:var(--mut); margin-top:.15rem;">Tagihan ke BPJS</div>
+            </div>
+            <div style="background:rgba(63,207,142,.05); border-radius:.6rem; padding:.7rem .85rem; border:1px solid rgba(63,207,142,.15);">
+                <div style="font-size:.58rem; text-transform:uppercase; letter-spacing:.07em; color:var(--emer2); font-weight:700; margin-bottom:.25rem;">Dibayar BPJS</div>
+                <div class="font-mono" style="font-size:1rem; font-weight:800; color:var(--emer2);">
+                    {{ ($rb['dibayar'] ?? 0) > 0 ? 'Rp '.number_format($rb['dibayar'],0,',','.') : ($rbIsPending ? 'Pending' : '—') }}
+                </div>
+                <div style="font-size:.6rem; color:var(--mut); margin-top:.15rem;">Revenue aktual</div>
+            </div>
+            @php $selisih = $rb['selisih'] ?? 0; @endphp
+            <div style="background:rgba({{ $selisih >= 0 ? '63,207,142' : '232,100,90' }},.05); border-radius:.6rem; padding:.7rem .85rem; border:1px solid rgba({{ $selisih >= 0 ? '63,207,142' : '232,100,90' }},.15);">
+                <div style="font-size:.58rem; text-transform:uppercase; letter-spacing:.07em; color:{{ $selisih >= 0 ? 'var(--emer2)' : 'var(--red2)' }}; font-weight:700; margin-bottom:.25rem;">Selisih</div>
+                <div class="font-mono" style="font-size:1rem; font-weight:800; color:{{ $selisih >= 0 ? 'var(--emer2)' : 'var(--red2)' }};">
+                    {{ ($rb['diajukan'] ?? 0) > 0 ? (($selisih >= 0 ? '+' : '').number_format($selisih,0,',','.')) : '—' }}
+                </div>
+                <div style="font-size:.6rem; color:var(--mut); margin-top:.15rem;">Dibayar − Diajukan</div>
+            </div>
+        </div>
+        <div style="margin-top:.75rem; text-align:right;">
+            <a href="{{ route('rekonsiliasi.index') }}" style="font-size:.68rem; color:var(--emer2); text-decoration:none; font-weight:600;">Kelola Rekonsiliasi →</a>
+        </div>
     </div>
 
     {{-- RENCANA PENGAMBILAN OBAT --}}

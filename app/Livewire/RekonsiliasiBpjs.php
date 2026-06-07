@@ -3,6 +3,8 @@ namespace App\Livewire;
 
 use App\Models\RekonsiliasiiBpjs;
 use App\Models\Obat;
+use App\Models\ItemPengambilan;
+use App\Models\PengambilanObat;
 use App\Models\ActivityLog;
 use Livewire\Component;
 use Livewire\Attributes\Computed;
@@ -29,18 +31,62 @@ class RekonsiliasiBpjs extends Component
     #[Computed]
     public function records()
     {
-        return RekonsiliasiiBpjs::orderByDesc('tahun')->orderByDesc('bulan')->get();
+        $recs = RekonsiliasiiBpjs::orderByDesc('tahun')->orderByDesc('bulan')->get();
+
+        // Compute proyeksi dinamis dari item_pengambilan per periode (1 query)
+        $proyeksiMap = \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereIn(\DB::raw('CONCAT(YEAR(po.tanggal_pengambilan),"-",MONTH(po.tanggal_pengambilan))'),
+                $recs->map(fn($r) => "{$r->tahun}-{$r->bulan}")->toArray()
+            )
+            ->where('po.status', 'selesai')
+            ->where('o.tipe_obat', 'kronis')
+            ->select(
+                \DB::raw('YEAR(po.tanggal_pengambilan) as tahun'),
+                \DB::raw('MONTH(po.tanggal_pengambilan) as bulan'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) as proyeksi_aktual')
+            )
+            ->groupBy('tahun', 'bulan')
+            ->get()
+            ->keyBy(fn($r) => "{$r->tahun}-{$r->bulan}");
+
+        return $recs->map(function ($rec) use ($proyeksiMap) {
+            $key = "{$rec->tahun}-{$rec->bulan}";
+            $rec->proyeksi_aktual = isset($proyeksiMap[$key])
+                ? (float) $proyeksiMap[$key]->proyeksi_aktual
+                : 0.0;
+            return $rec;
+        });
     }
 
+    // Proyeksi dihitung dari AKTUAL obat yang diserahkan ke pasien bulan ini
+    // (bukan dari formula hardcoded obat.unit_per_bulan)
     public function getProyeksiProperty(): float
     {
-        return (float) Obat::where('is_active', true)->get()->sum('pendapatan_bulan');
+        return $this->hitungProyeksi($this->bulan, $this->tahun);
+    }
+
+    public static function hitungProyeksi(int $bulan, int $tahun): float
+    {
+        // Σ item_pengambilan.jumlah_unit × klaim_bpjs_snapshot × faktor_snapshot
+        // dikelompokkan berdasarkan bulan pengambilan
+        $total = \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereYear('po.tanggal_pengambilan', $tahun)
+            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereIn('po.status', ['selesai'])
+            ->where('o.tipe_obat', 'kronis')
+            ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot'));
+
+        return (float) $total;
     }
 
     public function openAdd(): void
     {
         $this->resetForm();
-        $this->tagihan_diajukan = $this->proyeksi;
+        $this->tagihan_diajukan = $this->proyeksi; // prefill dari proyeksi aktual
         $this->showForm = true;
     }
 

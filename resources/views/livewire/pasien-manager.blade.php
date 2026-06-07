@@ -125,7 +125,7 @@
         </div>
         {{-- Tanggal Lahir --}}
         <div>
-            <label class="form-label">Tanggal Lahir</label>
+            <label class="form-label">Tanggal Lahir <span style="color:var(--red);">*</span></label>
             <input wire:model="tanggal_lahir" type="date" class="form-input" max="{{ date('Y-m-d') }}">
             @error('tanggal_lahir')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
@@ -141,14 +141,14 @@
         </div>
         {{-- Telepon --}}
         <div>
-            <label class="form-label">No. Handphone</label>
+            <label class="form-label">No. Handphone <span style="color:var(--red);">*</span></label>
             <input wire:model="telepon" type="text" inputmode="numeric" maxlength="15"
                    class="form-input" placeholder="08123456789">
             @error('telepon')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
         {{-- Alamat --}}
         <div style="grid-column:span 2;">
-            <label class="form-label">Alamat</label>
+            <label class="form-label">Alamat <span style="color:var(--red);">*</span></label>
             <input wire:model="alamat" type="text" class="form-input" placeholder="Alamat lengkap sesuai KTP">
             @error('alamat')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
         </div>
@@ -235,6 +235,7 @@
             <tr>
                 <th style="padding:.8rem 1rem;text-align:left;">Pasien</th>
                 <th style="padding:.8rem 1rem;text-align:left;width:155px;">Diagnosis</th>
+                <th style="padding:.8rem 1rem;text-align:left;min-width:220px;">Resep Obat</th>
                 <th style="padding:.8rem 1rem;text-align:left;width:160px;">Jadwal Berikutnya</th>
                 <th style="padding:.8rem 1rem;text-align:left;width:150px;">Terakhir Ambil</th>
                 <th style="padding:.8rem 1rem;text-align:center;width:80px;">Status</th>
@@ -279,6 +280,21 @@
                     <span style="font-size:.67rem;padding:.2rem .55rem;border-radius:999px;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.22);color:var(--gold2);">{{ $pasien->kategori_diagnosis }}</span>
                     @else
                     <span style="color:var(--mut);font-size:.78rem;">—</span>
+                    @endif
+                </td>
+                {{-- Resep Obat --}}
+                <td style="padding:.75rem 1rem;">
+                    @php $resepObat = $this->resepPerPasien[$pasien->id] ?? [] @endphp
+                    @if(count($resepObat))
+                    <div style="display:flex;flex-wrap:wrap;gap:.25rem;">
+                        @foreach($resepObat as $ro)
+                        <span style="font-size:.62rem;padding:.18rem .5rem;border-radius:.3rem;background:rgba(63,207,142,.07);border:1px solid rgba(63,207,142,.18);color:var(--emer2);white-space:nowrap;line-height:1.4;">
+                            {{ $ro['nama'] }}<span style="color:var(--mut);margin-left:.25rem;">×{{ $ro['jumlah'] }}</span>
+                        </span>
+                        @endforeach
+                    </div>
+                    @else
+                    <span style="color:var(--mut2);font-size:.72rem;font-style:italic;">Belum ada resep</span>
                     @endif
                 </td>
                 {{-- Jadwal Countdown --}}
@@ -355,7 +371,7 @@
             </tr>
             @empty
             <tr>
-                <td colspan="6" style="text-align:center;padding:3rem 1rem;">
+                <td colspan="7" style="text-align:center;padding:3rem 1rem;">
                     <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;">
                         <svg width="22" height="22" fill="none" stroke="var(--mut)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                     </div>

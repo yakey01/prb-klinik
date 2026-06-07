@@ -250,6 +250,37 @@ class NotifikasiService
         return $n;
     }
 
+    // Build pesan dengan variabel dinamis: hari Indonesia, sapaan, diagnosa
+    public function buildPesanUntuk(string $template, \App\Models\Pasien $pasien, \Carbon\Carbon $jadwal): string
+    {
+        static $bulanId = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                           'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        static $hariId  = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+        $sapaanFormal = ($pasien->jenis_kelamin === 'L') ? 'Bapak' : 'Ibu';
+        $hariNama     = $hariId[(int) $jadwal->format('w')];
+        $bulanNama    = $bulanId[(int) $jadwal->format('n')];
+        $hariTanggal  = $hariNama . ' ' . $jadwal->format('j') . ' ' . $bulanNama . ' ' . $jadwal->format('Y');
+
+        return $this->buildPesan($template, [
+            'nama'          => $pasien->nama,
+            'sapaan_formal' => $sapaanFormal,
+            'diagnosa'      => $pasien->kategori_diagnosis ?? '-',
+            'hari_tanggal'  => $hariTanggal,
+            'tanggal'       => $hariTanggal,
+            'hari'          => $hariNama,
+        ]);
+    }
+
+    // Cek apakah pengambilan overdue sudah dapat notif >= maxHari (anti-spam 5 hari)
+    public function sudahKirimOverdueMaxHari(int $pengambilanId, int $maxHari = 5): bool
+    {
+        return NotifikasiLog::where('pengambilan_id', $pengambilanId)
+            ->where('tipe', 'OVERDUE')
+            ->where('status', 'sent')
+            ->count() >= $maxHari;
+    }
+
     public function buildPesan(string $template, array $vars): string
     {
         foreach ($vars as $k => $v) {

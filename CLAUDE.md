@@ -343,3 +343,201 @@ php artisan livewire:list
 7. **`harga_beli_per_unit` tidak disimpan** dari form KatalogTable — untuk update harga, langsung update DB atau lewat proses pengadaan (PO yang masuk otomatis update stok).
 
 8. **Livewire 4 `$wire`** — selalu akses method via `pm.$wire.call()`, `pm.$wire.set()`, `pm.$wire.get()`. Jangan gunakan `pm.call()` (Livewire 3 style).
+
+9. **`jadwal_berikutnya` wajib diisi** saat `PengambilanObat::create()` — sistem notifikasi filter berdasarkan kolom ini, bukan `tanggal_pengambilan`. Jika hanya `tanggal_pengambilan` yang diisi, pasien tidak akan muncul di dashboard notifikasi. Selalu set keduanya bersamaan.
+
+10. **`wire:click` duplikat pada 1 elemen** — di Livewire 4 hanya event terakhir yang dieksekusi. Gunakan satu dedicated method per tombol (contoh: `testKirimWa()`, `testKirimTelegram()` bukan `wire:click="testChannel='wa'" wire:click="testKirim"`).
+
+---
+
+## Sistem Notifikasi WA
+
+### Arsitektur
+
+```
+routes/console.php          → schedule: everyMinute() + when(WIB == jam_kirim)
+  └─ notifikasi:kirim       → SendNotifikasi command
+       ├─ H-1 (besok)       → template_h1 + tipe=H1
+       ├─ Hari Ini          → template_harian + tipe=HARIAN
+       └─ Overdue ≤5x       → template_overdue + tipe=OVERDUE (anti-spam 5 hari)
+            ↓
+       NotifikasiService::buildPesanUntuk($template, $pasien, $jadwal)
+            ↓
+       kirimWa() → provider local (whatsapp-web.js) atau fonnte (cloud)
+            ↓
+       NotifikasiLog (status: pending→sent|failed|skipped)
+```
+
+### Routes & Komponen
+
+| URL | Komponen |
+|-----|----------|
+| `/notifikasi` | `livewire:notifikasi-manager` |
+
+**Tabs:** Overview · Jadwal Ambil · Log Notifikasi · Pengaturan
+
+### NotifikasiManager — Key Methods
+
+- `kirimNotifikasi(int $id)` — kirim manual ke 1 pasien (cek anti-spam hari ini)
+- `kirimSemua()` — kirim ke H-1 + hari ini + overdue (tombol besar kuning)
+- `kirimTelegramSummary()` — ringkasan stats ke Telegram staff
+- `simpanSetting()` — simpan semua setting termasuk `wa_endpoint_url`
+- `cekStatusWaLokal()` — ping `/status` ke WA service endpoint
+
+### Template Variables
+
+Semua template mendukung variabel berikut (via `buildPesanUntuk()`):
+
+| Variable | Contoh | Sumber |
+|----------|--------|--------|
+| `{nama}` | Ny. Istinganah | `pasien.nama` |
+| `{sapaan_formal}` | Ibu / Bapak | dari `jenis_kelamin` (P→Ibu, L→Bapak) |
+| `{diagnosa}` | Hipertensi | `pasien.kategori_diagnosis` |
+| `{hari_tanggal}` | Senin 8 Juni 2026 | Carbon + nama hari/bulan Indonesia |
+| `{tanggal}` | Senin 8 Juni 2026 | alias `{hari_tanggal}` |
+| `{hari}` | Senin | nama hari Indonesia saja |
+
+### Setting DB (`notifikasi_settings`)
+
+| Kolom | Keterangan |
+|-------|------------|
+| `wa_provider` | `local` (gratis) atau `fonnte` (cloud) |
+| `wa_endpoint_url` | URL tunnel ke WA service lokal (ngrok/serveo) |
+| `wa_api_key` | API key Fonnte (jika provider=fonnte) |
+| `jam_kirim` | Jam kirim otomatis dalam WIB format `HH:mm:ss` |
+| `is_aktif_wa` | Toggle WA on/off |
+| `template_h1` | Template H-1 (besok jadwal) |
+| `template_harian` | Template hari H (hari ini jadwal) |
+| `template_overdue` | Template overdue (lewat jadwal, spam ≤5x) |
+
+### Overdue Anti-Spam
+
+```php
+NotifikasiService::sudahKirimOverdueMaxHari(int $pengambilanId, int $maxHari = 5): bool
+// Count NotifikasiLog WHERE tipe=OVERDUE AND status=sent >= $maxHari
+```
+
+---
+
+## WA Service Lokal (whatsapp-web.js)
+
+Service berjalan di **komputer lokal** port 3001, diekspos ke internet via tunnel.
+
+### Jalankan Service
+
+```bash
+cd /path/to/wa-service
+node server.js
+# → listening at http://localhost:3001
+# → QR scan via http://localhost:3001/qr
+```
+
+### Tunnel ke Internet (Serveo — tanpa akun)
+
+```bash
+ssh -R prb-klinik-wa:80:localhost:3001 serveo.net
+# URL: https://prb-klinik-wa.serveousercontent.com
+# Jika subdomain conflict, gunakan random:
+ssh -R 80:localhost:3001 serveo.net
+```
+
+Simpan URL tunnel ke DB:
+```bash
+php artisan tinker
+App\Models\NotifikasiSetting::getSetting()->update([
+    'wa_endpoint_url' => 'https://xxx.serveousercontent.com',
+    'wa_provider' => 'local',
+    'is_aktif_wa' => true,
+]);
+```
+
+### API WA Service
+
+| Endpoint | Method | Deskripsi |
+|----------|--------|-----------|
+| `/status` | GET | Cek koneksi (`ready: true/false`) |
+| `/send` | POST | Kirim pesan `{to, message}` |
+| `/qr` | GET | Tampilkan QR untuk scan |
+
+Header: `x-api-key: prb-klinik-secret-2024`
+
+---
+
+## Laravel Scheduler & Cron (Hostinger)
+
+### Schedule Config (`routes/console.php`)
+
+```php
+Schedule::command('notifikasi:kirim')
+    ->everyMinute()
+    ->when(function () {
+        $cfg    = NotifikasiSetting::getSetting();
+        $jam    = substr($cfg->jam_kirim ?? '07:00:00', 0, 5);
+        $nowWib = Carbon::now('Asia/Jakarta')->format('H:i');
+        return $nowWib === $jam;
+    })
+    ->withoutOverlapping()
+    ->runInBackground();
+```
+
+**Cara kerja:** cron menjalankan `schedule:run` setiap menit → Laravel cek apakah WIB sekarang = `jam_kirim` → jika ya, `notifikasi:kirim` dieksekusi.
+
+### Setup Cron di Hostinger (hPanel)
+
+1. Login **hPanel** → **Advanced** → **Cron Jobs**
+2. Interval: **Every minute** (`* * * * *`)
+3. Command:
+   ```
+   /opt/alt/php84/usr/bin/php /home/u454362045/domains/dokterkuklinik.com/public_html/apotik/artisan schedule:run >> /dev/null 2>&1
+   ```
+
+**Catatan:** `crontab` binary tidak tersedia via SSH di Hostinger shared hosting — harus via hPanel.
+
+**PHP path Hostinger:** `/opt/alt/php84/usr/bin/php`
+
+### Timezone
+
+- **Server Hostinger**: UTC (`02:XX` = `09:XX WIB`)
+- **Schedule logic**: selalu pakai `Carbon::now('Asia/Jakarta')` untuk komparasi jam WIB
+- **Default jam_kirim**: `07:00:00` WIB
+
+### Jalankan Manual (simulasi cron)
+
+```bash
+ssh -p 65002 -i ~/.ssh/id_ed25519 u454362045@153.92.8.132
+/opt/alt/php84/usr/bin/php artisan schedule:run --verbose
+# Output: "Running ['artisan' notifikasi:kirim] in background"
+
+# Atau langsung tanpa schedule check:
+/opt/alt/php84/usr/bin/php artisan notifikasi:kirim
+/opt/alt/php84/usr/bin/php artisan notifikasi:kirim --dry-run
+```
+
+---
+
+## Deploy ke Hostinger
+
+```bash
+# SSH
+ssh -p 65002 -i ~/.ssh/id_ed25519 u454362045@153.92.8.132
+
+# rsync single file
+rsync -avz --checksum -e "ssh -p 65002 -i ~/.ssh/id_ed25519" \
+  app/Livewire/SomeFile.php \
+  u454362045@153.92.8.132:/home/u454362045/domains/dokterkuklinik.com/public_html/apotik/app/Livewire/
+
+# rsync folder
+rsync -avz --checksum -e "ssh -p 65002 -i ~/.ssh/id_ed25519" \
+  app/ resources/ routes/ \
+  u454362045@153.92.8.132:/home/u454362045/domains/dokterkuklinik.com/public_html/apotik/
+
+# Migrate (jika ada migration baru)
+ssh ... "/opt/alt/php84/usr/bin/php artisan migrate --force"
+
+# Clear cache
+ssh ... "/opt/alt/php84/usr/bin/php artisan optimize:clear"
+```
+
+**Live URL**: `https://apotik.dokterkuklinik.com`
+**DB**: `u454362045_apotik` @ MySQL
+**SSH**: port `65002`, key `~/.ssh/id_ed25519`

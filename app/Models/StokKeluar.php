@@ -12,6 +12,7 @@ class StokKeluar extends Model
         'obat_id', 'tanggal_keluar', 'jumlah_unit', 'satuan',
         'harga_beli_snapshot', 'harga_jual_per_unit',
         'keterangan', 'dicatat_oleh',
+        'sumber', 'pengambilan_obat_id', 'pasien_id',
     ];
 
     protected $casts = [
@@ -29,6 +30,26 @@ class StokKeluar extends Model
     public function pencatat(): BelongsTo
     {
         return $this->belongsTo(User::class, 'dicatat_oleh');
+    }
+
+    public function pengambilanObat(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\PengambilanObat::class, 'pengambilan_obat_id');
+    }
+
+    public function pasien(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Pasien::class, 'pasien_id');
+    }
+
+    public function scopeKronis($q)
+    {
+        return $q->where('sumber', 'pengambilan');
+    }
+
+    public function scopeNonKronis($q)
+    {
+        return $q->where('sumber', 'manual');
     }
 
     public function getTotalPendapatanAttribute(): float
