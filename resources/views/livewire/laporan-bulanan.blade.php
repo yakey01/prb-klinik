@@ -749,7 +749,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
     </div>
 </div>
 
-<div class="glass-card" style="overflow-x:auto;">
+<div class="glass-card">
     <div style="padding:.9rem 1.2rem; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; background:rgba(0,0,0,.15);">
         <div>
             <span style="font-size:.73rem; color:var(--emer2); text-transform:uppercase; letter-spacing:.07em; font-weight:700;">Analisis Laba Per Obat — BPJS/JKN</span>
@@ -759,6 +759,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
             Bayar BPJS = Klaim/Unit × Faktor JF (PMK 3/2023)
         </div>
     </div>
+    <div style="overflow-x:auto;">
     <table class="lpr-table" style="font-size:.78rem;">
         <thead>
             <tr>
@@ -805,6 +806,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
             </tr>
         </tfoot>
     </table>
+    </div>
 </div>
 @endif
 
@@ -851,7 +853,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
 </div>
 @endif
 
-<div class="glass-card" style="overflow-x:auto;">
+<div class="glass-card">
     <div style="padding:.9rem 1.2rem; border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.5rem; background:rgba(0,0,0,.15);">
         <div>
             <span style="font-size:.73rem; color:var(--blue); text-transform:uppercase; letter-spacing:.07em; font-weight:700;">Stok Keluar — Obat Non-Kronis Aktual</span>
@@ -866,6 +868,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
         <a href="{{ route('stok-keluar.index') }}" style="color:var(--blue); font-size:.78rem; text-decoration:none;">→ Catat Stok Keluar</a>
     </div>
     @else
+    <div style="overflow-x:auto;">
     <table class="lpr-table" style="font-size:.78rem;">
         <thead>
             <tr>
@@ -898,6 +901,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
             @endforeach
         </tbody>
     </table>
+    </div>
     @endif
 </div>
 @endif

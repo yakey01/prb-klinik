@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('dashboard'));
 
+// Temporary: OPcache reset (hapus setelah dipakai)
+Route::get('/tmp-opcache-reset', function () {
+    $result = function_exists('opcache_reset') ? (opcache_reset() ? 'reset OK' : 'reset FAILED') : 'opcache N/A';
+    return response($result . ' | ' . now(), 200)->header('Content-Type', 'text/plain');
+});
+
 Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 

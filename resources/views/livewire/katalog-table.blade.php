@@ -116,7 +116,7 @@
                     <label class="form-label">Klaim BPJS / Unit (Rp) *
                         <span style="font-weight:400;color:var(--mut2);text-transform:none;letter-spacing:0;"> — KMK 730/2025</span>
                     </label>
-                    <input wire:model.live.debounce.400ms="klaim_bpjs_per_unit" type="number" min="0" step="100" class="form-input font-mono">
+                    <input wire:model.live.debounce.400ms="klaim_bpjs_per_unit" type="number" min="0" step="any" class="form-input font-mono">
                     @error('klaim_bpjs_per_unit')<div style="color:var(--red);font-size:.7rem;margin-top:.2rem;">{{ $message }}</div>@enderror
                 </div>
                 <div>
@@ -241,7 +241,7 @@
                             <span class="font-mono" style="font-size:.82rem;color:var(--emer2);font-weight:600;">{{ number_format($obat->unit_per_bulan, 0) }}</span>
                         </div>
                         @else
-                        <input type="number" value="{{ $obat->unit_per_bulan }}" min="0" step="10"
+                        <input type="number" value="{{ $obat->unit_per_bulan }}" min="0" step="any"
                             wire:change="updateUnit({{ $obat->id }}, $event.target.value)"
                             class="font-mono"
                             title="Input manual — belum ada resep aktif"
@@ -249,7 +249,7 @@
                         @endif
                     </td>
                     <td style="text-align:right;">
-                        <input type="number" value="{{ $obat->harga_beli_per_unit }}" min="0" step="100"
+                        <input type="number" value="{{ $obat->harga_beli_per_unit }}" min="0" step="any"
                             wire:change="updateHarga({{ $obat->id }}, $event.target.value)"
                             class="font-mono"
                             style="width:90px;text-align:right;background:rgba(232,100,90,.07);border:1px solid rgba(232,100,90,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.8rem;color:var(--red2);">
@@ -259,7 +259,7 @@
                         <span class="badge badge-{{ $src==='PO'?'po':($src==='REAL'?'real':'est') }}">{{ $src }}</span>
                     </td>
                     <td style="text-align:right;">
-                        <input type="number" value="{{ $obat->klaim_bpjs_per_unit }}" min="0" step="100"
+                        <input type="number" value="{{ $obat->klaim_bpjs_per_unit }}" min="0" step="any"
                             wire:change="updateKlaim({{ $obat->id }}, $event.target.value)"
                             class="font-mono"
                             style="width:90px;text-align:right;background:rgba(111,177,224,.08);border:1px solid rgba(111,177,224,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.8rem;color:var(--blue);">
