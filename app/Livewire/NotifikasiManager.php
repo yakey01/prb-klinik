@@ -24,17 +24,18 @@ class NotifikasiManager extends Component
     public int    $filterLogHari    = 7;     // hari terakhir
 
     // Pengaturan form
-    public string $setWaProvider  = 'fonnte';
-    public string $setWaApiKey    = '';
-    public string $setWaSender    = '';
-    public string $setTgToken     = '';
-    public string $setTgChatId   = '';
-    public string $setJamKirim   = '08:00';
-    public bool   $setAktifWa    = false;
-    public bool   $setAktifTg    = false;
-    public string $setTplH1      = '';
-    public string $setTplHarian  = '';
-    public string $setTplOverdue = '';
+    public string $setWaProvider     = 'fonnte';
+    public string $setWaApiKey       = '';
+    public string $setWaSender       = '';
+    public string $setWaEndpointUrl  = '';   // URL endpoint WA lokal (support ngrok/custom)
+    public string $setTgToken        = '';
+    public string $setTgChatId       = '';
+    public string $setJamKirim       = '08:00';
+    public bool   $setAktifWa        = false;
+    public bool   $setAktifTg        = false;
+    public string $setTplH1          = '';
+    public string $setTplHarian      = '';
+    public string $setTplOverdue     = '';
 
     // Test send
     public string $testNomor    = '';
@@ -50,17 +51,18 @@ class NotifikasiManager extends Component
     public function mount(): void
     {
         $cfg = NotifikasiSetting::getSetting();
-        $this->setWaProvider  = $cfg->wa_provider ?? 'fonnte';
-        $this->setWaApiKey    = $cfg->wa_api_key ?? '';
-        $this->setWaSender    = $cfg->wa_sender_number ?? '';
-        $this->setTgToken     = $cfg->telegram_bot_token ?? '';
-        $this->setTgChatId    = $cfg->telegram_chat_id_staff ?? '';
-        $this->setJamKirim    = substr($cfg->jam_kirim ?? '08:00:00', 0, 5);
-        $this->setAktifWa     = (bool) $cfg->is_aktif_wa;
-        $this->setAktifTg     = (bool) $cfg->is_aktif_telegram;
-        $this->setTplH1       = $cfg->template_h1 ?? '';
-        $this->setTplHarian   = $cfg->template_harian ?? '';
-        $this->setTplOverdue  = $cfg->template_overdue ?? '';
+        $this->setWaProvider     = $cfg->wa_provider ?? 'fonnte';
+        $this->setWaApiKey       = $cfg->wa_api_key ?? '';
+        $this->setWaSender       = $cfg->wa_sender_number ?? '';
+        $this->setWaEndpointUrl  = $cfg->wa_endpoint_url ?? '';
+        $this->setTgToken        = $cfg->telegram_bot_token ?? '';
+        $this->setTgChatId       = $cfg->telegram_chat_id_staff ?? '';
+        $this->setJamKirim       = substr($cfg->jam_kirim ?? '08:00:00', 0, 5);
+        $this->setAktifWa        = (bool) $cfg->is_aktif_wa;
+        $this->setAktifTg        = (bool) $cfg->is_aktif_telegram;
+        $this->setTplH1          = $cfg->template_h1 ?? '';
+        $this->setTplHarian      = $cfg->template_harian ?? '';
+        $this->setTplOverdue     = $cfg->template_overdue ?? '';
     }
 
     #[Computed]
@@ -293,6 +295,18 @@ class NotifikasiManager extends Component
         $this->flash($result['ok'] ? "Test berhasil terkirim ✅" : "Gagal: {$result['msg']}", $result['ok'] ? 'success' : 'error');
     }
 
+    public function testKirimWa(): void
+    {
+        $this->testChannel = 'wa';
+        $this->testKirim();
+    }
+
+    public function testKirimTelegram(): void
+    {
+        $this->testChannel = 'telegram';
+        $this->testKirim();
+    }
+
     public function cekStatusWaLokal(): void
     {
         $svc = app(NotifikasiService::class);
@@ -316,17 +330,18 @@ class NotifikasiManager extends Component
     {
         $cfg = NotifikasiSetting::getSetting();
         $cfg->update([
-            'wa_provider'          => $this->setWaProvider,
-            'wa_api_key'           => $this->setWaApiKey ?: null,
-            'wa_sender_number'     => $this->setWaSender ?: null,
-            'telegram_bot_token'   => $this->setTgToken ?: null,
+            'wa_provider'            => $this->setWaProvider,
+            'wa_api_key'             => $this->setWaApiKey ?: null,
+            'wa_sender_number'       => $this->setWaSender ?: null,
+            'wa_endpoint_url'        => $this->setWaEndpointUrl ?: null,
+            'telegram_bot_token'     => $this->setTgToken ?: null,
             'telegram_chat_id_staff' => $this->setTgChatId ?: null,
-            'jam_kirim'            => $this->setJamKirim . ':00',
-            'is_aktif_wa'          => $this->setAktifWa,
-            'is_aktif_telegram'    => $this->setAktifTg,
-            'template_h1'          => $this->setTplH1 ?: null,
-            'template_harian'      => $this->setTplHarian ?: null,
-            'template_overdue'     => $this->setTplOverdue ?: null,
+            'jam_kirim'              => $this->setJamKirim . ':00',
+            'is_aktif_wa'            => $this->setAktifWa,
+            'is_aktif_telegram'      => $this->setAktifTg,
+            'template_h1'            => $this->setTplH1 ?: null,
+            'template_harian'        => $this->setTplHarian ?: null,
+            'template_overdue'       => $this->setTplOverdue ?: null,
         ]);
         unset($this->stats);
         $this->flash('Pengaturan tersimpan ✅');

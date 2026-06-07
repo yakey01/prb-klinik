@@ -417,31 +417,67 @@
                     </div>
                 </div>
 
-                {{-- LOCAL: status + instruksi --}}
+                {{-- LOCAL: endpoint URL + instruksi --}}
                 @if($setWaProvider === 'local')
+                <div>
+                    <label class="form-label">
+                        URL Endpoint WA Service
+                        @if(!$setWaEndpointUrl)
+                        <span style="font-size:.63rem;color:var(--red);font-weight:400;margin-left:.4rem;">⚠ Wajib diisi untuk server live</span>
+                        @endif
+                    </label>
+                    <input type="text" wire:model="setWaEndpointUrl" class="form-input" style="font-size:.82rem;"
+                        placeholder="https://xxxx.ngrok-free.app  (atau http://localhost:3001 untuk lokal)">
+                    <div style="font-size:.67rem;color:var(--mut);margin-top:.3rem;">
+                        Untuk server live: expose WA service via <strong style="color:var(--emer2);">ngrok</strong> →
+                        <span style="font-family:monospace;color:var(--emer2);">ngrok http 3001</span>
+                        → salin HTTPS URL ke sini
+                    </div>
+                </div>
+
                 <div style="border:1px solid rgba(63,207,142,.2);border-radius:.6rem;padding:.9rem;background:rgba(63,207,142,.04);">
                     <div style="font-size:.75rem;font-weight:600;color:var(--emer2);margin-bottom:.6rem;display:flex;align-items:center;gap:.4rem;">
                         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                        Cara Setup WA Lokal
+                        Cara Setup — Lokal + Server Live
                     </div>
-                    <ol style="font-size:.7rem;color:var(--mut2);margin:0;padding-left:1.2rem;line-height:1.9;">
-                        <li>Install Node.js jika belum: <span style="color:var(--ink);font-family:monospace;">brew install node</span></li>
-                        <li>Masuk folder: <span style="color:var(--ink);font-family:monospace;">cd prb-klinik/wa-service</span></li>
-                        <li>Install: <span style="color:var(--ink);font-family:monospace;">npm install</span></li>
-                        <li>Jalankan: <span style="color:var(--ink);font-family:monospace;">node server.js</span></li>
-                        <li>Buka <span style="color:var(--emer2);font-weight:600;">localhost:3001/qr</span> → scan dengan HP</li>
-                        <li>Klik tombol <strong>Cek Status</strong> di bawah ↓</li>
-                    </ol>
-                    <div style="margin-top:.8rem;display:flex;gap:.6rem;align-items:center;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.8rem;">
+                        <div>
+                            <div style="font-size:.68rem;color:var(--emer2);font-weight:600;margin-bottom:.4rem;">🖥 Di komputer lokal Anda:</div>
+                            <ol style="font-size:.68rem;color:var(--mut2);margin:0;padding-left:1.1rem;line-height:2;">
+                                <li>Jalankan WA service: <span style="font-family:monospace;color:var(--emer2);">node wa-service/server.js</span></li>
+                                <li>Scan QR di: <span style="font-family:monospace;color:var(--emer2);">localhost:3001/qr</span></li>
+                                <li>Install ngrok: <span style="font-family:monospace;color:var(--ink);">brew install ngrok</span></li>
+                                <li>Expose: <span style="font-family:monospace;color:var(--gold2);">ngrok http 3001</span></li>
+                                <li>Salin URL HTTPS dari ngrok (mis. <span style="font-family:monospace;color:var(--gold2);">https://abc.ngrok-free.app</span>)</li>
+                                <li>Masukkan URL tersebut ke field di atas ↑</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <div style="font-size:.68rem;color:var(--gold2);font-weight:600;margin-bottom:.4rem;">☁️ Alternatif: Simpan koneksi permanen:</div>
+                            <ol style="font-size:.68rem;color:var(--mut2);margin:0;padding-left:1.1rem;line-height:2;">
+                                <li>Daftar ngrok gratis: <span style="font-family:monospace;color:var(--gold2);">ngrok.com</span></li>
+                                <li>Login: <span style="font-family:monospace;color:var(--ink);">ngrok config add-authtoken TOKEN</span></li>
+                                <li>Static domain: gunakan ngrok free static domain</li>
+                                <li>URL tidak berubah setiap restart</li>
+                            </ol>
+                            <div style="margin-top:.5rem;font-size:.66rem;color:var(--mut);padding:.4rem .6rem;background:rgba(0,0,0,.15);border-radius:.35rem;">
+                                💡 Komputer harus <strong>menyala & terhubung internet</strong> agar notifikasi terkirim dari server live.
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:.85rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
                         <button wire:click="cekStatusWaLokal" style="padding:.45rem .9rem;border-radius:.45rem;border:1px solid rgba(63,207,142,.35);background:rgba(63,207,142,.1);color:var(--emer2);cursor:pointer;font-size:.73rem;font-weight:600;">
                             ⚡ Cek Status Koneksi
                         </button>
-                        <a href="http://localhost:3001/qr" target="_blank" style="padding:.45rem .9rem;border-radius:.45rem;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--mut2);text-decoration:none;font-size:.72rem;">
+                        @if($setWaEndpointUrl)
+                        <a href="{{ $setWaEndpointUrl }}/qr" target="_blank" style="padding:.45rem .9rem;border-radius:.45rem;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--mut2);text-decoration:none;font-size:.72rem;">
                             📱 Buka Halaman QR
                         </a>
-                    </div>
-                    <div style="margin-top:.7rem;font-size:.67rem;color:var(--mut);padding:.5rem .7rem;background:rgba(0,0,0,.15);border-radius:.4rem;">
-                        💡 Untuk production server: jalankan dengan PM2 agar tetap aktif → <span style="font-family:monospace;">pm2 start wa-service/server.js --name wa-klinik</span>
+                        @else
+                        <a href="http://localhost:3001/qr" target="_blank" style="padding:.45rem .9rem;border-radius:.45rem;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--mut2);text-decoration:none;font-size:.72rem;">
+                            📱 Buka QR (Lokal)
+                        </a>
+                        @endif
                     </div>
                 </div>
                 <div>
@@ -467,8 +503,9 @@
                     <label class="form-label">Test Kirim WA</label>
                     <div style="display:flex;gap:.5rem;">
                         <input type="text" wire:model="testNomor" class="form-input" style="font-size:.8rem;" placeholder="08xxx nomor tujuan test">
-                        <button wire:click="$set('testChannel','wa')" wire:click="testKirim" style="flex-shrink:0;padding:.55rem 1rem;border-radius:.5rem;border:1px solid rgba(63,207,142,.3);background:rgba(63,207,142,.1);color:var(--emer2);cursor:pointer;font-size:.78rem;white-space:nowrap;font-weight:600;">
-                            Test WA
+                        <button wire:click="testKirimWa" wire:loading.attr="disabled" style="flex-shrink:0;padding:.55rem 1rem;border-radius:.5rem;border:1px solid rgba(63,207,142,.3);background:rgba(63,207,142,.1);color:var(--emer2);cursor:pointer;font-size:.78rem;white-space:nowrap;font-weight:600;">
+                            <span wire:loading.remove wire:target="testKirimWa">Test WA</span>
+                            <span wire:loading wire:target="testKirimWa">Mengirim...</span>
                         </button>
                     </div>
                 </div>
@@ -504,8 +541,9 @@
                 </div>
                 <div>
                     <label class="form-label">Test Kirim Telegram</label>
-                    <button wire:click="$set('testChannel','telegram')" wire:click="testKirim" style="width:100%;padding:.55rem;border-radius:.5rem;border:1px solid rgba(111,177,224,.3);background:rgba(111,177,224,.1);color:var(--blue);cursor:pointer;font-size:.78rem;font-weight:600;">
-                        Kirim Test ke Telegram
+                    <button wire:click="testKirimTelegram" wire:loading.attr="disabled" style="width:100%;padding:.55rem;border-radius:.5rem;border:1px solid rgba(111,177,224,.3);background:rgba(111,177,224,.1);color:var(--blue);cursor:pointer;font-size:.78rem;font-weight:600;">
+                        <span wire:loading.remove wire:target="testKirimTelegram">Kirim Test ke Telegram</span>
+                        <span wire:loading wire:target="testKirimTelegram">Mengirim...</span>
                     </button>
                 </div>
             </div>

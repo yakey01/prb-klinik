@@ -10,8 +10,13 @@ class NotifikasiService
 {
     private NotifikasiSetting $cfg;
 
-    // URL lokal whatsapp-web.js service (jalankan: node wa-service/server.js)
+    // URL default lokal whatsapp-web.js service (override via wa_endpoint_url di settings)
     public const LOCAL_WA_URL = 'http://localhost:3001';
+
+    private function localWaUrl(): string
+    {
+        return rtrim($this->cfg->wa_endpoint_url ?: self::LOCAL_WA_URL, '/');
+    }
 
     public function __construct()
     {
@@ -61,7 +66,7 @@ class NotifikasiService
 
         $response = Http::timeout(15)
             ->withHeaders(['x-api-key' => $secret])
-            ->post(self::LOCAL_WA_URL . '/send', [
+            ->post($this->localWaUrl() . '/send', [
                 'to'      => $nomor,
                 'message' => $pesan,
             ]);
@@ -152,11 +157,11 @@ class NotifikasiService
         }
     }
 
-    // Cek status koneksi WA lokal
+    // Cek status koneksi WA lokal (gunakan wa_endpoint_url jika dikonfigurasi)
     public function statusWaLokal(): array
     {
         try {
-            $response = Http::timeout(5)->get(self::LOCAL_WA_URL . '/status');
+            $response = Http::timeout(5)->get($this->localWaUrl() . '/status');
             if ($response->successful()) {
                 return array_merge(['ok' => true], $response->json());
             }
@@ -175,7 +180,7 @@ class NotifikasiService
             try {
                 $response = Http::timeout(10)
                     ->withHeaders(['x-api-key' => $apiKeyOrSecret])
-                    ->post(self::LOCAL_WA_URL . '/send', [
+                    ->post($this->localWaUrl() . '/send', [
                         'to'      => $this->normalizeNomor($nomorTest),
                         'message' => '✅ Test koneksi WA dari Klinik Dokterku — berhasil!',
                     ]);

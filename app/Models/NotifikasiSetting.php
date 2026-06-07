@@ -7,7 +7,7 @@ class NotifikasiSetting extends Model
 {
     protected $table = 'notifikasi_settings';
     protected $fillable = [
-        'wa_provider', 'wa_api_key', 'wa_sender_number',
+        'wa_provider', 'wa_api_key', 'wa_sender_number', 'wa_endpoint_url',
         'telegram_bot_token', 'telegram_chat_id_staff',
         'jam_kirim', 'is_aktif_wa', 'is_aktif_telegram',
         'template_h1', 'template_harian', 'template_overdue',
