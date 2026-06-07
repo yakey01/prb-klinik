@@ -114,14 +114,19 @@ class KatalogTable extends Component
         $this->validate([
             'nama_obat'           => 'required|min:2|max:200',
             'kategori_diagnosis'  => 'nullable|max:150',
+            'harga_beli_per_unit' => 'required|numeric|min:0',
             'klaim_bpjs_per_unit' => 'required|numeric|min:0',
             'faktor_jasa_farmasi' => 'required|numeric|min:0.01|max:9.99',
+        ], [
+            'harga_beli_per_unit.min' => 'Harga beli tidak boleh negatif.',
+            'klaim_bpjs_per_unit.min' => 'Klaim BPJS tidak boleh negatif.',
         ]);
 
         $data = [
             'nama_obat'           => trim($this->nama_obat),
             'kode_obat'           => trim($this->kode_obat) ?: null,
             'kategori_diagnosis'  => trim($this->kategori_diagnosis) ?: null,
+            'harga_beli_per_unit' => $this->harga_beli_per_unit,
             'klaim_bpjs_per_unit' => $this->klaim_bpjs_per_unit,
             'faktor_jasa_farmasi' => $this->faktor_jasa_farmasi,
             'tipe_obat'           => $this->tipe_obat,

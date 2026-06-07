@@ -3,9 +3,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class PengambilanObat extends Model
 {
+    use SoftDeletes;
     protected $table = 'pengambilan_obat';
     protected $fillable = [
         'pasien_id','tanggal_pengambilan','jadwal_berikutnya',

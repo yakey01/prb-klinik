@@ -5,6 +5,7 @@
     $hasResep    = $hasPatient && !empty($rows);
     $hasChecklist= $hasPatient && count($checklist) > 0;
     $checkOk     = $hasPatient && $this->checklistOk;
+    $dateOk      = $this->dateValid;
     $canDispense = $this->readyToDispense;
 @endphp
 <div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:2rem;padding:.85rem 1.5rem;background:var(--card);border:1px solid var(--line);border-radius:.6rem;">
@@ -262,7 +263,27 @@
         {{-- Tanggal --}}
         <div style="margin-bottom:.85rem;">
             <label class="form-label">Tanggal Penyerahan</label>
-            <input wire:model="tanggalPengambilan" type="date" class="form-input" {{ !$hasPatient ? 'disabled' : '' }}>
+            <input wire:model.live="tanggalPengambilan" type="date" class="form-input"
+                {{ !$hasPatient ? 'disabled' : '' }}
+                @if($this->minTanggalPengambilan) min="{{ $this->minTanggalPengambilan }}" @endif
+                style="{{ ($hasPatient && !$dateOk) ? 'border-color:var(--red);box-shadow:0 0 0 3px rgba(232,100,90,.12);' : '' }}">
+
+            {{-- Jadwal info hint --}}
+            @if($hasPatient && $this->jadwalInfoLabel)
+            <div style="display:flex;align-items:center;gap:.3rem;margin-top:.3rem;font-size:.67rem;color:var(--mut);">
+                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span>{{ $this->jadwalInfoLabel }}</span>
+            </div>
+            @endif
+
+            {{-- Live date warning --}}
+            @if($hasPatient && !$dateOk)
+            <div style="display:flex;align-items:center;gap:.3rem;margin-top:.35rem;padding:.4rem .6rem;background:rgba(232,100,90,.07);border:1px solid rgba(232,100,90,.22);border-radius:.35rem;">
+                <svg width="11" height="11" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span style="font-size:.68rem;color:var(--red);font-weight:500;">Tidak boleh sebelum jadwal: <strong>{{ \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y') }}</strong></span>
+            </div>
+            @endif
+
             @error('tanggalPengambilan')<div style="color:var(--red);font-size:.7rem;margin-top:.2rem;">{{ $message }}</div>@enderror
         </div>
 
@@ -295,6 +316,19 @@
             <div style="font-size:.8rem;color:var(--red);font-weight:600;margin-bottom:.3rem;">Resep Belum Ada</div>
             <div style="font-size:.72rem;color:var(--mut);">Atur dulu resep obat di halaman Daftar Pasien</div>
         </div>
+        @elseif(!$dateOk)
+        <div style="padding:.85rem;background:rgba(232,100,90,.06);border:1px solid rgba(232,100,90,.2);border-radius:.45rem;margin-bottom:.75rem;display:flex;align-items:flex-start;gap:.5rem;">
+            <svg width="14" height="14" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:.1rem;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <div>
+                <div style="font-size:.78rem;color:var(--red);font-weight:600;margin-bottom:.15rem;">Tanggal Mendahului Jadwal</div>
+                <div style="font-size:.7rem;color:var(--mut);">Penyerahan baru boleh dilakukan mulai <strong style="color:var(--ink);">{{ \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y') }}</strong></div>
+            </div>
+        </div>
+        <button type="button" disabled
+            style="width:100%;display:flex;align-items:center;justify-content:center;gap:.6rem;padding:.9rem 1.25rem;background:rgba(255,255,255,.04);border:1px solid var(--line2);color:var(--mut2);border-radius:.5rem;font-size:.88rem;font-weight:600;cursor:not-allowed;">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Belum Jadwalnya
+        </button>
         @elseif(!$checkOk)
         <div style="padding:.85rem;background:rgba(232,100,90,.06);border:1px solid rgba(232,100,90,.2);border-radius:.45rem;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem;">
             <svg width="14" height="14" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>

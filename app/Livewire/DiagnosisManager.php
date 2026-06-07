@@ -79,6 +79,10 @@ class DiagnosisManager extends Component
 
     public function delete(int $id): void
     {
+        if (!auth()->user()?->isAdmin()) {
+            $this->dispatch('toast', message: 'Hanya admin yang dapat menghapus diagnosis.', type: 'error');
+            return;
+        }
         $d = Diagnosis::findOrFail($id);
         if ($d->nama === 'Lainnya') {
             $this->dispatch('toast', message: 'Diagnosis "Lainnya" tidak dapat dihapus.', type: 'error');

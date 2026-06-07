@@ -1,165 +1,390 @@
 @php
 $sc = [
-    'habis'        => ['label'=>'HABIS',       'bg'=>'rgba(232,100,90,.18)', 'color'=>'var(--red2)',  'bdr'=>'rgba(232,100,90,.4)'],
-    'kritis'       => ['label'=>'KRITIS',      'bg'=>'rgba(232,100,90,.1)',  'color'=>'var(--red)',   'bdr'=>'rgba(232,100,90,.3)'],
-    'hampir_habis' => ['label'=>'HAMPIR HABIS','bg'=>'rgba(255,136,0,.1)',   'color'=>'#ff9944',      'bdr'=>'rgba(255,136,0,.3)'],
-    'perhatian'    => ['label'=>'PERHATIAN',   'bg'=>'rgba(217,164,65,.1)',  'color'=>'var(--gold2)', 'bdr'=>'rgba(217,164,65,.3)'],
-    'aman'         => ['label'=>'AMAN',        'bg'=>'rgba(63,207,142,.08)', 'color'=>'var(--emer2)', 'bdr'=>'rgba(63,207,142,.25)'],
+    'habis'        => ['label'=>'HABIS',       'dot'=>'#e8645a','bg'=>'rgba(232,100,90,.16)','color'=>'var(--red2)', 'bdr'=>'rgba(232,100,90,.4)'],
+    'kritis'       => ['label'=>'KRITIS',      'dot'=>'#ff6b6b','bg'=>'rgba(232,100,90,.1)', 'color'=>'var(--red)',  'bdr'=>'rgba(232,100,90,.3)'],
+    'hampir_habis' => ['label'=>'HAMPIR HABIS','dot'=>'#ff9944','bg'=>'rgba(255,136,0,.1)',  'color'=>'#ff9944',     'bdr'=>'rgba(255,136,0,.3)'],
+    'perhatian'    => ['label'=>'PERHATIAN',   'dot'=>'#d9a441','bg'=>'rgba(217,164,65,.1)', 'color'=>'var(--gold2)','bdr'=>'rgba(217,164,65,.3)'],
+    'aman'         => ['label'=>'AMAN',        'dot'=>'#3fcf8e','bg'=>'rgba(63,207,142,.08)','color'=>'var(--emer2)','bdr'=>'rgba(63,207,142,.25)'],
 ];
 $hariClr = fn($h) => $h < 7 ? 'var(--red)' : ($h < 30 ? '#ff8800' : ($h < 60 ? 'var(--gold2)' : 'var(--emer2)'));
 $barClr  = fn($p) => $p < 15 ? 'var(--red)' : ($p < 33 ? '#ff8800' : ($p < 66 ? 'var(--gold)' : 'var(--emer)'));
 $lBdr    = fn($s) => in_array($s, ['habis','kritis']) ? 'var(--red)' : ($s === 'hampir_habis' ? '#ff8800' : ($s === 'perhatian' ? 'var(--gold)' : 'transparent'));
 $fmtRp   = fn($n) => 'Rp ' . number_format($n, 0, ',', '.');
 $stats   = $statsKronis;
+$urgencyMap = ['habis'=>0,'kritis'=>1,'hampir_habis'=>2,'perhatian'=>3,'aman'=>4];
+$rekapRows = $kebutuhanKronis->sortBy(fn($r) => ($urgencyMap[$r->status] ?? 5) * 10000 + $r->persen_stok);
+$totalObatPerluPesan = $rekapRows->where('reko_pengadaan','>',0)->count();
 @endphp
 <div>{{-- Livewire single root --}}
 
-{{-- ===================== PAGE HEADER ===================== --}}
+{{-- ═══════════════════════════════════════════════════
+     PAGE HEADER
+═══════════════════════════════════════════════════ --}}
 <div style="margin-bottom:1.5rem;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
     <div>
-        <div style="font-size:.7rem;color:var(--mut2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.3rem;">
-            Pengadaan › Analisis Kebutuhan
+        <div style="display:flex;align-items:center;gap:.4rem;font-size:.68rem;color:var(--mut2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4rem;">
+            <span>Pengadaan</span>
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            <span style="color:var(--mut);">Analisis Kebutuhan</span>
         </div>
-        <h1 class="font-heading" style="font-size:1.65rem;color:var(--ink);margin:0 0 .3rem;">
-            Kebutuhan Obat <em style="color:var(--gold2);">Kronis</em>
+        <h1 class="font-heading" style="font-size:1.7rem;color:var(--ink);margin:0 0 .35rem;line-height:1.1;">
+            Kebutuhan Obat <em style="color:var(--gold2);font-style:italic;">Kronis</em>
         </h1>
-        <p style="font-size:.82rem;color:var(--mut);margin:0;">
-            Analisis real-time dari
-            <strong style="color:var(--ink);">{{ $stats['total_jenis_obat'] }} jenis obat</strong> dalam
-            <strong style="color:var(--ink);">{{ $stats['total_pasien'] }} resep aktif</strong> pasien PRB —
-            diperbaharui setiap kali data berubah.
+        <p style="font-size:.82rem;color:var(--mut);margin:0;max-width:520px;">
+            Rekapitulasi real-time kebutuhan <strong style="color:var(--ink);">{{ $stats['total_jenis_obat'] }} jenis obat</strong>
+            dari <strong style="color:var(--ink);">{{ $stats['total_pasien'] }} resep pasien PRB aktif</strong> —
+            diperbarui otomatis setiap kali data berubah.
         </p>
     </div>
-    <div style="display:flex;gap:.5rem;align-items:center;">
-        <div style="font-size:.7rem;color:var(--mut2);text-align:right;">
-            <span style="color:var(--mut);">Horizon rekomendasi:</span><br>
-            <select wire:model.live="horizon" style="background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.25rem .5rem;font-size:.78rem;margin-top:.2rem;">
-                <option value="1">1 Bulan</option>
-                <option value="3">3 Bulan</option>
-                <option value="6">6 Bulan</option>
-            </select>
+    <div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">
+        {{-- Horizon Picker --}}
+        <div style="background:var(--panel);border:1px solid var(--line);border-radius:.55rem;padding:.3rem;display:flex;gap:.2rem;">
+            <span style="font-size:.66rem;color:var(--mut2);padding:.2rem .5rem .2rem .4rem;align-self:center;">Horizon:</span>
+            @foreach([1=>'1 Bln', 3=>'3 Bln', 6=>'6 Bln'] as $v => $lbl)
+            <button wire:click="$set('horizon',{{ $v }})"
+                style="padding:.3rem .7rem;font-size:.75rem;font-weight:600;border-radius:.35rem;border:none;cursor:pointer;transition:all .15s;{{ $horizon == $v ? 'background:var(--gold);color:#0a1410;' : 'background:transparent;color:var(--mut);' }}">
+                {{ $lbl }}
+            </button>
+            @endforeach
         </div>
+        {{-- Print Rekap --}}
+        <button onclick="window.print()" style="display:flex;align-items:center;gap:.4rem;padding:.4rem .85rem;background:rgba(63,207,142,.08);border:1px solid rgba(63,207,142,.25);color:var(--emer2);border-radius:.5rem;font-size:.78rem;font-weight:600;cursor:pointer;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+            Cetak Rekap
+        </button>
     </div>
 </div>
 
-{{-- ===================== CRITICAL ALERT ===================== --}}
+{{-- ═══════════════════════════════════════════════════
+     CRITICAL ALERT
+═══════════════════════════════════════════════════ --}}
 @if($stats['kritis_count'] > 0)
-<div style="margin-bottom:1.25rem;background:rgba(232,100,90,.07);border:1px solid rgba(232,100,90,.25);border-left:4px solid var(--red);border-radius:.6rem;padding:.8rem 1.1rem;display:flex;align-items:flex-start;gap:.75rem;">
-    <div style="flex-shrink:0;margin-top:.05rem;">
-        <svg width="16" height="16" fill="none" stroke="var(--red)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+<div style="margin-bottom:1.25rem;background:rgba(232,100,90,.07);border:1px solid rgba(232,100,90,.3);border-left:4px solid var(--red);border-radius:.65rem;padding:.9rem 1.1rem;display:flex;align-items:flex-start;gap:.75rem;">
+    <div style="flex-shrink:0;animation:pulse-red 1.5s infinite;margin-top:.05rem;">
+        <svg width="17" height="17" fill="none" stroke="var(--red)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     </div>
-    <div>
-        <div style="font-size:.82rem;font-weight:700;color:var(--red2);margin-bottom:.2rem;">
-            {{ $stats['kritis_count'] }} obat dalam kondisi KRITIS — perlu reorder segera
+    <div style="flex:1;">
+        <div style="font-size:.83rem;font-weight:700;color:var(--red2);margin-bottom:.35rem;">
+            ⚠ {{ $stats['kritis_count'] }} obat KRITIS — reorder segera diperlukan
         </div>
-        <div style="font-size:.77rem;color:var(--mut);display:flex;flex-wrap:wrap;gap:.4rem;">
-            @foreach($kebutuhanKronis->whereIn('status',['habis','kritis'])->take(6) as $item)
-                <span style="background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.25);border-radius:999px;padding:.1rem .55rem;color:var(--red);">
-                    {{ $item->nama_obat }}{{ $item->hari_tersisa < 9999 ? ' (' . $item->hari_tersisa . ' hr)' : ' (habis)' }}
+        <div style="font-size:.76rem;color:var(--mut);display:flex;flex-wrap:wrap;gap:.35rem;">
+            @foreach($kebutuhanKronis->whereIn('status',['habis','kritis'])->take(8) as $item)
+                <span style="background:rgba(232,100,90,.12);border:1px solid rgba(232,100,90,.3);border-radius:999px;padding:.1rem .6rem;color:var(--red);font-weight:600;">
+                    {{ $item->nama_obat }}
+                    <span style="font-weight:400;color:rgba(232,100,90,.7);">· {{ $item->hari_tersisa < 9999 ? $item->hari_tersisa . 'hr' : 'habis' }}</span>
                 </span>
             @endforeach
-            @if($stats['kritis_count'] > 6)
-                <span style="color:var(--mut);">+{{ $stats['kritis_count'] - 6 }} lainnya</span>
-            @endif
+            @if($stats['kritis_count'] > 8)<span style="color:var(--mut2);">+{{ $stats['kritis_count'] - 8 }} lainnya</span>@endif
         </div>
     </div>
 </div>
 @endif
 
-{{-- ===================== KPI CARDS ===================== --}}
-<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:.75rem;margin-bottom:1.75rem;">
+{{-- ═══════════════════════════════════════════════════
+     STATUS OVERVIEW + KPI CARDS
+═══════════════════════════════════════════════════ --}}
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:.85rem;margin-bottom:1.5rem;">
 
-    {{-- Jenis Obat Kronis --}}
-    <div class="kpi-card" style="border-left:3px solid rgba(111,177,224,.4);">
-        <div style="font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.6rem;">Jenis Obat Kronis</div>
-        <div style="font-size:1.9rem;font-weight:800;color:var(--blue);line-height:1;margin-bottom:.4rem;">{{ $stats['total_jenis_obat'] }}</div>
-        <div style="font-size:.72rem;color:var(--mut2);">dari resep pasien aktif</div>
-    </div>
-
-    {{-- Pasien Aktif --}}
-    <div class="kpi-card" style="border-left:3px solid rgba(63,207,142,.4);">
-        <div style="font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.6rem;">Pasien Aktif</div>
-        <div style="font-size:1.9rem;font-weight:800;color:var(--emer);line-height:1;margin-bottom:.4rem;">{{ $stats['total_pasien'] }}</div>
-        <div style="font-size:.72rem;color:var(--mut2);">terdaftar program PRB</div>
-    </div>
-
-    {{-- Kebutuhan/Bulan --}}
-    <div class="kpi-card" style="border-left:3px solid rgba(217,164,65,.4);">
-        <div style="font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.6rem;">Kebutuhan / Bulan</div>
-        <div style="font-size:1.9rem;font-weight:800;color:var(--gold2);line-height:1;margin-bottom:.4rem;">{{ number_format($stats['total_unit_bulan'],0,',','.') }}</div>
-        <div style="font-size:.72rem;color:var(--mut2);">unit dari semua obat kronis</div>
-    </div>
-
-    {{-- Stok Perhatian --}}
-    <div class="kpi-card" style="border-left:3px solid {{ $stats['kritis_count'] > 0 ? 'rgba(232,100,90,.5)' : 'rgba(255,136,0,.4)' }};">
-        <div style="font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.6rem;">Butuh Perhatian</div>
-        <div style="font-size:1.9rem;font-weight:800;color:{{ $stats['kritis_count'] > 0 ? 'var(--red)' : ($stats['hampir_habis_count'] > 0 ? '#ff9944' : 'var(--emer2)') }};line-height:1;margin-bottom:.4rem;">
-            {{ $stats['kritis_count'] + $stats['hampir_habis_count'] }}
+    {{-- KPI: Jenis Obat --}}
+    <div class="kpi-card" style="border-left:3px solid rgba(111,177,224,.4);position:relative;overflow:hidden;">
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin-bottom:.55rem;">Jenis Obat Kronis</div>
+        <div style="font-size:2.1rem;font-weight:800;color:var(--blue);line-height:1;margin-bottom:.35rem;letter-spacing:-.03em;">{{ $stats['total_jenis_obat'] }}</div>
+        <div style="font-size:.71rem;color:var(--mut2);">jenis dari resep aktif</div>
+        <div style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);opacity:.07;">
+            <svg width="52" height="52" fill="var(--blue)" viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
         </div>
-        <div style="font-size:.72rem;color:var(--mut2);">
+    </div>
+
+    {{-- KPI: Pasien PRB --}}
+    <div class="kpi-card" style="border-left:3px solid rgba(63,207,142,.4);position:relative;overflow:hidden;">
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin-bottom:.55rem;">Pasien PRB Aktif</div>
+        <div style="font-size:2.1rem;font-weight:800;color:var(--emer);line-height:1;margin-bottom:.35rem;letter-spacing:-.03em;">{{ $stats['total_pasien'] }}</div>
+        <div style="font-size:.71rem;color:var(--mut2);">terdaftar program rujuk balik</div>
+        <div style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);opacity:.07;">
+            <svg width="52" height="52" fill="var(--emer)" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+        </div>
+    </div>
+
+    {{-- KPI: Kebutuhan/Bulan --}}
+    <div class="kpi-card" style="border-left:3px solid rgba(217,164,65,.4);position:relative;overflow:hidden;">
+        <div style="font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin-bottom:.55rem;">Total Kebutuhan / Bulan</div>
+        <div style="font-size:1.65rem;font-weight:800;color:var(--gold2);line-height:1;margin-bottom:.35rem;letter-spacing:-.02em;">{{ number_format($stats['total_unit_bulan'],0,',','.') }}</div>
+        <div style="font-size:.71rem;color:var(--mut2);">unit dari semua obat kronis</div>
+        <div style="position:absolute;right:1rem;top:50%;transform:translateY(-50%);opacity:.07;">
+            <svg width="52" height="52" fill="var(--gold)" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+        </div>
+    </div>
+
+    {{-- KPI: Status Distribution (combined) --}}
+    <div class="kpi-card" style="border-left:3px solid rgba({{ $stats['kritis_count'] > 0 ? '232,100,90' : '217,164,65' }},.4);">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.65rem;">
+            <div style="font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);">Status Stok</div>
+            <div style="font-size:.68rem;color:var(--mut2);">{{ $stats['total_jenis_obat'] }} obat</div>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
             @if($stats['kritis_count'] > 0)
-                {{ $stats['kritis_count'] }} kritis · {{ $stats['hampir_habis_count'] }} hampir habis
-            @elseif($stats['hampir_habis_count'] > 0)
-                {{ $stats['hampir_habis_count'] }} hampir habis
-            @else
-                semua stok aman ✓
+            <div style="display:flex;align-items:center;gap:.3rem;">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block;animation:pulse-red 1.4s infinite;"></span>
+                <span style="font-size:1.1rem;font-weight:800;color:var(--red);">{{ $stats['kritis_count'] }}</span>
+                <span style="font-size:.68rem;color:var(--mut2);">Kritis</span>
+            </div>
             @endif
+            @if($stats['hampir_habis_count'] > 0)
+            <div style="display:flex;align-items:center;gap:.3rem;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#ff9944;display:inline-block;"></span>
+                <span style="font-size:1.1rem;font-weight:800;color:#ff9944;">{{ $stats['hampir_habis_count'] }}</span>
+                <span style="font-size:.68rem;color:var(--mut2);">Hampir Habis</span>
+            </div>
+            @endif
+            @if($stats['perhatian_count'] > 0)
+            <div style="display:flex;align-items:center;gap:.3rem;">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--gold2);display:inline-block;"></span>
+                <span style="font-size:1.1rem;font-weight:800;color:var(--gold2);">{{ $stats['perhatian_count'] }}</span>
+                <span style="font-size:.68rem;color:var(--mut2);">Perhatian</span>
+            </div>
+            @endif
+            <div style="display:flex;align-items:center;gap:.3rem;">
+                <span style="width:8px;height:8px;border-radius:50%;background:var(--emer2);display:inline-block;"></span>
+                <span style="font-size:1.1rem;font-weight:800;color:var(--emer2);">{{ $stats['aman_count'] }}</span>
+                <span style="font-size:.68rem;color:var(--mut2);">Aman</span>
+            </div>
         </div>
-    </div>
-
-    {{-- Nilai / Bulan --}}
-    <div class="kpi-card" style="border-left:3px solid rgba(63,207,142,.25);">
-        <div style="font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.6rem;">Est. Nilai / Bulan</div>
-        <div style="font-size:1.2rem;font-weight:800;color:var(--ink);line-height:1;margin-bottom:.4rem;">{{ $fmtRp($stats['nilai_bulan']) }}</div>
-        <div style="font-size:.72rem;color:var(--mut2);">
-            reko {{ $horizon }} bln: <span style="color:var(--gold2);">{{ $fmtRp($stats['nilai_reko']) }}</span>
+        {{-- Stacked urgency bar --}}
+        @php
+            $total = max(1, $stats['total_jenis_obat']);
+            $habisW = round(($stats['kritis_count'] > 0 ? $rekapRows->whereIn('status',['habis'])->count() : 0) / $total * 100, 1);
+            $kritisW = round($stats['kritis_count'] / $total * 100, 1);
+            $hHabisW = round($stats['hampir_habis_count'] / $total * 100, 1);
+            $perhW   = round($stats['perhatian_count'] / $total * 100, 1);
+            $amanW   = round($stats['aman_count'] / $total * 100, 1);
+        @endphp
+        <div style="margin-top:.75rem;height:6px;border-radius:999px;background:rgba(31,61,48,.5);overflow:hidden;display:flex;">
+            <div style="width:{{ $habisW }}%;background:#e8645a;"></div>
+            <div style="width:{{ $kritisW }}%;background:#ff6b6b;"></div>
+            <div style="width:{{ $hHabisW }}%;background:#ff9944;"></div>
+            <div style="width:{{ $perhW }}%;background:var(--gold2);"></div>
+            <div style="width:{{ $amanW }}%;background:var(--emer);"></div>
+        </div>
+        <div style="margin-top:.4rem;font-size:.68rem;color:var(--mut2);">
+            @if($stats['kritis_count'] == 0 && $stats['hampir_habis_count'] == 0)
+                <span style="color:var(--emer2);">✓ Semua stok dalam kondisi baik</span>
+            @else
+                {{ $stats['kritis_count'] + $stats['hampir_habis_count'] }} obat memerlukan perhatian segera
+            @endif
         </div>
     </div>
 </div>
 
-{{-- ===================== MAIN TABS ===================== --}}
+{{-- ═══════════════════════════════════════════════════
+     REKAP KEBUTUHAN OBAT KRONIS (MAIN SECTION)
+═══════════════════════════════════════════════════ --}}
+<div id="rekap-print" style="margin-bottom:1.75rem;background:var(--card);border:1px solid var(--line);border-radius:.85rem;overflow:hidden;">
+
+    {{-- Section header --}}
+    <div style="padding:1.1rem 1.4rem;border-bottom:1px solid var(--line);background:linear-gradient(135deg,rgba(217,164,65,.04) 0%,transparent 60%);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+        <div style="display:flex;align-items:center;gap:.75rem;">
+            <div style="width:36px;height:36px;border-radius:.5rem;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="17" height="17" fill="none" stroke="var(--gold2)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+            </div>
+            <div>
+                <div style="font-size:.92rem;font-weight:700;color:var(--ink);">Rekapitulasi Kebutuhan Obat Kronis</div>
+                <div style="font-size:.72rem;color:var(--mut);margin-top:.1rem;">
+                    {{ $stats['total_jenis_obat'] }} jenis obat ·
+                    {{ $stats['total_pasien'] }} pasien PRB ·
+                    Horizon <strong style="color:var(--gold2);">{{ $horizon }} bulan</strong>
+                </div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.75rem;">
+            @if($totalObatPerluPesan > 0)
+            <div style="display:flex;align-items:center;gap:.4rem;padding:.3rem .75rem;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.3);border-radius:999px;">
+                <svg width="12" height="12" fill="none" stroke="var(--gold2)" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+                <span style="font-size:.74rem;font-weight:700;color:var(--gold2);">{{ $totalObatPerluPesan }} obat perlu dipesan</span>
+            </div>
+            @endif
+            <div style="font-size:.7rem;color:var(--mut2);">
+                Est. nilai reko: <strong style="color:var(--gold2);">{{ $fmtRp($stats['nilai_reko']) }}</strong>
+            </div>
+        </div>
+    </div>
+
+    @if($kebutuhanKronis->isEmpty())
+        <div style="text-align:center;padding:3rem 2rem;color:var(--mut);">
+            <svg width="40" height="40" fill="none" stroke="var(--mut2)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto .8rem;display:block;"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+            <div style="font-size:.9rem;font-weight:600;margin-bottom:.4rem;">Belum ada resep obat kronis</div>
+            <div style="font-size:.78rem;color:var(--mut2);">Tambahkan resep obat rutin di halaman Pasien › Daftar Pasien</div>
+        </div>
+    @else
+    <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;min-width:820px;">
+            <thead>
+                <tr style="background:rgba(31,61,48,.3);">
+                    <th style="text-align:left;padding:.55rem 1rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);white-space:nowrap;">#</th>
+                    <th style="text-align:left;padding:.55rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);">Nama Obat</th>
+                    <th style="text-align:center;padding:.55rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);white-space:nowrap;">Pasien</th>
+                    <th style="text-align:right;padding:.55rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);white-space:nowrap;">Keb. / Bulan</th>
+                    <th style="text-align:left;padding:.55rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);min-width:140px;">Stok Saat Ini</th>
+                    <th style="text-align:center;padding:.55rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);min-width:90px;">Runway</th>
+                    <th style="text-align:right;padding:.55rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);min-width:120px;">Reko Pesan ({{ $horizon }}bln)</th>
+                    <th style="text-align:center;padding:.55rem .75rem;font-size:.65rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);border-bottom:1px solid var(--line);min-width:100px;">Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($rekapRows as $idx => $item)
+                @php
+                    $s    = $sc[$item->status];
+                    $lbdr = $lBdr($item->status);
+                    $bclr = $barClr($item->persen_stok);
+                    $hclr = $hariClr($item->hari_tersisa);
+                    $runwayPct = $item->hari_tersisa >= 9999 ? 100 : min(100, round($item->hari_tersisa / 90 * 100));
+                    $isUrgent = in_array($item->status, ['habis','kritis']);
+                @endphp
+                <tr style="border-left:3px solid {{ $lbdr }};border-bottom:1px solid var(--line);{{ $isUrgent ? 'background:rgba(232,100,90,.025);' : '' }}transition:background .1s;" onmouseover="this.style.background='rgba(63,207,142,.03)'" onmouseout="this.style.background='{{ $isUrgent ? 'rgba(232,100,90,.025)' : 'transparent' }}'">
+
+                    <td style="padding:.65rem 1rem;font-size:.72rem;color:var(--mut2);width:32px;">{{ $idx + 1 }}</td>
+
+                    <td style="padding:.65rem .75rem;">
+                        <div style="font-weight:700;color:var(--ink);font-size:.88rem;margin-bottom:.2rem;line-height:1.2;">{{ $item->nama_obat }}</div>
+                        <div style="display:flex;align-items:center;gap:.3rem;">
+                            <span style="font-size:.66rem;background:rgba(111,177,224,.07);color:var(--blue);border:1px solid rgba(111,177,224,.18);border-radius:999px;padding:.07rem .5rem;white-space:nowrap;">{{ $item->kategori_diagnosis }}</span>
+                            <span style="font-size:.66rem;color:var(--mut2);">{{ $item->satuan }}</span>
+                        </div>
+                    </td>
+
+                    <td style="padding:.65rem .75rem;text-align:center;">
+                        <div style="font-size:1.1rem;font-weight:800;color:var(--ink);line-height:1;">{{ $item->jumlah_pasien }}</div>
+                        <div style="font-size:.63rem;color:var(--mut2);">pasien</div>
+                    </td>
+
+                    <td style="padding:.65rem .75rem;text-align:right;">
+                        <div style="font-size:1.05rem;font-weight:800;color:var(--gold2);line-height:1;">{{ number_format($item->unit_per_bulan,0,',','.') }}</div>
+                        <div style="font-size:.63rem;color:var(--mut2);">{{ $item->satuan }}/bln</div>
+                    </td>
+
+                    <td style="padding:.65rem .75rem;">
+                        <div style="display:flex;align-items:baseline;gap:.3rem;margin-bottom:.3rem;">
+                            <span style="font-size:.9rem;font-weight:700;color:var(--ink);">{{ number_format($item->stok_aktual,0,',','.') }}</span>
+                            <span style="font-size:.65rem;color:var(--mut2);">{{ $item->satuan }}</span>
+                        </div>
+                        <div style="background:rgba(31,61,48,.6);border-radius:3px;height:4px;overflow:hidden;">
+                            <div style="width:{{ min(100,$item->persen_stok) }}%;height:100%;background:{{ $bclr }};border-radius:3px;transition:width .4s;"></div>
+                        </div>
+                        <div style="font-size:.61rem;color:var(--mut2);margin-top:.2rem;">{{ $item->persen_stok }}% target 3bln</div>
+                    </td>
+
+                    <td style="padding:.65rem .75rem;text-align:center;">
+                        @if($item->hari_tersisa < 9999)
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem;">
+                            <div style="width:60px;height:6px;background:rgba(31,61,48,.6);border-radius:999px;overflow:hidden;">
+                                <div style="width:{{ $runwayPct }}%;height:100%;background:{{ $hclr }};border-radius:999px;"></div>
+                            </div>
+                            <div style="font-size:.75rem;font-weight:700;color:{{ $hclr }};">{{ $item->hari_tersisa }} hr</div>
+                            <div style="font-size:.61rem;color:var(--mut2);white-space:nowrap;">{{ $item->habis_tanggal }}</div>
+                        </div>
+                        @else
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:.25rem;">
+                            <div style="width:60px;height:6px;background:rgba(63,207,142,.15);border-radius:999px;overflow:hidden;">
+                                <div style="width:100%;height:100%;background:var(--emer);border-radius:999px;"></div>
+                            </div>
+                            <div style="font-size:.68rem;color:var(--emer2);">≥90 hr</div>
+                        </div>
+                        @endif
+                    </td>
+
+                    <td style="padding:.65rem .75rem;text-align:right;">
+                        @if($item->reko_pengadaan > 0)
+                            <div style="font-size:1rem;font-weight:800;color:var(--gold2);">+{{ number_format($item->reko_pengadaan,0,',','.') }}</div>
+                            <div style="font-size:.63rem;color:var(--mut2);">{{ $item->satuan }}</div>
+                            <div style="font-size:.68rem;color:var(--mut);margin-top:.1rem;">{{ $fmtRp($item->nilai_reko) }}</div>
+                        @else
+                            <div style="display:flex;align-items:center;justify-content:flex-end;gap:.3rem;">
+                                <svg width="12" height="12" fill="none" stroke="var(--emer2)" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span style="color:var(--emer2);font-size:.78rem;font-weight:600;">Cukup</span>
+                            </div>
+                        @endif
+                    </td>
+
+                    <td style="padding:.65rem .75rem;text-align:center;">
+                        <span style="display:inline-flex;align-items:center;gap:.25rem;padding:.22rem .65rem;border-radius:999px;font-size:.67rem;font-weight:700;background:{{ $s['bg'] }};color:{{ $s['color'] }};border:1px solid {{ $s['bdr'] }};white-space:nowrap;">
+                            <span style="width:5px;height:5px;border-radius:50%;background:{{ $s['dot'] }};display:inline-block;flex-shrink:0;{{ $isUrgent ? 'animation:pulse-red 1.2s infinite;' : '' }}"></span>
+                            {{ $s['label'] }}
+                        </span>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr style="background:rgba(217,164,65,.04);border-top:2px solid rgba(217,164,65,.2);">
+                    <td colspan="3" style="padding:.75rem 1rem;font-size:.72rem;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;">
+                        Total — {{ $stats['total_jenis_obat'] }} jenis
+                    </td>
+                    <td style="padding:.75rem .75rem;text-align:right;font-size:.95rem;font-weight:800;color:var(--gold2);">
+                        {{ number_format($stats['total_unit_bulan'],0,',','.') }}
+                        <div style="font-size:.62rem;color:var(--mut2);font-weight:400;">unit/bulan</div>
+                    </td>
+                    <td colspan="2" style="padding:.75rem .75rem;font-size:.75rem;color:var(--mut);">
+                        <span style="color:var(--ink);">Nilai bulanan:</span>
+                        <strong style="color:var(--gold2);font-size:.82rem;"> {{ $fmtRp($stats['nilai_bulan']) }}</strong>
+                    </td>
+                    <td style="padding:.75rem .75rem;text-align:right;font-size:.95rem;font-weight:800;color:var(--gold2);">
+                        +{{ number_format($kebutuhanKronis->sum('reko_pengadaan'),0,',','.') }}
+                        <div style="font-size:.62rem;color:var(--mut2);font-weight:400;">unit (reko {{ $horizon }}bln)</div>
+                    </td>
+                    <td style="padding:.75rem .75rem;text-align:right;font-size:.85rem;font-weight:800;color:var(--gold2);">
+                        {{ $fmtRp($stats['nilai_reko']) }}
+                        <div style="font-size:.62rem;color:var(--mut2);font-weight:400;">est. nilai reko</div>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    @endif
+</div>
+
+{{-- ═══════════════════════════════════════════════════
+     ANALYSIS TABS
+═══════════════════════════════════════════════════ --}}
 <div x-data="{ tab: 'kronis' }">
 
-    {{-- Tab Nav --}}
-    <div style="display:flex;gap:.25rem;border-bottom:1px solid var(--line);margin-bottom:1.25rem;">
+    <div style="display:flex;gap:.2rem;border-bottom:1px solid var(--line);margin-bottom:1.25rem;">
         <button @click="tab='kronis'"
             :style="tab==='kronis' ? 'color:var(--gold2);border-bottom:2px solid var(--gold);background:rgba(217,164,65,.04);' : ''"
-            style="display:flex;align-items:center;gap:.5rem;padding:.65rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:.4rem .4rem 0 0;transition:color .15s;">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
-            Obat Kronis
-            <span style="background:rgba(63,207,142,.12);color:var(--emer);border-radius:999px;padding:.05rem .45rem;font-size:.68rem;font-weight:700;">{{ $stats['total_jenis_obat'] }}</span>
+            style="display:flex;align-items:center;gap:.45rem;padding:.6rem 1rem;font-size:.81rem;font-weight:600;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:.4rem .4rem 0 0;transition:color .15s;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            Analisis Kronis
+            <span style="background:rgba(63,207,142,.12);color:var(--emer);border-radius:999px;padding:.04rem .45rem;font-size:.67rem;font-weight:700;">{{ $stats['total_jenis_obat'] }}</span>
         </button>
         <button @click="tab='nonkronis'"
             :style="tab==='nonkronis' ? 'color:var(--gold2);border-bottom:2px solid var(--gold);background:rgba(217,164,65,.04);' : ''"
-            style="display:flex;align-items:center;gap:.5rem;padding:.65rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:.4rem .4rem 0 0;transition:color .15s;">
+            style="display:flex;align-items:center;gap:.45rem;padding:.6rem 1rem;font-size:.81rem;font-weight:600;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:.4rem .4rem 0 0;transition:color .15s;">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
             Non-Kronis
-            <span style="background:rgba(111,177,224,.1);color:var(--blue);border-radius:999px;padding:.05rem .45rem;font-size:.68rem;font-weight:700;">{{ $kebutuhanNonKronis->count() }}</span>
+            <span style="background:rgba(111,177,224,.1);color:var(--blue);border-radius:999px;padding:.04rem .45rem;font-size:.67rem;font-weight:700;">{{ $kebutuhanNonKronis->count() }}</span>
         </button>
         <button @click="tab='info'"
             :style="tab==='info' ? 'color:var(--gold2);border-bottom:2px solid var(--gold);background:rgba(217,164,65,.04);' : ''"
-            style="display:flex;align-items:center;gap:.5rem;padding:.65rem 1.1rem;font-size:.82rem;font-weight:600;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:.4rem .4rem 0 0;transition:color .15s;">
+            style="display:flex;align-items:center;gap:.45rem;padding:.6rem 1rem;font-size:.81rem;font-weight:600;color:var(--mut);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;border-radius:.4rem .4rem 0 0;transition:color .15s;">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             Metodologi
         </button>
     </div>
 
-    {{-- =================== TAB: KRONIS =================== --}}
+    {{-- ─── TAB: ANALISIS KRONIS ─── --}}
     <div x-show="tab==='kronis'" x-transition.opacity.duration.150ms>
 
         {{-- Filter Toolbar --}}
-        <div style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:1.25rem;padding:.85rem 1rem;background:var(--panel);border:1px solid var(--line);border-radius:.65rem;">
-            <svg width="14" height="14" fill="none" stroke="var(--mut)" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
-            <span style="font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut2);margin-right:.25rem;">Filter</span>
+        <div style="display:flex;flex-wrap:wrap;gap:.55rem;align-items:center;margin-bottom:1.1rem;padding:.8rem 1rem;background:var(--panel);border:1px solid var(--line);border-radius:.6rem;">
+            <svg width="13" height="13" fill="none" stroke="var(--mut)" stroke-width="2" viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+            <span style="font-size:.67rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut2);">Filter</span>
 
-            <select wire:model.live="filterDiagnosis" style="background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.38rem .7rem;font-size:.8rem;flex:1;min-width:140px;max-width:200px;">
+            <select wire:model.live="filterDiagnosis" style="background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.36rem .65rem;font-size:.79rem;flex:1;min-width:130px;max-width:190px;">
                 <option value="">Semua Diagnosis</option>
                 @foreach($diagnosisList as $d)
                     <option value="{{ $d }}">{{ $d }}</option>
                 @endforeach
             </select>
 
-            <select wire:model.live="filterStatus" style="background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.38rem .7rem;font-size:.8rem;min-width:130px;">
+            <select wire:model.live="filterStatus" style="background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.36rem .65rem;font-size:.79rem;min-width:125px;">
                 <option value="">Semua Status</option>
                 <option value="habis">Habis</option>
                 <option value="kritis">Kritis (&lt;7 hr)</option>
@@ -168,90 +393,77 @@ $stats   = $statsKronis;
                 <option value="aman">Aman</option>
             </select>
 
-            <div style="position:relative;flex:1;min-width:160px;max-width:240px;">
-                <svg width="13" height="13" fill="none" stroke="var(--mut2)" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:.6rem;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama obat..." style="background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.38rem .7rem .38rem 2rem;font-size:.8rem;width:100%;">
+            <div style="position:relative;flex:1;min-width:150px;max-width:220px;">
+                <svg width="12" height="12" fill="none" stroke="var(--mut2)" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:.55rem;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama obat..." style="background:var(--card);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.36rem .65rem .36rem 1.9rem;font-size:.79rem;width:100%;">
             </div>
 
             @if($filterDiagnosis || $filterStatus || $search)
             <button wire:click="$set('filterDiagnosis','');$set('filterStatus','');$set('search','')"
-                style="background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.25);color:var(--red);border-radius:.4rem;padding:.38rem .75rem;font-size:.75rem;cursor:pointer;display:flex;align-items:center;gap:.3rem;">
-                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                Reset
+                style="background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.25);color:var(--red);border-radius:.4rem;padding:.36rem .7rem;font-size:.74rem;cursor:pointer;display:flex;align-items:center;gap:.3rem;">
+                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Reset
             </button>
             @endif
         </div>
 
-        {{-- Charts Row --}}
-        <div
-            wire:ignore
-            x-data="kebutuhanCharts()"
-            x-init="init()"
-            @charts-refresh.window="refresh($event.detail.data)"
-            style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1.25rem;"
-        >
+        {{-- Charts --}}
+        <div wire:ignore x-data="kebutuhanCharts()" x-init="init()" @charts-refresh.window="refresh($event.detail.data)"
+            style="display:grid;grid-template-columns:2fr 1fr;gap:1rem;margin-bottom:1.1rem;">
             <script>window.__kcInitData = @json($chartData);</script>
 
-            {{-- Bar chart --}}
-            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.1rem 1.25rem;">
-                <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.9rem;display:flex;align-items:center;gap:.45rem;">
-                    <svg width="12" height="12" fill="none" stroke="var(--emer)" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                    Top 10 Obat — Kebutuhan vs Stok
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1rem 1.2rem;">
+                <div style="font-size:.69rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.8rem;display:flex;align-items:center;gap:.4rem;">
+                    <svg width="11" height="11" fill="none" stroke="var(--emer)" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                    Top 10 Obat — Kebutuhan vs Stok Aktual
                 </div>
-                <div style="height:260px;position:relative;">
-                    <canvas data-chart="topobat"></canvas>
-                </div>
+                <div style="height:250px;position:relative;"><canvas data-chart="topobat"></canvas></div>
             </div>
 
-            {{-- Donut chart --}}
-            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.1rem 1.25rem;">
-                <div style="font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.9rem;display:flex;align-items:center;gap:.45rem;">
-                    <svg width="12" height="12" fill="none" stroke="var(--gold2)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1rem 1.2rem;">
+                <div style="font-size:.69rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:.8rem;display:flex;align-items:center;gap:.4rem;">
+                    <svg width="11" height="11" fill="none" stroke="var(--gold2)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                     Distribusi Status Stok
                 </div>
-                <div style="height:200px;position:relative;">
-                    <canvas data-chart="status"></canvas>
-                </div>
-                {{-- Summary numbers --}}
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.85rem;">
-                    <div style="text-align:center;padding:.4rem;background:rgba(63,207,142,.06);border-radius:.4rem;">
-                        <div style="font-size:1.1rem;font-weight:800;color:var(--emer2);">{{ $stats['aman_count'] }}</div>
-                        <div style="font-size:.65rem;color:var(--mut2);">Aman</div>
+                <div style="height:190px;position:relative;"><canvas data-chart="status"></canvas></div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin-top:.8rem;">
+                    <div style="text-align:center;padding:.38rem;background:rgba(63,207,142,.06);border-radius:.4rem;">
+                        <div style="font-size:1.05rem;font-weight:800;color:var(--emer2);">{{ $stats['aman_count'] }}</div>
+                        <div style="font-size:.62rem;color:var(--mut2);">Aman</div>
                     </div>
-                    <div style="text-align:center;padding:.4rem;background:rgba(217,164,65,.06);border-radius:.4rem;">
-                        <div style="font-size:1.1rem;font-weight:800;color:var(--gold2);">{{ $stats['perhatian_count'] }}</div>
-                        <div style="font-size:.65rem;color:var(--mut2);">Perhatian</div>
+                    <div style="text-align:center;padding:.38rem;background:rgba(217,164,65,.06);border-radius:.4rem;">
+                        <div style="font-size:1.05rem;font-weight:800;color:var(--gold2);">{{ $stats['perhatian_count'] }}</div>
+                        <div style="font-size:.62rem;color:var(--mut2);">Perhatian</div>
                     </div>
-                    <div style="text-align:center;padding:.4rem;background:rgba(255,136,0,.06);border-radius:.4rem;">
-                        <div style="font-size:1.1rem;font-weight:800;color:#ff9944;">{{ $stats['hampir_habis_count'] }}</div>
-                        <div style="font-size:.65rem;color:var(--mut2);">Hampir Habis</div>
+                    <div style="text-align:center;padding:.38rem;background:rgba(255,136,0,.06);border-radius:.4rem;">
+                        <div style="font-size:1.05rem;font-weight:800;color:#ff9944;">{{ $stats['hampir_habis_count'] }}</div>
+                        <div style="font-size:.62rem;color:var(--mut2);">Hampir Habis</div>
                     </div>
-                    <div style="text-align:center;padding:.4rem;background:rgba(232,100,90,.06);border-radius:.4rem;">
-                        <div style="font-size:1.1rem;font-weight:800;color:var(--red);">{{ $stats['kritis_count'] }}</div>
-                        <div style="font-size:.65rem;color:var(--mut2);">Kritis</div>
+                    <div style="text-align:center;padding:.38rem;background:rgba(232,100,90,.06);border-radius:.4rem;">
+                        <div style="font-size:1.05rem;font-weight:800;color:var(--red);">{{ $stats['kritis_count'] }}</div>
+                        <div style="font-size:.62rem;color:var(--mut2);">Kritis</div>
                     </div>
                 </div>
             </div>
         </div>
 
         {{-- Insight Bar --}}
-        <div style="display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem;background:rgba(63,207,142,.04);border:1px solid rgba(63,207,142,.12);border-radius:.5rem;margin-bottom:1rem;font-size:.78rem;color:var(--mut);flex-wrap:wrap;">
-            <svg width="13" height="13" fill="none" stroke="var(--emer)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            <span>Menampilkan <strong style="color:var(--ink);">{{ $kebutuhanKronis->count() }} obat</strong></span>
+        <div style="display:flex;align-items:center;gap:.55rem;padding:.6rem .9rem;background:rgba(63,207,142,.04);border:1px solid rgba(63,207,142,.12);border-radius:.5rem;margin-bottom:.9rem;font-size:.77rem;color:var(--mut);flex-wrap:wrap;">
+            <svg width="12" height="12" fill="none" stroke="var(--emer)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span>Tampil <strong style="color:var(--ink);">{{ $kebutuhanKronis->count() }} obat</strong></span>
             <span style="color:var(--line2);">·</span>
-            <span>Total kebutuhan <strong style="color:var(--ink);">{{ number_format($stats['total_unit_bulan'],0,',','.') }} unit/bulan</strong></span>
+            <span>Total <strong style="color:var(--ink);">{{ number_format($stats['total_unit_bulan'],0,',','.') }} unit/bln</strong></span>
             <span style="color:var(--line2);">·</span>
-            <span>Est. nilai <strong style="color:var(--gold2);">{{ $fmtRp($stats['nilai_bulan']) }}/bulan</strong></span>
+            <span>Nilai/bln: <strong style="color:var(--gold2);">{{ $fmtRp($stats['nilai_bulan']) }}</strong></span>
             <span style="color:var(--line2);">·</span>
-            <span>Reko. {{ $horizon }} bulan: <strong style="color:var(--gold2);">{{ $fmtRp($stats['nilai_reko']) }}</strong> (termasuk 10% buffer)</span>
+            <span>Reko {{ $horizon }}bln: <strong style="color:var(--gold2);">{{ $fmtRp($stats['nilai_reko']) }}</strong> (+ 10% buffer)</span>
         </div>
 
-        {{-- =================== TABLE: KRONIS =================== --}}
+        {{-- Detailed Table --}}
         @if($kebutuhanKronis->isEmpty())
-            <div style="text-align:center;padding:4rem 2rem;background:var(--panel);border:1px solid var(--line);border-radius:.75rem;">
-                <svg width="48" height="48" fill="none" stroke="var(--mut2)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 1rem;display:block;"><path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                <div style="font-size:1rem;font-weight:700;color:var(--mut);margin-bottom:.5rem;">Belum ada resep obat aktif</div>
-                <div style="font-size:.82rem;color:var(--mut2);">Buka <strong>Pasien › Daftar Pasien</strong>, klik tombol Resep pada pasien, tambahkan obat rutin untuk memulai analisis.</div>
+            <div style="text-align:center;padding:3rem;background:var(--panel);border:1px solid var(--line);border-radius:.75rem;color:var(--mut);">
+                <svg width="44" height="44" fill="none" stroke="var(--mut2)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto .8rem;display:block;"><path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                <div style="font-weight:700;margin-bottom:.4rem;">Belum ada resep obat aktif</div>
+                <div style="font-size:.79rem;color:var(--mut2);">Tambahkan resep obat rutin di <strong>Pasien › Daftar Pasien › tab Resep Obat</strong></div>
             </div>
         @else
         <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;overflow:hidden;">
@@ -283,37 +495,38 @@ $stats   = $statsKronis;
                             <td>
                                 <div style="font-weight:600;color:var(--ink);font-size:.85rem;margin-bottom:.2rem;">{{ $item->nama_obat }}</div>
                                 <div style="display:flex;gap:.3rem;align-items:center;flex-wrap:wrap;">
-                                    <span style="font-size:.68rem;background:rgba(111,177,224,.08);color:var(--blue);border:1px solid rgba(111,177,224,.2);border-radius:999px;padding:.08rem .45rem;">{{ $item->kategori_diagnosis }}</span>
-                                    <span style="font-size:.68rem;color:var(--mut2);">{{ $item->satuan }}</span>
+                                    <span style="font-size:.67rem;background:rgba(111,177,224,.08);color:var(--blue);border:1px solid rgba(111,177,224,.2);border-radius:999px;padding:.07rem .45rem;">{{ $item->kategori_diagnosis }}</span>
+                                    <span style="font-size:.67rem;color:var(--mut2);">{{ $item->satuan }}</span>
                                 </div>
                             </td>
                             <td style="text-align:center;">
                                 <div style="font-size:1.05rem;font-weight:700;color:var(--ink);">{{ $item->jumlah_pasien }}</div>
-                                <div style="font-size:.65rem;color:var(--mut2);">pasien</div>
+                                <div style="font-size:.64rem;color:var(--mut2);">pasien</div>
                             </td>
                             <td style="text-align:right;">
                                 <div style="font-size:.95rem;font-weight:700;color:var(--ink);">{{ number_format($item->unit_per_bulan,0,',','.') }}</div>
-                                <div style="font-size:.65rem;color:var(--mut2);">{{ number_format($item->unit_per_hari,1,',','.') }}/hari</div>
+                                <div style="font-size:.64rem;color:var(--mut2);">{{ number_format($item->unit_per_hari,1,',','.') }}/hari</div>
                             </td>
                             <td>
-                                <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.35rem;">
+                                <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.3rem;">
                                     {{ number_format($item->stok_aktual,0,',','.') }}
-                                    <span style="font-size:.68rem;color:var(--mut2);font-weight:400;">{{ $item->satuan }}</span>
+                                    <span style="font-size:.67rem;color:var(--mut2);font-weight:400;">{{ $item->satuan }}</span>
                                 </div>
                                 <div style="background:rgba(31,61,48,.6);border-radius:3px;height:5px;overflow:hidden;">
-                                    <div style="width:{{ $item->persen_stok }}%;height:100%;background:{{ $bclr }};border-radius:3px;"></div>
+                                    <div style="width:{{ min(100,$item->persen_stok) }}%;height:100%;background:{{ $bclr }};border-radius:3px;"></div>
                                 </div>
-                                <div style="font-size:.63rem;color:var(--mut2);margin-top:.2rem;">{{ $item->persen_stok }}% dari target 3 bln</div>
+                                <div style="font-size:.62rem;color:var(--mut2);margin-top:.18rem;">{{ $item->persen_stok }}% dari target 3 bln</div>
                             </td>
                             <td style="text-align:center;">
-                                <span style="display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:999px;font-size:.68rem;font-weight:700;background:{{ $s['bg'] }};color:{{ $s['color'] }};border:1px solid {{ $s['bdr'] }};">
+                                <span style="display:inline-flex;align-items:center;gap:.22rem;padding:.2rem .6rem;border-radius:999px;font-size:.67rem;font-weight:700;background:{{ $s['bg'] }};color:{{ $s['color'] }};border:1px solid {{ $s['bdr'] }};">
+                                    <span style="width:5px;height:5px;border-radius:50%;background:{{ $s['dot'] }};display:inline-block;"></span>
                                     {{ $s['label'] }}
                                 </span>
                             </td>
                             <td style="text-align:center;">
                                 @if($item->hari_tersisa < 9999)
-                                    <div style="font-weight:700;color:{{ $hclr }};font-size:.85rem;">{{ $item->hari_tersisa }} hari</div>
-                                    <div style="font-size:.68rem;color:var(--mut2);">{{ $item->habis_tanggal }}</div>
+                                    <div style="font-weight:700;color:{{ $hclr }};font-size:.84rem;">{{ $item->hari_tersisa }} hari</div>
+                                    <div style="font-size:.67rem;color:var(--mut2);">{{ $item->habis_tanggal }}</div>
                                 @else
                                     <span style="color:var(--mut2);font-size:.8rem;">—</span>
                                 @endif
@@ -321,9 +534,11 @@ $stats   = $statsKronis;
                             <td style="text-align:right;">
                                 @if($item->reko_pengadaan > 0)
                                     <div style="font-weight:700;color:var(--gold2);font-size:.9rem;">+{{ number_format($item->reko_pengadaan,0,',','.') }}</div>
-                                    <div style="font-size:.65rem;color:var(--mut2);">{{ $item->satuan }}</div>
+                                    <div style="font-size:.64rem;color:var(--mut2);">{{ $item->satuan }}</div>
                                 @else
-                                    <span style="color:var(--emer2);font-size:.8rem;font-weight:600;">✓ Cukup</span>
+                                    <div style="display:flex;align-items:center;justify-content:flex-end;gap:.25rem;color:var(--emer2);font-size:.79rem;font-weight:600;">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cukup
+                                    </div>
                                 @endif
                             </td>
                             <td style="text-align:right;">
@@ -338,40 +553,36 @@ $stats   = $statsKronis;
                     </tbody>
                     <tfoot>
                         <tr style="background:var(--panel);">
-                            <td colspan="3" style="padding:.7rem 1rem;font-size:.72rem;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Total</td>
-                            <td style="text-align:right;padding:.7rem 1rem;font-weight:700;color:var(--gold2);">{{ number_format($stats['total_unit_bulan'],0,',','.') }}</td>
-                            <td colspan="3" style="padding:.7rem 1rem;font-size:.75rem;color:var(--mut);">Nilai/bln: <strong style="color:var(--ink);">{{ $fmtRp($stats['nilai_bulan']) }}</strong></td>
-                            <td style="text-align:right;padding:.7rem 1rem;font-weight:700;color:var(--gold2);">{{ number_format($kebutuhanKronis->sum('reko_pengadaan'),0,',','.') }}</td>
-                            <td style="text-align:right;padding:.7rem 1rem;font-weight:700;color:var(--gold2);">{{ $fmtRp($stats['nilai_reko']) }}</td>
+                            <td colspan="3" style="padding:.7rem 1rem;font-size:.71rem;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Total</td>
+                            <td style="text-align:right;padding:.7rem .75rem;font-weight:700;color:var(--gold2);">{{ number_format($stats['total_unit_bulan'],0,',','.') }}</td>
+                            <td colspan="3" style="padding:.7rem .75rem;font-size:.74rem;color:var(--mut);">Nilai/bln: <strong style="color:var(--ink);">{{ $fmtRp($stats['nilai_bulan']) }}</strong></td>
+                            <td style="text-align:right;padding:.7rem .75rem;font-weight:700;color:var(--gold2);">{{ number_format($kebutuhanKronis->sum('reko_pengadaan'),0,',','.') }}</td>
+                            <td style="text-align:right;padding:.7rem .75rem;font-weight:700;color:var(--gold2);">{{ $fmtRp($stats['nilai_reko']) }}</td>
                         </tr>
                     </tfoot>
                 </table>
             </div>
         </div>
         @endif
-    </div>{{-- end tab kronis --}}
+    </div>{{-- /tab kronis --}}
 
-    {{-- =================== TAB: NON-KRONIS =================== --}}
+    {{-- ─── TAB: NON-KRONIS ─── --}}
     <div x-show="tab==='nonkronis'" x-transition.opacity.duration.150ms>
-
-        <div style="padding:.75rem 1rem;background:rgba(111,177,224,.04);border:1px solid rgba(111,177,224,.15);border-radius:.5rem;margin-bottom:1.1rem;font-size:.78rem;color:var(--mut);display:flex;align-items:flex-start;gap:.6rem;">
-            <svg width="14" height="14" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24" style="margin-top:.1rem;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div style="padding:.7rem 1rem;background:rgba(111,177,224,.04);border:1px solid rgba(111,177,224,.14);border-radius:.5rem;margin-bottom:1rem;font-size:.77rem;color:var(--mut);display:flex;align-items:flex-start;gap:.55rem;">
+            <svg width="13" height="13" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24" style="margin-top:.1rem;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span>Data non-kronis dihitung dari <strong style="color:var(--ink);">rata-rata pengeluaran stok 3 bulan terakhir</strong>. Rekomendasi pengadaan menggunakan horizon <strong style="color:var(--ink);">{{ $horizon }} bulan</strong> + 10% buffer.</span>
         </div>
-
-        {{-- Search untuk non-kronis --}}
-        <div style="display:flex;gap:.6rem;margin-bottom:1rem;">
-            <div style="position:relative;max-width:260px;width:100%;">
-                <svg width="13" height="13" fill="none" stroke="var(--mut2)" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:.6rem;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama obat..." style="background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.38rem .7rem .38rem 2rem;font-size:.8rem;width:100%;">
+        <div style="display:flex;gap:.55rem;margin-bottom:1rem;">
+            <div style="position:relative;max-width:250px;width:100%;">
+                <svg width="12" height="12" fill="none" stroke="var(--mut2)" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:.55rem;top:50%;transform:translateY(-50%);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" wire:model.live.debounce.300ms="search" placeholder="Cari nama obat..." style="background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:.4rem;padding:.36rem .65rem .36rem 1.85rem;font-size:.79rem;width:100%;">
             </div>
         </div>
-
         @if($kebutuhanNonKronis->isEmpty())
-            <div style="text-align:center;padding:4rem 2rem;background:var(--panel);border:1px solid var(--line);border-radius:.75rem;">
-                <svg width="48" height="48" fill="none" stroke="var(--mut2)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto 1rem;display:block;"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
-                <div style="font-size:1rem;font-weight:700;color:var(--mut);margin-bottom:.5rem;">Belum ada data pengeluaran obat non-kronis</div>
-                <div style="font-size:.82rem;color:var(--mut2);">Data akan muncul setelah ada catatan stok keluar di menu Inventori › Stok Keluar (3 bulan terakhir).</div>
+            <div style="text-align:center;padding:3rem;background:var(--panel);border:1px solid var(--line);border-radius:.75rem;color:var(--mut);">
+                <svg width="44" height="44" fill="none" stroke="var(--mut2)" stroke-width="1.5" viewBox="0 0 24 24" style="margin:0 auto .8rem;display:block;"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
+                <div style="font-weight:700;margin-bottom:.4rem;">Belum ada data pengeluaran non-kronis</div>
+                <div style="font-size:.78rem;color:var(--mut2);">Data muncul setelah ada catatan stok keluar (3 bulan terakhir)</div>
             </div>
         @else
         <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;overflow:hidden;">
@@ -403,28 +614,29 @@ $stats   = $statsKronis;
                             <td>
                                 <div style="font-weight:600;color:var(--ink);font-size:.85rem;margin-bottom:.2rem;">{{ $item->nama_obat }}</div>
                                 <div style="display:flex;gap:.3rem;align-items:center;">
-                                    <span style="font-size:.68rem;background:rgba(111,177,224,.06);color:var(--blue);border:1px solid rgba(111,177,224,.18);border-radius:999px;padding:.08rem .45rem;">{{ $item->kategori_diagnosis }}</span>
-                                    <span style="font-size:.68rem;color:var(--mut2);">{{ $item->frekuensi }}× transaksi</span>
+                                    <span style="font-size:.67rem;background:rgba(111,177,224,.06);color:var(--blue);border:1px solid rgba(111,177,224,.18);border-radius:999px;padding:.07rem .45rem;">{{ $item->kategori_diagnosis }}</span>
+                                    <span style="font-size:.67rem;color:var(--mut2);">{{ $item->frekuensi }}× transaksi</span>
                                 </div>
                             </td>
-                            <td style="text-align:right;font-weight:600;color:var(--ink);">{{ number_format($item->total_3bulan,0,',','.') }}<span style="font-size:.65rem;color:var(--mut2);font-weight:400;"> {{ $item->satuan }}</span></td>
-                            <td style="text-align:right;font-weight:700;color:var(--gold2);">{{ number_format($item->rata_per_bulan,0,',','.') }}<span style="font-size:.65rem;color:var(--mut2);font-weight:400;"> /bln</span></td>
+                            <td style="text-align:right;font-weight:600;color:var(--ink);">{{ number_format($item->total_3bulan,0,',','.') }}<span style="font-size:.64rem;color:var(--mut2);font-weight:400;"> {{ $item->satuan }}</span></td>
+                            <td style="text-align:right;font-weight:700;color:var(--gold2);">{{ number_format($item->rata_per_bulan,0,',','.') }}<span style="font-size:.64rem;color:var(--mut2);font-weight:400;"> /bln</span></td>
                             <td>
-                                <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.35rem;">{{ number_format($item->stok_aktual,0,',','.') }} <span style="font-size:.68rem;color:var(--mut2);font-weight:400;">{{ $item->satuan }}</span></div>
+                                <div style="font-size:.85rem;font-weight:600;color:var(--ink);margin-bottom:.3rem;">{{ number_format($item->stok_aktual,0,',','.') }} <span style="font-size:.67rem;color:var(--mut2);font-weight:400;">{{ $item->satuan }}</span></div>
                                 <div style="background:rgba(31,61,48,.6);border-radius:3px;height:5px;overflow:hidden;">
-                                    <div style="width:{{ $item->persen_stok }}%;height:100%;background:{{ $bclr }};border-radius:3px;"></div>
+                                    <div style="width:{{ min(100,$item->persen_stok) }}%;height:100%;background:{{ $bclr }};border-radius:3px;"></div>
                                 </div>
-                                <div style="font-size:.63rem;color:var(--mut2);margin-top:.2rem;">{{ $item->persen_stok }}% dari target 3 bln</div>
+                                <div style="font-size:.62rem;color:var(--mut2);margin-top:.18rem;">{{ $item->persen_stok }}% dari target 3 bln</div>
                             </td>
                             <td style="text-align:center;">
-                                <span style="display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:999px;font-size:.68rem;font-weight:700;background:{{ $s['bg'] }};color:{{ $s['color'] }};border:1px solid {{ $s['bdr'] }};">
+                                <span style="display:inline-flex;align-items:center;gap:.22rem;padding:.2rem .6rem;border-radius:999px;font-size:.67rem;font-weight:700;background:{{ $s['bg'] }};color:{{ $s['color'] }};border:1px solid {{ $s['bdr'] }};">
+                                    <span style="width:5px;height:5px;border-radius:50%;background:{{ $s['dot'] }};display:inline-block;"></span>
                                     {{ $s['label'] }}
                                 </span>
                             </td>
                             <td style="text-align:center;">
                                 @if($item->hari_tersisa < 9999)
                                     <div style="font-weight:700;color:{{ $hclr }};font-size:.82rem;">{{ $item->hari_tersisa }} hari</div>
-                                    <div style="font-size:.67rem;color:var(--mut2);">{{ $item->habis_tanggal }}</div>
+                                    <div style="font-size:.66rem;color:var(--mut2);">{{ $item->habis_tanggal }}</div>
                                 @else
                                     <span style="color:var(--mut2);font-size:.8rem;">—</span>
                                 @endif
@@ -432,12 +644,14 @@ $stats   = $statsKronis;
                             <td style="text-align:right;">
                                 @if($item->reko_pengadaan > 0)
                                     <div style="font-weight:700;color:var(--gold2);">+{{ number_format($item->reko_pengadaan,0,',','.') }}</div>
-                                    <div style="font-size:.65rem;color:var(--mut2);">{{ $item->satuan }}</div>
+                                    <div style="font-size:.64rem;color:var(--mut2);">{{ $item->satuan }}</div>
                                 @else
-                                    <span style="color:var(--emer2);font-size:.8rem;font-weight:600;">✓ Cukup</span>
+                                    <div style="display:flex;align-items:center;justify-content:flex-end;gap:.25rem;color:var(--emer2);font-size:.78rem;font-weight:600;">
+                                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Cukup
+                                    </div>
                                 @endif
                             </td>
-                            <td style="text-align:center;font-size:.75rem;color:var(--mut);">{{ $item->terakhir_keluar }}</td>
+                            <td style="text-align:center;font-size:.74rem;color:var(--mut);">{{ $item->terakhir_keluar }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -445,63 +659,84 @@ $stats   = $statsKronis;
             </div>
         </div>
         @endif
-    </div>{{-- end tab nonkronis --}}
+    </div>{{-- /tab nonkronis --}}
 
-    {{-- =================== TAB: INFO =================== --}}
+    {{-- ─── TAB: METODOLOGI ─── --}}
     <div x-show="tab==='info'" x-transition.opacity.duration.150ms>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
 
-            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.4rem 1.5rem;">
-                <div style="font-size:.8rem;font-weight:700;color:var(--emer2);margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem;">
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.35rem 1.4rem;">
+                <div style="font-size:.79rem;font-weight:700;color:var(--emer2);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2z"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
                     Bagaimana Obat Kronis Dihitung
                 </div>
-                <div style="font-size:.8rem;color:var(--mut);line-height:1.65;">
-                    <p style="margin:0 0 .7rem;">Data obat kronis diambil dari <strong style="color:var(--ink);">Resep Pasien</strong> — daftar obat rutin yang di-input di halaman <em>Pasien › Daftar Pasien › tab Resep Obat</em>.</p>
-                    <p style="margin:0 0 .7rem;">Setiap pasien aktif yang memiliki resep aktif berkontribusi ke perhitungan kebutuhan. <strong style="color:var(--ink);">Unit/Bulan</strong> adalah jumlah total dari <code style="background:var(--panel);padding:.1rem .3rem;border-radius:3px;font-size:.75rem;">jumlah_default</code> semua pasien untuk obat tersebut.</p>
-                    <p style="margin:0;">Rumus: <code style="background:var(--panel);padding:.15rem .5rem;border-radius:3px;font-size:.75rem;">Hari Stok = Stok Aktual ÷ (Unit/Bulan ÷ 30)</code></p>
+                <div style="font-size:.79rem;color:var(--mut);line-height:1.65;">
+                    <p style="margin:0 0 .65rem;">Data diambil dari <strong style="color:var(--ink);">Resep Pasien</strong> — obat rutin yang di-input di halaman <em>Pasien › Daftar Pasien › tab Resep Obat</em>.</p>
+                    <p style="margin:0 0 .65rem;"><strong style="color:var(--ink);">Unit/Bulan</strong> = jumlah total dari kolom <code style="background:var(--panel);padding:.1rem .3rem;border-radius:3px;font-size:.74rem;">jumlah_default</code> semua pasien untuk obat tersebut.</p>
+                    <p style="margin:0;"><code style="background:var(--panel);padding:.15rem .5rem;border-radius:3px;font-size:.74rem;">Hari Stok = Stok ÷ (Unit/Bln ÷ 30)</code></p>
                 </div>
             </div>
 
-            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.4rem 1.5rem;">
-                <div style="font-size:.8rem;font-weight:700;color:var(--blue);margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem;">
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.35rem 1.4rem;">
+                <div style="font-size:.79rem;font-weight:700;color:var(--blue);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
                     Bagaimana Obat Non-Kronis Dihitung
                 </div>
-                <div style="font-size:.8rem;color:var(--mut);line-height:1.65;">
-                    <p style="margin:0 0 .7rem;">Data non-kronis diambil dari <strong style="color:var(--ink);">Riwayat Stok Keluar</strong> 3 bulan terakhir (menu Inventori › Stok Keluar).</p>
-                    <p style="margin:0 0 .7rem;">Rata-rata konsumsi dihitung sebagai total unit keluar dibagi 3 bulan. Obat yang tidak memiliki riwayat stok keluar tidak ditampilkan.</p>
-                    <p style="margin:0;">Rumus: <code style="background:var(--panel);padding:.15rem .5rem;border-radius:3px;font-size:.75rem;">Rata/Bln = Total 3 Bulan ÷ 3</code></p>
+                <div style="font-size:.79rem;color:var(--mut);line-height:1.65;">
+                    <p style="margin:0 0 .65rem;">Data diambil dari <strong style="color:var(--ink);">Riwayat Stok Keluar</strong> 3 bulan terakhir (menu Inventori › Stok Keluar).</p>
+                    <p style="margin:0 0 .65rem;">Rata-rata konsumsi = total unit keluar ÷ 3 bulan. Obat tanpa riwayat tidak ditampilkan.</p>
+                    <p style="margin:0;"><code style="background:var(--panel);padding:.15rem .5rem;border-radius:3px;font-size:.74rem;">Rata/Bln = Total 3 Bulan ÷ 3</code></p>
                 </div>
             </div>
 
-            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.4rem 1.5rem;">
-                <div style="font-size:.8rem;font-weight:700;color:var(--gold2);margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem;">
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.35rem 1.4rem;">
+                <div style="font-size:.79rem;font-weight:700;color:var(--gold2);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem;">
                     <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
-                    Rekomendasi Pengadaan
+                    Rumus Rekomendasi Pengadaan
                 </div>
-                <div style="font-size:.8rem;color:var(--mut);line-height:1.65;">
-                    <p style="margin:0 0 .7rem;">Rekomendasi dihitung untuk memenuhi kebutuhan selama <strong style="color:var(--ink);">horizon bulan yang dipilih</strong> (1/3/6 bulan) dengan buffer keamanan <strong style="color:var(--ink);">10%</strong>.</p>
-                    <p style="margin:0;">Rumus: <code style="background:var(--panel);padding:.15rem .5rem;border-radius:3px;font-size:.75rem;">Reko = (Unit/Bln × Horizon × 1.1) − Stok Aktual</code></p>
+                <div style="font-size:.79rem;color:var(--mut);line-height:1.65;">
+                    <p style="margin:0 0 .65rem;">Dihitung untuk memenuhi kebutuhan selama <strong style="color:var(--ink);">{{ $horizon }} bulan</strong> (horizon yang dipilih) dengan buffer keamanan <strong style="color:var(--ink);">10%</strong>.</p>
+                    <p style="margin:0;"><code style="background:var(--panel);padding:.15rem .5rem;border-radius:3px;font-size:.74rem;">Reko = max(0, ceil(Unit/Bln × Horizon × 1.1) − Stok)</code></p>
                 </div>
             </div>
 
-            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.4rem 1.5rem;">
-                <div style="font-size:.8rem;font-weight:700;color:var(--mut);margin-bottom:.9rem;display:flex;align-items:center;gap:.5rem;">
-                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"/><circle cx="12" cy="5" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1" fill="currentColor" stroke="none"/></svg>
+            <div style="background:var(--card);border:1px solid var(--line);border-radius:.75rem;padding:1.35rem 1.4rem;">
+                <div style="font-size:.79rem;font-weight:700;color:var(--mut);margin-bottom:.85rem;display:flex;align-items:center;gap:.5rem;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
                     Definisi Status Stok
                 </div>
-                <div style="font-size:.78rem;color:var(--mut);line-height:1.8;">
-                    <div style="display:flex;gap:.5rem;align-items:center;"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;"></span><span><strong style="color:var(--red);">Habis</strong> — stok = 0</span></div>
-                    <div style="display:flex;gap:.5rem;align-items:center;"><span style="width:8px;height:8px;border-radius:50%;background:var(--red2);flex-shrink:0;"></span><span><strong style="color:var(--red2);">Kritis</strong> — stok cukup &lt; 7 hari</span></div>
-                    <div style="display:flex;gap:.5rem;align-items:center;"><span style="width:8px;height:8px;border-radius:50%;background:#ff9944;flex-shrink:0;"></span><span><strong style="color:#ff9944;">Hampir Habis</strong> — stok cukup &lt; 30 hari</span></div>
-                    <div style="display:flex;gap:.5rem;align-items:center;"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold2);flex-shrink:0;"></span><span><strong style="color:var(--gold2);">Perhatian</strong> — stok cukup &lt; 60 hari</span></div>
-                    <div style="display:flex;gap:.5rem;align-items:center;"><span style="width:8px;height:8px;border-radius:50%;background:var(--emer2);flex-shrink:0;"></span><span><strong style="color:var(--emer2);">Aman</strong> — stok cukup ≥ 60 hari</span></div>
+                <div style="display:flex;flex-direction:column;gap:.45rem;font-size:.77rem;color:var(--mut);">
+                    <div style="display:flex;gap:.6rem;align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:var(--red);flex-shrink:0;"></span><span><strong style="color:var(--red);">Habis</strong> — stok = 0</span></div>
+                    <div style="display:flex;gap:.6rem;align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:var(--red2);flex-shrink:0;"></span><span><strong style="color:var(--red2);">Kritis</strong> — stok cukup &lt; 7 hari</span></div>
+                    <div style="display:flex;gap:.6rem;align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:#ff9944;flex-shrink:0;"></span><span><strong style="color:#ff9944;">Hampir Habis</strong> — stok cukup &lt; 30 hari</span></div>
+                    <div style="display:flex;gap:.6rem;align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:var(--gold2);flex-shrink:0;"></span><span><strong style="color:var(--gold2);">Perhatian</strong> — stok cukup &lt; 60 hari</span></div>
+                    <div style="display:flex;gap:.6rem;align-items:center;"><span style="width:9px;height:9px;border-radius:50%;background:var(--emer2);flex-shrink:0;"></span><span><strong style="color:var(--emer2);">Aman</strong> — stok cukup ≥ 60 hari</span></div>
                 </div>
             </div>
 
         </div>
-    </div>{{-- end tab info --}}
+    </div>{{-- /tab info --}}
 
-</div>{{-- end x-data tabs --}}
-</div>{{-- end Livewire single root --}}
+</div>{{-- /x-data tabs --}}
+
+{{-- Print styles --}}
+<style>
+@keyframes pulse-red {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .4; }
+}
+@media print {
+    body > *:not(#rekap-print),
+    nav, header, .sidebar, [wire\:id] > *:not(#rekap-print) {
+        display: none !important;
+    }
+    #rekap-print {
+        display: block !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    #rekap-print table { font-size: 10pt; }
+    #rekap-print th, #rekap-print td { padding: 5pt 8pt; border: 1px solid #ccc; }
+}
+</style>
+</div>{{-- /Livewire single root --}}

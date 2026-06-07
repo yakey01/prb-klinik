@@ -162,6 +162,7 @@
         ::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--line3); }
         [x-cloak] { display: none !important; }
+        .prb-drawer { display: flex; flex-direction: column; }
 
         /* ── Navigation ── */
         .nav-tab { display: inline-flex; align-items: center; gap: .45rem; padding: .6rem 1rem; border-radius: .5rem .5rem 0 0; color: var(--mut); font-size: .8rem; font-weight: 500; transition: color .2s, background .2s; text-decoration: none; white-space: nowrap; }
@@ -276,9 +277,18 @@
     <div class="mobile-nav-overlay" :style="mobileNav ? 'display:block;opacity:1' : 'display:none;opacity:0'" @click="mobileNav=false"></div>
     <div class="mobile-nav-drawer" :class="{ 'open': mobileNav }" style="z-index:301;">
         <div class="mobile-drawer-header">
-            <div>
-                <div style="font-size:.62rem; color:var(--mut); letter-spacing:.08em; text-transform:uppercase;">Klinik Dokterku</div>
-                <div style="font-size:.95rem; color:var(--ink); font-weight:600; margin-top:.15rem;">Manajemen Obat</div>
+            <div style="display:flex;align-items:center;gap:.75rem;">
+                <img src="/img/logo-klinik.png" alt="Klinik Dokterku"
+                     style="height:50px;width:50px;object-fit:contain;border-radius:.5rem;
+                            filter:drop-shadow(0 2px 10px rgba(74,144,217,.4)) drop-shadow(0 2px 8px rgba(242,192,0,.25));">
+                <div>
+                    <div style="font-size:.95rem;font-weight:700;line-height:1.2;">
+                        <span style="color:#6fb1e0;">Klinik</span> <span style="color:var(--gold2);">Dokterku</span>
+                    </div>
+                    <div style="font-size:.6rem;color:var(--mut);letter-spacing:.07em;text-transform:uppercase;margin-top:.15rem;">
+                        Manajemen Obat PRB
+                    </div>
+                </div>
             </div>
             <button @click="mobileNav=false" style="background:rgba(255,255,255,.06); border:1px solid var(--line2); border-radius:.5rem; width:36px; height:36px; display:flex; align-items:center; justify-content:center; color:var(--mut); cursor:pointer;">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -363,18 +373,26 @@
                     <button id="nav-hamburger" @click="mobileNav=true" style="display:none; align-items:center; justify-content:center; background:rgba(255,255,255,.06); border:1px solid var(--line2); border-radius:.5rem; width:40px; height:40px; color:var(--ink); cursor:pointer; flex-shrink:0;">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                     </button>
-                    <div>
-                        <div style="font-size:.7rem; color:var(--mut); font-family:'Archivo Narrow',sans-serif; letter-spacing:.1em; text-transform:uppercase; margin-bottom:.15rem;" class="hide-mobile">
-                            Klinik Dokterku · Kabupaten Kediri · Sistem Internal
-                        </div>
-                        <div style="display:flex; align-items:baseline; gap:.5rem;">
-                            <h1 class="font-heading" style="font-size:1.35rem; color:var(--ink); margin:0; font-weight:600;">
-                                <span class="hide-mobile">Manajemen Obat </span><em style="color:var(--gold2);">Klinik Dokterku</em>
-                            </h1>
-                            <span style="background:rgba(63,207,142,.12); border:1px solid rgba(63,207,142,.25); border-radius:999px; padding:.12rem .6rem; font-size:.68rem; color:var(--emer); display:inline-flex; align-items:center; gap:.3rem;">
-                                <span style="width:6px;height:6px;border-radius:50%;background:var(--emer);animation:pulse 2s infinite;display:inline-block;"></span>
-                                Aktif
-                            </span>
+                    {{-- Brand: Logo + Name --}}
+                    <div style="display:flex;align-items:center;gap:.85rem;">
+                        <a href="{{ route('dashboard') }}" style="display:flex;align-items:center;flex-shrink:0;">
+                            <img src="/img/logo-klinik.png" alt="Klinik Dokterku"
+                                 style="height:48px;width:48px;object-fit:contain;border-radius:.5rem;
+                                        filter:drop-shadow(0 2px 8px rgba(74,144,217,.35)) drop-shadow(0 2px 6px rgba(242,192,0,.2));">
+                        </a>
+                        <div>
+                            <div style="font-size:.58rem;color:var(--mut);letter-spacing:.1em;text-transform:uppercase;margin-bottom:.1rem;line-height:1;" class="hide-mobile">
+                                Sistem Manajemen Obat · PRB BPJS
+                            </div>
+                            <div style="display:flex;align-items:center;gap:.45rem;line-height:1.1;">
+                                <span class="font-heading" style="font-size:1.15rem;font-weight:600;">
+                                    <span style="color:#6fb1e0;">Klinik</span> <em style="color:var(--gold2);">Dokterku</em>
+                                </span>
+                                <span style="background:rgba(63,207,142,.12);border:1px solid rgba(63,207,142,.25);border-radius:999px;padding:.1rem .5rem;font-size:.62rem;color:var(--emer);display:inline-flex;align-items:center;gap:.25rem;" class="hide-mobile">
+                                    <span style="width:5px;height:5px;border-radius:50%;background:var(--emer);animation:pulse 2s infinite;display:inline-block;"></span>
+                                    Aktif
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -534,7 +552,7 @@
         </div>
     </nav>
 
-    <main style="max-width:1400px; margin:0 auto; padding:2rem 1.5rem; position:relative; z-index:1;">
+    <main style="max-width:1400px; margin:0 auto; padding:2rem 1.5rem; position:relative;">
         @if(session('success'))
         <div class="toast toast-success" style="margin-bottom:1rem; max-width:100%; position:relative; animation:none;">
             <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>

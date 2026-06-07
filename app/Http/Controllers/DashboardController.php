@@ -8,6 +8,7 @@ use App\Models\Pasien;
 use App\Models\PurchaseOrder;
 use App\Models\RekonsiliasiiBpjs;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -86,29 +87,31 @@ class DashboardController extends Controller
             'kadaluarsa' => $obatAktif->filter(fn ($o) => in_array($o->kadaluarsa_status, ['kadaluarsa', 'segera']))->count(),
         ];
 
-        // 6-month trend (proyeksi klaim aktual per bulan)
-        $trenLabels     = [];
-        $trenPendapatan = [];
-        $trenPengeluaran= [];
-        for ($i = 5; $i >= 0; $i--) {
-            $dt = now()->subMonths($i);
-            $trenLabels[] = $dt->translatedFormat('M Y');
+        // 6-month trend — cached for 1 hour (12 queries otherwise)
+        $cacheKey = "dashboard-tren-6m-{$tahun}-{$bulan}";
+        [$trenLabels, $trenPendapatan, $trenPengeluaran] = Cache::remember($cacheKey, 3600, function () {
+            $labels = $pendapatan = $pengeluaran = [];
+            for ($i = 5; $i >= 0; $i--) {
+                $dt = now()->subMonths($i);
+                $labels[] = $dt->translatedFormat('M Y');
 
-            $trenPendapatan[] = round((float) DB::table('item_pengambilan as ip')
-                ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
-                ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-                ->where('po.status', 'selesai')
-                ->where('o.tipe_obat', 'kronis')
-                ->whereYear('po.tanggal_pengambilan', $dt->year)
-                ->whereMonth('po.tanggal_pengambilan', $dt->month)
-                ->sum(DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot')));
+                $pendapatan[] = round((float) DB::table('item_pengambilan as ip')
+                    ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+                    ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+                    ->where('po.status', 'selesai')
+                    ->where('o.tipe_obat', 'kronis')
+                    ->whereYear('po.tanggal_pengambilan', $dt->year)
+                    ->whereMonth('po.tanggal_pengambilan', $dt->month)
+                    ->sum(DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot')));
 
-            $trenPengeluaran[] = round(
-                PurchaseOrder::whereMonth('tanggal_po', $dt->month)
-                    ->whereYear('tanggal_po', $dt->year)
-                    ->sum('total_nilai')
-            );
-        }
+                $pengeluaran[] = round(
+                    PurchaseOrder::whereMonth('tanggal_po', $dt->month)
+                        ->whereYear('tanggal_po', $dt->year)
+                        ->sum('total_nilai')
+                );
+            }
+            return [$labels, $pendapatan, $pengeluaran];
+        });
 
         return view('dashboard.index', array_merge($data, [
             'pendapatan_bpjs'       => round($pendapatanBpjs),

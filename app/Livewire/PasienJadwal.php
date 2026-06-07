@@ -17,6 +17,7 @@ class PasienJadwal extends Component
     public function jadwalList()
     {
         $q = PengambilanObat::with(['pasien'])
+            ->whereHas('pasien')
             ->whereIn('status', ['dijadwalkan','lewat'])
             ->orderBy('tanggal_pengambilan');
 

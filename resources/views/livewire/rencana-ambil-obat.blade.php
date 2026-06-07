@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        @if($this->jadwal->isEmpty())
+        @if($this->jadwal->total() === 0)
         {{-- Empty State --}}
         <div class="glass-card" style="padding:3rem 2rem;text-align:center;">
             <div style="width:3.5rem;height:3.5rem;border-radius:50%;background:rgba(63,207,142,.08);border:1px solid rgba(63,207,142,.15);margin:0 auto 1rem;display:flex;align-items:center;justify-content:center;">
@@ -121,12 +121,12 @@
                     {{-- Drugs section --}}
                     <div>
                         <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:.5rem;display:flex;align-items:center;gap:.35rem;">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
-                            Prediksi Obat
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+                            Resep Obat
                         </div>
                         @if($item['drugs']->isEmpty())
                         <div style="font-size:.75rem;color:var(--mut);font-style:italic;padding:.3rem 0;">
-                            Belum ada data obat sebelumnya
+                            Resep belum diatur
                         </div>
                         @else
                         <div style="display:flex;flex-direction:column;gap:.4rem;">
@@ -174,10 +174,12 @@
         </div>
         @endif
 
-        {{-- Bottom summary bar --}}
-        @if(!$this->jadwal->isEmpty())
-        <div style="margin-top:1rem;padding:.75rem 1.1rem;background:rgba(63,207,142,.04);border:1px solid rgba(63,207,142,.1);border-radius:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;">
-            <div style="display:flex;align-items:center;gap:1.5rem;flex-wrap:wrap;">
+        {{-- Bottom bar: summary + pagination --}}
+        @if($this->jadwal->total() > 0)
+        <div style="margin-top:1rem;padding:.75rem 1.1rem;background:rgba(63,207,142,.04);border:1px solid rgba(63,207,142,.1);border-radius:.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem;">
+
+            {{-- Stats --}}
+            <div style="display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">
                 <div style="font-size:.72rem;color:var(--mut);">
                     <span style="color:var(--ink);font-weight:700;">{{ $this->stats['total'] }}</span> jadwal aktif
                 </div>
@@ -197,9 +199,30 @@
                 </div>
                 @endif
             </div>
-            <div style="font-size:.68rem;color:var(--mut);">
-                Diperbarui otomatis · Data dari jadwal aktif
+
+            {{-- Pagination controls --}}
+            @if($this->jadwal->lastPage() > 1)
+            <div style="display:flex;align-items:center;gap:.5rem;">
+                <span style="font-size:.68rem;color:var(--mut);">
+                    {{ ($this->jadwal->currentPage() - 1) * $this->jadwal->perPage() + 1 }}–{{ min($this->jadwal->currentPage() * $this->jadwal->perPage(), $this->jadwal->total()) }}
+                    dari {{ $this->jadwal->total() }}
+                </span>
+                <button wire:click="previousPage" {{ $this->jadwal->onFirstPage() ? 'disabled' : '' }}
+                    style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:.4rem;background:{{ $this->jadwal->onFirstPage() ? 'rgba(255,255,255,.04)' : 'rgba(63,207,142,.1)' }};border:1px solid {{ $this->jadwal->onFirstPage() ? 'var(--line)' : 'rgba(63,207,142,.3)' }};color:{{ $this->jadwal->onFirstPage() ? 'var(--mut2)' : 'var(--emer)' }};cursor:{{ $this->jadwal->onFirstPage() ? 'not-allowed' : 'pointer' }};transition:all .15s;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <span style="font-size:.72rem;color:var(--ink);font-weight:600;min-width:2rem;text-align:center;">
+                    {{ $this->jadwal->currentPage() }}/{{ $this->jadwal->lastPage() }}
+                </span>
+                <button wire:click="nextPage" {{ !$this->jadwal->hasMorePages() ? 'disabled' : '' }}
+                    style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:.4rem;background:{{ !$this->jadwal->hasMorePages() ? 'rgba(255,255,255,.04)' : 'rgba(63,207,142,.1)' }};border:1px solid {{ !$this->jadwal->hasMorePages() ? 'var(--line)' : 'rgba(63,207,142,.3)' }};color:{{ !$this->jadwal->hasMorePages() ? 'var(--mut2)' : 'var(--emer)' }};cursor:{{ !$this->jadwal->hasMorePages() ? 'not-allowed' : 'pointer' }};transition:all .15s;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
             </div>
+            @else
+            <div style="font-size:.68rem;color:var(--mut);">Diperbarui otomatis</div>
+            @endif
+
         </div>
         @endif
     </div>

@@ -107,7 +107,7 @@
         </div>
         {{-- No. BPJS --}}
         <div>
-            <label class="form-label">No. BPJS <span style="color:var(--red);">*</span> <span style="color:var(--mut);font-weight:400;">(min 8 digit)</span></label>
+            <label class="form-label">No. BPJS <span style="color:var(--red);">*</span> <span style="color:var(--mut);font-weight:400;">(13 digit)</span></label>
             <input wire:model="no_bpjs" type="text" inputmode="numeric" maxlength="13"
                    class="form-input font-mono" placeholder="0001234567890" style="font-size:.78rem;"
                    wire:keydown="$set('no_bpjs', $event.target.value.replace(/\D/g,'').substring(0,13))">
@@ -141,7 +141,7 @@
         </div>
         {{-- Telepon --}}
         <div>
-            <label class="form-label">No. Handphone <span style="color:var(--red);">*</span></label>
+            <label class="form-label">No. Handphone <span style="color:var(--mut);font-size:.7rem;font-weight:400;">(opsional)</span></label>
             <input wire:model="telepon" type="text" inputmode="numeric" maxlength="15"
                    class="form-input" placeholder="08123456789">
             @error('telepon')<div style="color:var(--red);font-size:.68rem;margin-top:.15rem;">{{ $message }}</div>@enderror
@@ -184,6 +184,56 @@
         </div>
     </div>
 
+    {{-- ── Resep Obat Awal (hanya untuk tambah pasien baru) ─────────────────── --}}
+    @if(!$editId)
+    <div style="margin-top:.9rem;padding:.85rem;background:rgba(63,207,142,.05);border:1px solid rgba(63,207,142,.2);border-radius:.6rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.7rem;">
+            <div style="font-size:.72rem;font-weight:700;color:var(--emer);text-transform:uppercase;letter-spacing:.05em;">
+                💊 Resep Obat Rutin
+                <span style="font-size:.65rem;color:var(--mut);font-weight:400;text-transform:none;margin-left:.4rem;">(opsional)</span>
+            </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.6rem;">
+            @foreach($formResepRows as $fi => $frow)
+            <div style="display:flex;align-items:center;gap:.4rem;padding:.55rem .65rem;background:rgba(255,255,255,.04);border:1px solid var(--line2);border-radius:.4rem;">
+                <div style="flex:1;min-width:0;">
+                    <select wire:model.live="formResepRows.{{ $fi }}.obat_id" class="form-input" style="font-size:.76rem;padding:.32rem .45rem;background:var(--card);border-color:var(--line2);">
+                        <option value="0">— Pilih Obat —</option>
+                        @foreach($this->obatList as $ob)
+                        <option value="{{ $ob->id }}">{{ $ob->nama_obat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
+                    <input wire:model="formResepRows.{{ $fi }}.jumlah_default" type="number" min="1" max="999"
+                        class="form-input font-mono" placeholder="30"
+                        style="width:58px;font-size:.82rem;padding:.32rem .4rem;text-align:center;background:var(--card);border-color:var(--line2);">
+                    <select wire:model="formResepRows.{{ $fi }}.satuan" class="form-input" style="width:82px;font-size:.72rem;padding:.32rem .35rem;background:var(--card);border-color:var(--line2);">
+                        <option value="tablet">Tablet</option>
+                        <option value="kapsul">Kapsul</option>
+                        <option value="botol">Botol</option>
+                        <option value="sachet">Sachet</option>
+                        <option value="strip">Strip</option>
+                        <option value="tube">Tube</option>
+                        <option value="mg">mg</option>
+                        <option value="ml">ml</option>
+                    </select>
+                    @if(count($formResepRows) > 1)
+                    <button type="button" wire:click="removeFormResepRow({{ $fi }})"
+                        style="width:26px;height:26px;background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.2);color:var(--red);border-radius:.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">&times;</button>
+                    @endif
+                </div>
+            </div>
+            @endforeach
+        </div>
+        <button type="button" wire:click="addFormResepRow"
+            style="width:100%;padding:.38rem;background:transparent;border:1px dashed rgba(63,207,142,.3);color:var(--mut);border-radius:.4rem;cursor:pointer;font-size:.73rem;display:flex;align-items:center;justify-content:center;gap:.3rem;transition:all .2s;"
+            onmouseover="this.style.borderColor='var(--emer)';this.style.color='var(--emer)'" onmouseout="this.style.borderColor='rgba(63,207,142,.3)';this.style.color='var(--mut)'">
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Obat
+        </button>
+    </div>
+    @endif
+
     <div style="display:flex;gap:.6rem;margin-top:1rem;justify-content:flex-end;align-items:center;">
         <span style="font-size:.68rem;color:var(--mut);">* wajib diisi</span>
         <button wire:click="cancel" class="btn-outline">Batal</button>
@@ -209,8 +259,8 @@
     <table class="data-table">
         <thead><tr>
             <th>Nama Obat</th><th style="text-align:center;">Satuan</th>
-            <th style="text-align:center;">Pasien</th><th style="text-align:center;">Rata/Kunjungan</th>
-            <th style="text-align:right;">Est. Bulanan</th>
+            <th style="text-align:center;">Pasien</th><th style="text-align:center;">Kebutuhan per Pasien</th>
+            <th style="text-align:right;">Kebutuhan Bulanan</th>
         </tr></thead>
         <tbody>
             @foreach($this->kebutuhanObatBulanan as $row)
@@ -395,7 +445,7 @@
     x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150"
     x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
     @click="drawerOpen=false; $wire.closeDrawer()"
-    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:40;backdrop-filter:blur(2px);"></div>
+    style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:95;backdrop-filter:blur(2px);"></div>
 
 <div x-show="drawerOpen"
     x-transition:enter="transition ease-out duration-250"
@@ -404,7 +454,8 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="transform translate-x-0"
     x-transition:leave-end="transform translate-x-full"
-    style="display:none;position:fixed;top:0;right:0;bottom:0;width:430px;max-width:95vw;background:var(--panel);border-left:1px solid var(--line2);z-index:50;overflow-y:auto;box-shadow:-8px 0 40px rgba(0,0,0,.5);">
+    class="prb-drawer"
+    style="display:none;position:fixed;top:0;right:0;bottom:0;width:430px;max-width:95vw;background:var(--panel);border-left:1px solid var(--line2);z-index:100;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.5);">
 
     @if($this->drawerPasien)
     @php
@@ -418,7 +469,7 @@
     @endphp
 
     {{-- Drawer Header --}}
-    <div style="padding:1.5rem 1.25rem 1rem;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5;">
+    <div style="padding:1.5rem 1.25rem 1rem;border-bottom:1px solid var(--line);background:var(--card);flex-shrink:0;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
             <div style="display:flex;align-items:center;gap:.9rem;">
                 <div style="width:54px;height:54px;border-radius:50%;background:{{ $dpColor }}1a;border:2px solid {{ $dpColor }}55;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
@@ -437,7 +488,13 @@
                     </div>
                 </div>
             </div>
-            <button @click="drawerOpen=false; $wire.closeDrawer()" style="background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--mut);cursor:pointer;border-radius:.35rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">&times;</button>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
+                <img src="/img/logo-klinik-hd.png" alt="Klinik Dokterku"
+                     style="width:40px;height:40px;object-fit:contain;border-radius:.6rem;opacity:.88;
+                            filter:drop-shadow(0 2px 10px rgba(74,144,217,.45)) drop-shadow(0 1px 5px rgba(242,192,0,.3));
+                            flex-shrink:0;">
+                <button @click="drawerOpen=false; $wire.closeDrawer()" style="background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--mut);cursor:pointer;border-radius:.35rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">&times;</button>
+            </div>
         </div>
         <div style="display:flex;gap:.5rem;">
             <button wire:click="catat({{ $dp->id }})" @click="drawerOpen=false; $wire.closeDrawer()" class="btn-gold" style="flex:1;justify-content:center;font-size:.78rem;padding:.5rem .75rem;">
@@ -450,7 +507,7 @@
     </div>
 
     {{-- Drawer Tabs --}}
-    <div style="display:flex;border-bottom:1px solid var(--line);background:var(--card);">
+    <div style="display:flex;border-bottom:1px solid var(--line);background:var(--card);flex-shrink:0;">
         <button @click="drawerTab='resep'"
             :style="drawerTab==='resep' ? 'color:var(--emer);border-bottom:2px solid var(--emer);' : 'color:var(--mut);border-bottom:2px solid transparent;'"
             style="flex:1;padding:.7rem .5rem;background:none;border:none;border-top:none;border-left:none;border-right:none;cursor:pointer;font-size:.75rem;font-weight:500;transition:all .15s;">
@@ -467,6 +524,9 @@
             Persyaratan
         </button>
     </div>
+
+    {{-- Scrollable tab content area --}}
+    <div style="flex:1;overflow-y:auto;min-height:0;">
 
     {{-- Tab: Resep Obat --}}
     <div x-show="drawerTab==='resep'" style="padding:1.25rem;">
@@ -517,9 +577,9 @@
 
         <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:.75rem;">
             @foreach($resepRows as $ri => $rrow)
-            <div style="display:flex;align-items:center;gap:.4rem;padding:.6rem .7rem;background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:.45rem;">
+            <div style="display:flex;align-items:center;gap:.4rem;padding:.6rem .7rem;background:rgba(255,255,255,.06);border:1px solid var(--line2);border-radius:.45rem;">
                 <div style="flex:1;min-width:0;">
-                    <select wire:model.live="resepRows.{{ $ri }}.obat_id" class="form-input" style="font-size:.73rem;padding:.3rem .45rem;margin-bottom:.3rem;">
+                    <select wire:model.live="resepRows.{{ $ri }}.obat_id" class="form-input" style="font-size:.73rem;padding:.3rem .45rem;margin-bottom:.3rem;background:#1e3828;border-color:var(--line2);color:var(--ink);">
                         <option value="0">— Pilih Obat —</option>
                         @foreach($this->obatList as $ob)
                         <option value="{{ $ob->id }}">{{ $ob->nama_obat }}</option>
@@ -529,8 +589,8 @@
                 </div>
                 <div style="display:flex;align-items:center;gap:.3rem;flex-shrink:0;">
                     <input wire:model="resepRows.{{ $ri }}.jumlah_default" type="number" min="1" max="999"
-                        class="form-input font-mono" style="width:55px;font-size:.75rem;padding:.3rem .4rem;text-align:center;">
-                    <select wire:model="resepRows.{{ $ri }}.satuan" class="form-input" style="width:80px;font-size:.7rem;padding:.3rem .35rem;">
+                        class="form-input font-mono" style="width:60px;font-size:.82rem;padding:.3rem .4rem;text-align:center;background:#1e3828;border-color:var(--line2);color:var(--ink);">
+                    <select wire:model="resepRows.{{ $ri }}.satuan" class="form-input" style="width:85px;font-size:.72rem;padding:.3rem .35rem;background:#1e3828;border-color:var(--line2);color:var(--ink);">
                         <option value="tablet">Tablet</option>
                         <option value="kapsul">Kapsul</option>
                         <option value="botol">Botol</option>
@@ -541,7 +601,7 @@
                         <option value="ml">ml</option>
                     </select>
                     <button type="button" wire:click="removeResepRow({{ $ri }})"
-                        style="width:26px;height:26px;background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.2);color:var(--red);border-radius:.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">&times;</button>
+                        style="width:28px;height:28px;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.3);color:var(--red);border-radius:.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1rem;">&times;</button>
                 </div>
             </div>
             @endforeach
@@ -653,6 +713,8 @@
         </div>
         @endif
     </div>
+
+    </div>{{-- end scrollable tab content --}}
 
     @else
     {{-- Loading state --}}

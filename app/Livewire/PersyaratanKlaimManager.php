@@ -112,6 +112,10 @@ class PersyaratanKlaimManager extends Component
 
     public function delete(int $id): void
     {
+        if (!auth()->user()?->isAdmin()) {
+            $this->dispatch('toast', message: 'Hanya admin yang dapat menghapus persyaratan.', type: 'error');
+            return;
+        }
         PersyaratanKlaim::findOrFail($id)->delete();
         $this->dispatch('toast', message: 'Persyaratan dihapus.', type: 'success');
     }

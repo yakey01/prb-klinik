@@ -141,6 +141,10 @@ class RekonsiliasiBpjs extends Component
 
     public function delete(int $id): void
     {
+        if (!auth()->user()?->canEdit()) {
+            $this->dispatch('toast', message: 'Tidak memiliki izin untuk menghapus data.', type: 'error');
+            return;
+        }
         ActivityLog::record('deleted','Rekonsiliasi BPJS dihapus','RekonsiliasBpjs',$id);
         RekonsiliasiiBpjs::findOrFail($id)->delete();
         $this->dispatch('toast', message: 'Data dihapus.', type: 'success');

@@ -1,7 +1,9 @@
 <?php
 namespace App\Models;
 
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 
 class NotifikasiSetting extends Model
 {
@@ -16,6 +18,27 @@ class NotifikasiSetting extends Model
         'is_aktif_wa'       => 'boolean',
         'is_aktif_telegram' => 'boolean',
     ];
+
+    // Graceful encrypted accessors — fallback to plaintext during transition
+    // so deploy race condition (code before migrate) never throws DecryptException.
+    public function getWaApiKeyAttribute(?string $value): ?string
+    {
+        if ($value === null || $value === '') return null;
+        try { return Crypt::decryptString($value); } catch (DecryptException) { return $value; }
+    }
+    public function setWaApiKeyAttribute(?string $value): void
+    {
+        $this->attributes['wa_api_key'] = $value ? Crypt::encryptString($value) : null;
+    }
+    public function getTelegramBotTokenAttribute(?string $value): ?string
+    {
+        if ($value === null || $value === '') return null;
+        try { return Crypt::decryptString($value); } catch (DecryptException) { return $value; }
+    }
+    public function setTelegramBotTokenAttribute(?string $value): void
+    {
+        $this->attributes['telegram_bot_token'] = $value ? Crypt::encryptString($value) : null;
+    }
 
     public static function getSetting(): self
     {

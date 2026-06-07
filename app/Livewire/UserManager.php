@@ -89,6 +89,10 @@ class UserManager extends Component
 
     public function deleteUser(int $id): void
     {
+        if (!auth()->user()?->isAdmin()) {
+            $this->dispatch('toast', message: 'Hanya admin yang dapat menghapus pengguna.', type: 'error');
+            return;
+        }
         if ($id === Auth::id()) {
             $this->dispatch('toast', message: 'Tidak bisa menghapus akun yang sedang login.', type: 'error');
             return;

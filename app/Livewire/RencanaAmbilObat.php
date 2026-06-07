@@ -3,29 +3,34 @@ namespace App\Livewire;
 
 use Livewire\Component;
 use Livewire\Attributes\Computed;
+use Livewire\WithPagination;
 use Carbon\Carbon;
-use Illuminate\Support\Collection;
 use App\Models\PengambilanObat;
 
 class RencanaAmbilObat extends Component
 {
+    use WithPagination;
+
+    protected const PER_PAGE = 10;
+
     #[Computed]
-    public function jadwal(): Collection
+    public function jadwal()
     {
         $today = Carbon::today();
 
-        $rows = PengambilanObat::with(['pasien', 'items.obat'])
+        $paginator = PengambilanObat::with(['pasien', 'pasien.resepAktif.obat'])
+            ->whereHas('pasien')
             ->where('status', 'dijadwalkan')
             ->orderBy('tanggal_pengambilan')
-            ->get();
+            ->paginate(self::PER_PAGE);
 
-        return $rows->map(function ($po) use ($today) {
-            $tgl   = Carbon::parse($po->tanggal_pengambilan);
-            $diff  = $today->diffInDays($tgl, false);
+        return $paginator->through(function ($po) use ($today) {
+            $tgl  = Carbon::parse($po->tanggal_pengambilan);
+            $diff = $today->diffInDays($tgl, false);
 
             if ($diff < 0) {
                 $urgency = 'overdue';
-                $label   = abs((int)$diff) . ' hari terlambat';
+                $label   = abs((int) $diff) . ' hari terlambat';
             } elseif ($diff === 0) {
                 $urgency = 'today';
                 $label   = 'Hari ini';
@@ -40,40 +45,23 @@ class RencanaAmbilObat extends Component
                 $label   = $diff . ' hari lagi';
             }
 
-            // Use items from THIS pickup if any; otherwise from patient's last selesai
-            $drugs = $po->items->map(fn ($it) => [
-                'nama'   => $it->obat->nama_obat ?? '—',
-                'jumlah' => $it->jumlah_unit,
-                'satuan' => $it->satuan,
+            $drugs = ($po->pasien?->resepAktif ?? collect())->map(fn ($r) => [
+                'nama'   => $r->obat->nama_obat ?? '—',
+                'jumlah' => $r->jumlah_default,
+                'satuan' => $r->satuan,
             ]);
 
-            if ($drugs->isEmpty()) {
-                $lastSelesai = PengambilanObat::with('items.obat')
-                    ->where('pasien_id', $po->pasien_id)
-                    ->where('status', 'selesai')
-                    ->orderByDesc('tanggal_pengambilan')
-                    ->first();
-
-                if ($lastSelesai) {
-                    $drugs = $lastSelesai->items->map(fn ($it) => [
-                        'nama'   => $it->obat->nama_obat ?? '—',
-                        'jumlah' => $it->jumlah_unit,
-                        'satuan' => $it->satuan,
-                    ]);
-                }
-            }
-
             return [
-                'id'           => $po->id,
-                'pasien_nama'  => $po->pasien->nama ?? '—',
-                'no_bpjs'      => $po->pasien->no_bpjs ?? '—',
-                'tanggal'      => $tgl->translatedFormat('d M Y'),
-                'tanggal_raw'  => $po->tanggal_pengambilan,
-                'diff'         => (int) $diff,
-                'urgency'      => $urgency,
-                'label'        => $label,
-                'drugs'        => $drugs,
-                'inisial'      => strtoupper(substr($po->pasien->nama ?? 'P', 0, 1)),
+                'id'          => $po->id,
+                'pasien_nama' => $po->pasien->nama ?? '—',
+                'no_bpjs'     => $po->pasien->no_bpjs ?? '—',
+                'tanggal'     => $tgl->translatedFormat('d M Y'),
+                'tanggal_raw' => $po->tanggal_pengambilan,
+                'diff'        => (int) $diff,
+                'urgency'     => $urgency,
+                'label'       => $label,
+                'drugs'       => $drugs,
+                'inisial'     => strtoupper(substr($po->pasien->nama ?? 'P', 0, 1)),
             ];
         });
     }
@@ -81,12 +69,17 @@ class RencanaAmbilObat extends Component
     #[Computed]
     public function stats(): array
     {
-        $j = $this->jadwal;
+        $today = Carbon::today()->format('Y-m-d');
+        $base  = fn () => PengambilanObat::whereHas('pasien')->where('status', 'dijadwalkan');
+
         return [
-            'total'   => $j->count(),
-            'overdue' => $j->where('urgency', 'overdue')->count(),
-            'today'   => $j->where('urgency', 'today')->count(),
-            'soon'    => $j->whereIn('urgency', ['soon', 'week'])->count(),
+            'total'   => $base()->count(),
+            'overdue' => $base()->where('tanggal_pengambilan', '<', $today)->count(),
+            'today'   => $base()->where('tanggal_pengambilan', $today)->count(),
+            'soon'    => $base()->whereBetween('tanggal_pengambilan', [
+                Carbon::today()->addDay()->format('Y-m-d'),
+                Carbon::today()->addDays(7)->format('Y-m-d'),
+            ])->count(),
         ];
     }
 

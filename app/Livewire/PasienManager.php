@@ -41,6 +41,7 @@ class PasienManager extends Component
     public string $jenis_kelamin = '';
     public string $catatan = '';
     public string $jadwal_ambil_obat = '';  // tanggal jadwal pengambilan berikutnya
+    public array $formResepRows = [];       // resep saat tambah pasien baru
 
     protected function queryString(): array
     {
@@ -97,25 +98,25 @@ class PasienManager extends Component
         return $result;
     }
 
-    // Aggregated monthly drug needs across all active patients
+    // Aggregated monthly drug needs — from resep_pasien (active prescriptions, same source as /pengadaan/kebutuhan)
     #[Computed]
     public function kebutuhanObatBulanan()
     {
-        return DB::table('item_pengambilan as ip')
-            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
-            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->join('pasien as p', 'po.pasien_id', '=', 'p.id')
-            ->where('po.status', 'selesai')
+        return DB::table('resep_pasien as rp')
+            ->join('obat as o', 'rp.obat_id', '=', 'o.id')
+            ->join('pasien as p', 'rp.pasien_id', '=', 'p.id')
+            ->where('rp.is_aktif', true)
             ->where('p.is_aktif', true)
+            ->where('o.is_active', true)
             ->select(
-                'ip.obat_id',
+                'rp.obat_id',
                 'o.nama_obat',
                 'o.satuan',
-                DB::raw('COUNT(DISTINCT po.pasien_id) as jumlah_pasien'),
-                DB::raw('ROUND(AVG(ip.jumlah_unit)) as rata_unit_per_kunjungan'),
-                DB::raw('COUNT(DISTINCT po.pasien_id) * ROUND(AVG(ip.jumlah_unit)) as estimasi_bulanan')
+                DB::raw('COUNT(DISTINCT rp.pasien_id) as jumlah_pasien'),
+                DB::raw('ROUND(SUM(rp.jumlah_default) / COUNT(DISTINCT rp.pasien_id)) as rata_unit_per_kunjungan'),
+                DB::raw('SUM(rp.jumlah_default) as estimasi_bulanan')
             )
-            ->groupBy('ip.obat_id', 'o.nama_obat', 'o.satuan')
+            ->groupBy('rp.obat_id', 'o.nama_obat', 'o.satuan')
             ->orderByDesc('jumlah_pasien')
             ->get();
     }
@@ -124,7 +125,7 @@ class PasienManager extends Component
     public function diagnosisList()
     {
         $db = Diagnosis::where('is_active', true)->orderBy('sort_order')->pluck('nama');
-        return $db->isNotEmpty() ? $db : collect(['Diabetes Melitus','Hipertensi','Jantung Koroner','PPOK','Epilepsi','Stroke','Lupus','Skizofrenia','Kanker']);
+        return $db->isNotEmpty() ? $db : collect(['Diabetes','Hipertensi','Jantung','Dislipidemia','Asma & PPOK','Psikiatri','Imunosupresan','Gout','Lainnya']);
     }
 
     #[Computed]
@@ -350,8 +351,31 @@ class PasienManager extends Component
     public function openAdd(): void
     {
         $this->reset(['editId','nama','no_bpjs','kategori_diagnosis','telepon','alamat','tanggal_lahir','jenis_kelamin','catatan','jadwal_ambil_obat']);
-        $this->jadwal_ambil_obat = now()->addDays(30)->format('Y-m-d'); // default 30 hari
+        $this->jadwal_ambil_obat = now()->addDays(30)->format('Y-m-d');
+        $this->formResepRows = [['obat_id' => 0, 'jumlah_default' => 30, 'satuan' => 'tablet']];
         $this->showForm = true;
+    }
+
+    public function addFormResepRow(): void
+    {
+        $this->formResepRows[] = ['obat_id' => 0, 'jumlah_default' => 30, 'satuan' => 'tablet'];
+    }
+
+    public function removeFormResepRow(int $i): void
+    {
+        unset($this->formResepRows[$i]);
+        $this->formResepRows = array_values($this->formResepRows);
+    }
+
+    public function updatedFormResepRows(mixed $value, string $key): void
+    {
+        if (str_ends_with($key, '.obat_id') && (int)$value > 0) {
+            $idx = (int) explode('.', $key)[0];
+            $obat = Obat::find((int)$value);
+            if ($obat && isset($this->formResepRows[$idx])) {
+                $this->formResepRows[$idx]['satuan'] = $obat->satuan ?: 'tablet';
+            }
+        }
     }
 
     public function openEdit(int $id): void
@@ -383,6 +407,7 @@ class PasienManager extends Component
     public function cancel(): void
     {
         $this->showForm = false;
+        $this->formResepRows = [];
         $this->reset(['editId','nama','no_bpjs','kategori_diagnosis','telepon','alamat','tanggal_lahir','jenis_kelamin','catatan','jadwal_ambil_obat']);
     }
 
@@ -392,7 +417,7 @@ class PasienManager extends Component
             'nama'               => 'required|min:2|max:150',
             'no_bpjs'            => 'required|string|digits:13|unique:pasien,no_bpjs,' . ($this->editId ?? 'NULL'),
             'kategori_diagnosis' => 'nullable|max:100',
-            'telepon'            => ['required', 'regex:/^08[0-9]{8,11}$/', 'max:15'],
+            'telepon'            => ['nullable', 'regex:/^08[0-9]{8,11}$/', 'max:15'],
             'alamat'             => 'required|min:5|max:255',
             'tanggal_lahir'      => 'required|date|before:today',
             'jenis_kelamin'      => 'required|in:L,P',
@@ -402,7 +427,6 @@ class PasienManager extends Component
             'no_bpjs.required'       => 'Nomor BPJS wajib diisi.',
             'no_bpjs.digits'         => 'Nomor BPJS harus tepat 13 digit angka.',
             'no_bpjs.unique'         => 'Nomor BPJS sudah terdaftar di pasien lain.',
-            'telepon.required'       => 'Nomor handphone wajib diisi.',
             'telepon.regex'          => 'Format tidak valid. Contoh: 08123456789 (10–13 digit).',
             'alamat.required'        => 'Alamat wajib diisi.',
             'alamat.min'             => 'Alamat terlalu singkat (minimal 5 karakter).',
@@ -432,6 +456,20 @@ class PasienManager extends Component
             $p = Pasien::create($data);
             $pasienId = $p->id;
             ActivityLog::record('dibuat', "Tambah pasien: {$this->nama}", 'pasien', $p->id);
+
+            // Simpan resep awal jika diisi
+            foreach ($this->formResepRows as $i => $row) {
+                if (($row['obat_id'] ?? 0) > 0) {
+                    ResepPasien::create([
+                        'pasien_id'      => $pasienId,
+                        'obat_id'        => $row['obat_id'],
+                        'jumlah_default' => $row['jumlah_default'] ?? 30,
+                        'satuan'         => $row['satuan'] ?? 'tablet',
+                        'urutan'         => $i,
+                        'is_aktif'       => true,
+                    ]);
+                }
+            }
         }
 
         // Simpan/update jadwal pengambilan obat
@@ -471,8 +509,18 @@ class PasienManager extends Component
 
     public function deletePasien(int $id): void
     {
+        if (!auth()->user()?->isAdmin()) {
+            $this->dispatch('toast', type: 'error', message: 'Hanya admin yang dapat menghapus pasien.');
+            return;
+        }
         $p = Pasien::findOrFail($id);
         ActivityLog::record('dihapus', "Hapus pasien: {$p->nama}", 'pasien', $id);
+
+        // Cancel all pending schedules before soft-deleting patient
+        PengambilanObat::where('pasien_id', $id)
+            ->where('status', 'dijadwalkan')
+            ->delete();
+
         $p->delete();
         $this->dispatch('toast', type: 'success', message: 'Pasien dihapus.');
     }
