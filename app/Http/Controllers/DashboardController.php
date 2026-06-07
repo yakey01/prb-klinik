@@ -70,6 +70,58 @@ class DashboardController extends Controller
 
         $data = $this->calc->getDashboardData();
 
+        // Real by_diagnosis from actual dispensed items this month
+        $byDiagnosisReal = DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->where('po.status', 'selesai')
+            ->whereYear('po.tanggal_pengambilan', $tahun)
+            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereNotNull('o.kategori_diagnosis')
+            ->where('o.kategori_diagnosis', '!=', '')
+            ->groupBy('o.kategori_diagnosis')
+            ->select('o.kategori_diagnosis', DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) as total'))
+            ->orderByDesc('total')
+            ->havingRaw('total > 0')
+            ->get()
+            ->pluck('total', 'kategori_diagnosis')
+            ->map(fn ($v) => (int) round((float) $v))
+            ->toArray();
+
+        // Real ranking_obat laba from actual transactions this month
+        $rankingObatReal = DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->where('po.status', 'selesai')
+            ->whereYear('po.tanggal_pengambilan', $tahun)
+            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->groupBy('ip.obat_id', 'o.nama_obat')
+            ->select(
+                'ip.obat_id as id',
+                'o.nama_obat as nama',
+                DB::raw('ROUND(SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) - SUM(ip.jumlah_unit * ip.harga_beli_snapshot)) as laba')
+            )
+            ->orderByDesc('laba')
+            ->limit(20)
+            ->get()
+            ->filter(fn ($row) => (int) $row->laba !== 0)
+            ->map(fn ($row) => [
+                'id'     => $row->id,
+                'nama'   => $row->nama,
+                'laba'   => (int) $row->laba,
+                'status' => $row->laba >= 0 ? 'Laba' : 'Rugi',
+            ])
+            ->values()
+            ->toArray();
+
+        // Use real transaction data when available; fall back to catalog projection
+        if (!empty($byDiagnosisReal)) {
+            $data['by_diagnosis'] = $byDiagnosisReal;
+        }
+        if (!empty($rankingObatReal)) {
+            $data['ranking_obat'] = $rankingObatReal;
+        }
+
         $pengeluaranBulanIni = PurchaseOrder::whereMonth('tanggal_po', $bulan)
             ->whereYear('tanggal_po', $tahun)
             ->sum('total_nilai');

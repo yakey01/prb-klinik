@@ -67,6 +67,7 @@ const COMMANDS = {
   'pm2:start:wa':      BIN.pm2 ? [BIN.pm2, ['start', path.join(APP_ROOT,'wa-service','server.js'), '--name', 'wa-klinik']] : null,
   'deploy:full':       null,  // handled separately
   'deploy:hostinger':  null,  // handled separately
+  'deploy:github':     null,  // handled separately
 };
 
 // ── Whitelist command remote (Hostinger) ──────────────────────────────────────
@@ -340,6 +341,34 @@ async function runSmartDeploy(ws, commitMsg) {
   sendGitChanges(ws); // refresh daftar perubahan setelah deploy
 }
 
+// ── GitHub-only deploy: git add → commit → push (no rsync) ───────────────────
+async function runGithubDeploy(ws, commitMsg) {
+  const msg = (commitMsg || '').trim() || 'chore: update';
+  const steps = [
+    { label: 'Git Add',    fn: () => spawnLocal(ws, BIN.git, ['add', '-A']) },
+    { label: 'Git Commit', fn: () => spawnLocal(ws, BIN.git, ['commit', '-m', msg]) },
+    { label: 'Git Push',   fn: () => spawnLocal(ws, BIN.git, ['push', 'origin', 'main']) },
+  ];
+
+  send(ws, 'deploy_start', { steps: steps.length, target: 'github' });
+
+  for (const { label, fn } of steps) {
+    send(ws, 'step', { label, status: 'running', target: 'github' });
+    const code = await fn();
+
+    if (label === 'Git Commit' && code !== 0) {
+      sendLine(ws, '  ℹ️  Tidak ada perubahan baru untuk di-commit');
+      send(ws, 'step', { label, status: 'skip', target: 'github' });
+      continue;
+    }
+    send(ws, 'step', { label, status: code === 0 ? 'ok' : 'fail', target: 'github' });
+    if (code !== 0) { sendErr(ws, `Step "${label}" gagal (exit ${code})`); break; }
+  }
+
+  send(ws, 'deploy_done', { msg: 'Commit & Push GitHub selesai ✅', target: 'github' });
+  sendGitChanges(ws);
+}
+
 // ── Run whitelisted local command, stream output ──────────────────────────────
 function runCommand(ws, cmdKey, extraArgs = []) {
   if (cmdKey === 'deploy:full')      return runFullDeploy(ws);
@@ -508,6 +537,9 @@ wss.on('connection', (ws, req) => {
         break;
       case 'deploy:smart':
         runSmartDeploy(ws, msg.commitMsg || '');
+        break;
+      case 'deploy:github':
+        runGithubDeploy(ws, msg.commitMsg || '');
         break;
       case 'file:read':
         handleFileRead(ws, msg.path);

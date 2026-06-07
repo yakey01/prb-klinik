@@ -21,10 +21,13 @@ class LabaCalculatorService
         $labasBersih = $labaKotor - $totalBiayaOps;
 
         $byDiagnosis = $obatList->groupBy('kategori_diagnosis')
+            ->filter(fn ($items, $key) => !is_null($key) && $key !== '')
             ->map(fn ($items) => $items->sum(fn ($o) => $o->pendapatan_bulan))
+            ->filter(fn ($v) => $v > 0)
             ->sortByDesc(fn ($v) => $v);
 
         $rankingObat = $obatList
+            ->filter(fn ($o) => $o->laba != 0)
             ->sortByDesc(fn ($o) => $o->laba)
             ->values()
             ->map(fn ($o) => [

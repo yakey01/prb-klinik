@@ -178,14 +178,44 @@
             </div>
         </template>
 
-        {{-- Deploy button --}}
-        <button @click="smartDeploy()"
-            :disabled="!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()"
-            style="padding:.65rem;border-radius:.4rem;font-size:.8rem;font-weight:700;cursor:pointer;transition:all .2s;border:1px solid rgba(63,207,142,.4);background:rgba(63,207,142,.12);color:#3fcf8e;"
-            :style="(!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()) ? 'opacity:.4;cursor:not-allowed' : 'opacity:1'">
-            <span x-show="!deploying">🚀 Commit + Push + Deploy Hostinger</span>
-            <span x-show="deploying" style="animation:pulse 1s infinite">⏳ Deploying...</span>
-        </button>
+        {{-- GitHub Only steps tracker --}}
+        <template x-if="githubSteps.length">
+            <div style="background:#070d07;border-radius:.4rem;padding:.5rem .7rem;border:1px solid rgba(111,177,224,.15);">
+                <div style="font-size:.66rem;color:#6fb1e0;font-weight:700;margin-bottom:.3rem;letter-spacing:.06em;">GITHUB PUSH</div>
+                <template x-for="step in githubSteps" :key="step.label">
+                    <div style="display:flex;align-items:center;gap:.5rem;padding:.15rem 0;">
+                        <span style="font-size:.8rem;min-width:1.2rem;"
+                            :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#3a5a3a'"
+                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
+                        </span>
+                        <span style="font-size:.73rem;"
+                            :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
+                            x-text="step.label"></span>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        {{-- Two deploy buttons --}}
+        <div style="display:flex;flex-direction:column;gap:.4rem;">
+            {{-- GitHub only --}}
+            <button @click="githubDeploy()"
+                :disabled="!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()"
+                style="padding:.55rem;border-radius:.4rem;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;border:1px solid rgba(111,177,224,.45);background:rgba(111,177,224,.12);color:#6fb1e0;"
+                :style="(!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()) ? 'opacity:.4;cursor:not-allowed' : 'opacity:1'">
+                <span x-show="!deploying">📦 Commit + Push GitHub</span>
+                <span x-show="deploying" style="animation:pulse 1s infinite">⏳ Pushing...</span>
+            </button>
+
+            {{-- Full smart deploy --}}
+            <button @click="smartDeploy()"
+                :disabled="!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()"
+                style="padding:.55rem;border-radius:.4rem;font-size:.78rem;font-weight:700;cursor:pointer;transition:all .2s;border:1px solid rgba(63,207,142,.4);background:rgba(63,207,142,.12);color:#3fcf8e;"
+                :style="(!wsReady || deploying || localChanges.length === 0 || !commitDesc.trim()) ? 'opacity:.4;cursor:not-allowed' : 'opacity:1'">
+                <span x-show="!deploying">🚀 Commit + Push + Deploy Hostinger</span>
+                <span x-show="deploying" style="animation:pulse 1s infinite">⏳ Deploying...</span>
+            </button>
+        </div>
 
     </div>
 
@@ -410,6 +440,7 @@ function deployPanel() {
         deploySteps: [],
         hostSteps: [],
         smartSteps: [],
+        githubSteps: [],
         hostingerOnline: false,
 
         // Smart Deploy state
@@ -516,6 +547,7 @@ function deployPanel() {
                     let target;
                     if (msg.target === 'hostinger') target = this.hostSteps;
                     else if (msg.target === 'smart') target = this.smartSteps;
+                    else if (msg.target === 'github') target = this.githubSteps;
                     else target = this.deploySteps;
                     const i = target.findIndex(s => s.label === msg.label);
                     if (i >= 0) target[i].status = msg.status;
@@ -579,6 +611,24 @@ function deployPanel() {
             this.sendMsg('git:changes');
         },
 
+        githubDeploy() {
+            if (!this.wsReady || this.deploying) return;
+            if (this.localChanges.length === 0) {
+                this.appendTerm('ℹ️  Tidak ada perubahan untuk di-commit', 'info');
+                return;
+            }
+            if (!this.commitDesc.trim()) {
+                this.appendTerm('⚠️  Isi pesan commit terlebih dahulu', 'stderr');
+                return;
+            }
+            const fullMsg = `${this.commitType}: ${this.commitDesc.trim()}`;
+            this.deploying = true;
+            this.githubSteps = [];
+            this.smartSteps = [];
+            this.appendTerm(`\n📦 Commit + Push GitHub\n   Commit: "${fullMsg}"\n   Files: ${this.localChanges.length} perubahan`, 'info');
+            this.ws.send(JSON.stringify({ type: 'deploy:github', commitMsg: fullMsg }));
+        },
+
         smartDeploy() {
             if (!this.wsReady || this.deploying) return;
             if (this.localChanges.length === 0) {
@@ -592,6 +642,7 @@ function deployPanel() {
             const fullMsg = `${this.commitType}: ${this.commitDesc.trim()}`;
             this.deploying = true;
             this.smartSteps = [];
+            this.githubSteps = [];
             this.appendTerm(`\n🚀 Smart Deploy dimulai\n   Commit: "${fullMsg}"\n   Files: ${this.localChanges.length} perubahan`, 'info');
             this.ws.send(JSON.stringify({ type: 'deploy:smart', commitMsg: fullMsg }));
         },
