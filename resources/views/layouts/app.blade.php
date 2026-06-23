@@ -230,7 +230,13 @@
         .btn-outline { background: transparent; color: var(--mut); border: 1px solid var(--line2); border-radius: .5rem; padding: .6rem 1.2rem; font-size: .82rem; cursor: pointer; transition: color .2s, border-color .2s; display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; min-height: 40px; }
 
         /* ── Media Queries ── */
+        /* ── Kalkulator grid responsive ── */
+        .kalk-grid     { display: grid; grid-template-columns: 2fr 3fr; gap: 1.25rem; align-items: start; }
+        .kalk-kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .7rem; }
+
         @media (max-width: 768px) {
+            .kalk-grid     { grid-template-columns: 1fr !important; }
+            .kalk-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
             #nav-tabs { display: none !important; }
             #nav-hamburger { display: flex !important; }
             .hide-mobile { display: none !important; }
@@ -315,9 +321,13 @@
             </a>
 
             <div class="mobile-drawer-group-label">Inventori</div>
-            <a href="{{ route('katalog.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('katalog.*') ? 'active' : '' }}">
+            <a href="{{ route('katalog.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('katalog.index') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
                 Katalog Obat
+            </a>
+            <a href="{{ route('katalog.gabung') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('katalog.gabung') ? 'active' : '' }}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
+                Gabung Obat
             </a>
             <a href="{{ route('stok.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('stok.index') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
@@ -348,6 +358,10 @@
             <a href="{{ route('tagihan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('tagihan.*') ? 'active' : '' }}">Tagihan</a>
             <a href="{{ route('laporan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}">Laporan Bulanan</a>
             <a href="{{ route('rekonsiliasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">Rekonsiliasi BPJS</a>
+            <a href="{{ route('kalkulator.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Kalkulator Laba
+            </a>
 
             <div class="mobile-drawer-group-label">Manajemen</div>
             <a href="{{ route('notifikasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('notifikasi.*') ? 'active' : '' }}">Notifikasi</a>
@@ -404,8 +418,8 @@
             </div>
             @php
                 $inPengadaan = request()->routeIs('pengadaan.*') || request()->routeIs('riwayat.*');
-                $inInventori = request()->routeIs('katalog.*') || request()->routeIs('stok.*') || request()->routeIs('stok-keluar.*') || request()->routeIs('distributor.*');
-                $inKeuangan  = request()->routeIs('laporan.*') || request()->routeIs('rekonsiliasi.*') || request()->routeIs('tagihan.*');
+                $inInventori = request()->routeIs('katalog.*') || request()->routeIs('stok.*') || request()->routeIs('bmhp.*') || request()->routeIs('stok-keluar.*') || request()->routeIs('distributor.*');
+                $inKeuangan  = request()->routeIs('laporan.*') || request()->routeIs('rekonsiliasi.*') || request()->routeIs('tagihan.*') || request()->routeIs('kalkulator.*');
                 $inPasien    = request()->routeIs('pasien*');
                 $inManajemen = request()->routeIs('notifikasi.*') || request()->routeIs('audit.*') || request()->routeIs('pengaturan.*') || request()->routeIs('persyaratan-klaim.*') || request()->routeIs('deploy.*');
             @endphp
@@ -449,13 +463,21 @@
                         <svg class="nav-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="nav-dropdown" id="dd-inventori" style="display:none;">
-                        <a href="{{ route('katalog.index') }}" class="{{ request()->routeIs('katalog.*') ? 'active' : '' }}">
+                        <a href="{{ route('katalog.index') }}" class="{{ request()->routeIs('katalog.index') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
                             Katalog Obat
+                        </a>
+                        <a href="{{ route('katalog.gabung') }}" class="{{ request()->routeIs('katalog.gabung') ? 'active' : '' }}">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
+                            Gabung Obat
                         </a>
                         <a href="{{ route('stok.index') }}" class="{{ request()->routeIs('stok.index') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                             Stok Obat
+                        </a>
+                        <a href="{{ route('bmhp.index') }}" class="{{ request()->routeIs('bmhp.*') ? 'active' : '' }}">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                            BMHP
                         </a>
                         <a href="{{ route('stok-keluar.index') }}" class="{{ request()->routeIs('stok-keluar.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
@@ -488,6 +510,11 @@
                         <a href="{{ route('rekonsiliasi.index') }}" class="{{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
                             Rekonsiliasi BPJS
+                        </a>
+                        <div class="sep"></div>
+                        <a href="{{ route('kalkulator.index') }}" class="{{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                            Kalkulator Laba
                         </a>
                     </div>
                 </div>
