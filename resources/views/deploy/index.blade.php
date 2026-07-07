@@ -44,7 +44,7 @@
             <span style="font-size:.73rem;font-weight:600;" :style="wsReady ? 'color:#3fcf8e' : 'color:#e8645a'" x-text="wsReady ? 'WebSocket Connected' : (wsConnecting ? 'Connecting...' : 'Disconnected')"></span>
         </div>
         <button @click="connect()" x-show="!wsReady && !wsConnecting" class="btn-deploy" style="background:rgba(63,207,142,.12);color:var(--emer2);border:1px solid rgba(63,207,142,.25);">
-            ⚡ Connect
+            Connect
         </button>
         <button @click="disconnect()" x-show="wsReady" class="btn-deploy" style="background:rgba(232,100,90,.1);color:var(--red2);border:1px solid rgba(232,100,90,.2);">
             Disconnect
@@ -99,8 +99,8 @@
         {{-- Header --}}
         <div style="display:flex;align-items:center;justify-content:space-between;">
             <div>
-                <div style="font-size:.8rem;font-weight:700;color:var(--emer2);letter-spacing:.06em;">⚡ SMART DEPLOY</div>
-                <div style="font-size:.7rem;color:var(--mut);margin-top:.1rem;">Detect perubahan lokal → Commit → Push GitHub → Deploy Hostinger</div>
+                <div style="font-size:.8rem;font-weight:700;color:var(--emer2);letter-spacing:.06em;">SMART DEPLOY</div>
+                <div style="font-size:.7rem;color:var(--mut);margin-top:.1rem;">Detect perubahan lokal <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Commit <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Push GitHub <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Deploy Hostinger</div>
             </div>
             <button @click="refreshChanges()" :disabled="!wsReady"
                 style="background:rgba(63,207,142,.08);color:var(--emer2);border:1px solid rgba(63,207,142,.2);border-radius:.35rem;padding:.3rem .65rem;font-size:.7rem;cursor:pointer;"
@@ -115,7 +115,7 @@
                 <div style="color:var(--mut);font-size:.72rem;font-style:italic;">Hubungkan WebSocket untuk melihat perubahan...</div>
             </template>
             <template x-if="wsReady && localChanges.length === 0">
-                <div style="color:#3fcf8e;font-size:.72rem;">✅ Tidak ada perubahan — working tree bersih</div>
+                <div style="color:#3fcf8e;font-size:.72rem;">[OK] Tidak ada perubahan — working tree bersih</div>
             </template>
             <template x-if="wsReady && localChanges.length > 0">
                 <div>
@@ -158,7 +158,7 @@
                     @keydown.enter="localChanges.length > 0 && commitDesc.trim() && !deploying && smartDeploy()" />
             </div>
             <div style="font-size:.66rem;color:var(--mut);font-family:monospace;"
-                 x-text="'→  ' + commitType + ': ' + (commitDesc.trim() || '...')"></div>
+                 x-text="'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>  ' + commitType + ': ' + (commitDesc.trim() || '...')"></div>
         </div>
 
         {{-- Smart Deploy steps tracker --}}
@@ -168,7 +168,7 @@
                     <div style="display:flex;align-items:center;gap:.5rem;padding:.15rem 0;">
                         <span style="font-size:.8rem;min-width:1.2rem;"
                             :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#3a5a3a'"
-                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
+                            x-text="step.status==='ok'?'[OK]':step.status==='fail'?'[X]':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
                         </span>
                         <span style="font-size:.73rem;"
                             :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
@@ -186,7 +186,7 @@
                     <div style="display:flex;align-items:center;gap:.5rem;padding:.15rem 0;">
                         <span style="font-size:.8rem;min-width:1.2rem;"
                             :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#3a5a3a'"
-                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
+                            x-text="step.status==='ok'?'[OK]':step.status==='fail'?'[X]':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
                         </span>
                         <span style="font-size:.73rem;"
                             :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
@@ -237,7 +237,7 @@
                     <div class="step-row">
                         <span class="step-status"
                             :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#4a6a4a'"
-                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
+                            x-text="step.status==='ok'?'[OK]':step.status==='fail'?'[X]':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
                         </span>
                         <span :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
                               x-text="step.label + (step.status==='skip' ? ' (n/a)' : '')"></span>
@@ -251,7 +251,7 @@
         {{-- Git --}}
         <div style="font-size:.67rem;color:var(--mut);font-weight:600;margin-top:.1rem;">GIT</div>
         <button @click="runCmd('git:pull')" :disabled="!wsReady" class="btn-deploy" style="background:rgba(63,207,142,.08);color:var(--emer2);border:1px solid rgba(63,207,142,.2);">
-            ↓ git pull
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg> git pull
         </button>
         <button @click="runCmd('git:status')" :disabled="!wsReady" class="btn-deploy" style="background:rgba(255,255,255,.03);color:var(--mut2);border:1px solid var(--line);">
             git status
@@ -309,7 +309,7 @@
                     <div class="step-row">
                         <span class="step-status"
                             :style="step.status==='ok'?'color:#3fcf8e':step.status==='fail'?'color:#e8645a':step.status==='running'?'color:#d9a441':step.status==='skip'?'color:#4a7a7a':'color:#4a6a4a'"
-                            x-text="step.status==='ok'?'✅':step.status==='fail'?'❌':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
+                            x-text="step.status==='ok'?'[OK]':step.status==='fail'?'[X]':step.status==='running'?'⏳':step.status==='skip'?'⊘':'○'">
                         </span>
                         <span :style="step.status==='skip'?'color:#4a7a7a;text-decoration:line-through':'color:#a0c8a0'"
                               x-text="step.label + (step.status==='skip' ? ' (n/a)' : '')"></span>
@@ -391,7 +391,7 @@
                         </button>
                         <button @click="currentFile=null;fileContent=''" class="btn-deploy"
                             style="background:rgba(255,255,255,.03);color:var(--mut);border:1px solid var(--line);">
-                            ✕
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
                 </div>
@@ -505,7 +505,7 @@ function deployPanel() {
             this.ws.onerror = () => {
                 this.wsConnecting = false;
                 this.wsReady = false;
-                this.appendTerm('❌ Tidak bisa connect ke ws://localhost:3002\nJalankan dulu: node ws-deploy/server.js', 'stderr');
+                this.appendTerm('[X] Tidak bisa connect ke ws://localhost:3002\nJalankan dulu: node ws-deploy/server.js', 'stderr');
             };
         },
 
@@ -523,11 +523,11 @@ function deployPanel() {
                 case 'auth_ok':
                     this.wsReady = true;
                     this.wsConnecting = false;
-                    this.appendTerm(`✅ Authenticated sebagai ${msg.user}`, 'ok');
+                    this.appendTerm(`[OK] Authenticated sebagai ${msg.user}`, 'ok');
                     break;
                 case 'auth_fail':
                     this.wsConnecting = false;
-                    this.appendTerm('❌ Auth gagal: ' + msg.msg, 'stderr');
+                    this.appendTerm('[X] Auth gagal: ' + msg.msg, 'stderr');
                     break;
                 case 'cmd_start':
                     this.appendTerm('\n$ ' + msg.display, 'cmd');
@@ -536,11 +536,11 @@ function deployPanel() {
                     this.appendTerm(msg.text, msg.stream === 'stderr' ? 'stderr' : '');
                     break;
                 case 'done':
-                    this.appendTerm(msg.ok ? '✅ OK (exit 0)' : `❌ Exit ${msg.code}`, msg.ok ? 'ok' : 'stderr');
+                    this.appendTerm(msg.ok ? '[OK] OK (exit 0)' : `[X] Exit ${msg.code}`, msg.ok ? 'ok' : 'stderr');
                     this.deploying = false;
                     break;
                 case 'error':
-                    this.appendTerm('❌ ' + msg.msg, 'stderr');
+                    this.appendTerm('[X] ' + msg.msg, 'stderr');
                     this.deploying = false;
                     break;
                 case 'step': {
@@ -552,7 +552,7 @@ function deployPanel() {
                     const i = target.findIndex(s => s.label === msg.label);
                     if (i >= 0) target[i].status = msg.status;
                     else target.push({ label: msg.label, status: msg.status });
-                    const icon = msg.status==='ok'?'✅':msg.status==='fail'?'❌':msg.status==='skip'?'⊘':'⏳';
+                    const icon = msg.status==='ok'?'[OK]':msg.status==='fail'?'[X]':msg.status==='skip'?'⊘':'⏳';
                     this.appendTerm(`  ${icon} ${msg.label}`, msg.status==='ok'?'ok':'');
                     break;
                 }
@@ -618,7 +618,7 @@ function deployPanel() {
                 return;
             }
             if (!this.commitDesc.trim()) {
-                this.appendTerm('⚠️  Isi pesan commit terlebih dahulu', 'stderr');
+                this.appendTerm('[!] Isi pesan commit terlebih dahulu', 'stderr');
                 return;
             }
             const fullMsg = `${this.commitType}: ${this.commitDesc.trim()}`;
@@ -636,7 +636,7 @@ function deployPanel() {
                 return;
             }
             if (!this.commitDesc.trim()) {
-                this.appendTerm('⚠️  Isi pesan commit terlebih dahulu', 'stderr');
+                this.appendTerm('[!] Isi pesan commit terlebih dahulu', 'stderr');
                 return;
             }
             const fullMsg = `${this.commitType}: ${this.commitDesc.trim()}`;

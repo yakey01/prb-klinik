@@ -9,7 +9,8 @@ class StokKeluar extends Model
     protected $table = 'stok_keluar';
 
     protected $fillable = [
-        'obat_id', 'tanggal_keluar', 'jumlah_unit', 'satuan',
+        'ref',
+        'obat_id', 'tanggal_keluar', 'jumlah_unit', 'stok_sebelum', 'stok_sesudah', 'satuan',
         'harga_beli_snapshot', 'harga_jual_per_unit',
         'keterangan', 'dicatat_oleh',
         'sumber', 'pengambilan_obat_id', 'pasien_id',

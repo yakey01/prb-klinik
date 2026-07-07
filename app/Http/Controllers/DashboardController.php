@@ -15,28 +15,136 @@ class DashboardController extends Controller
 {
     public function __construct(private LabaCalculatorService $calc) {}
 
+    /**
+     * Rincian finansial PER OBAT untuk pengambilan dengan status tertentu pada bulan/tahun.
+     *
+     * Tabel pembukti kartu KPI — penjumlahan baris di sini = nilai kartu (rekonsiliasi).
+     * Sumber nilai per pengambilan:
+     *  1. item_pengambilan (snapshot harga saat penyerahan) — paling akurat;
+     *  2. fallback: resep aktif pasien × harga katalog obat — saat item belum tercatat.
+     *
+     * @return array<int, array{obat_id:int, nama:string, tipe:string, status:string, source:string, qty:float, hpp:float, klaim:float, laba:float}>
+     */
+    private function financialBreakdown(array $statuses, int $bulan, int $tahun): array
+    {
+        // Sumber 1 — dari item_pengambilan (pengambilan yang sudah punya rincian item)
+        $items = DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereNull('po.deleted_at')
+            ->whereIn('po.status', $statuses)
+            ->whereYear('po.tanggal_pengambilan', $tahun)
+            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->groupBy('o.id', 'o.nama_obat', 'o.tipe_obat', 'po.status')
+            ->selectRaw('
+                o.id AS obat_id, o.nama_obat AS nama, o.tipe_obat AS tipe, po.status AS status,
+                SUM(ip.jumlah_unit) AS qty,
+                SUM(ip.jumlah_unit * COALESCE(ip.harga_beli_snapshot, 0)) AS hpp,
+                SUM(CASE WHEN o.tipe_obat = "kronis"
+                    THEN ip.jumlah_unit * COALESCE(ip.harga_klaim_bpjs_snapshot, 0) * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . '
+                    ELSE 0 END) AS klaim
+            ')
+            ->get()
+            ->map(fn ($r) => (array) $r + ['source' => 'item']);
+
+        // Sumber 2 — fallback dari resep aktif untuk pengambilan TANPA item
+        $resep = DB::table('pengambilan_obat as po')
+            ->join('resep_pasien as rp', function ($j) {
+                $j->on('rp.pasien_id', '=', 'po.pasien_id')->where('rp.is_aktif', 1);
+            })
+            ->join('obat as o', 'o.id', '=', 'rp.obat_id')
+            ->whereNull('po.deleted_at')
+            ->whereIn('po.status', $statuses)
+            ->whereYear('po.tanggal_pengambilan', $tahun)
+            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereNotExists(function ($q) {
+                $q->select(DB::raw(1))->from('item_pengambilan as ip')
+                  ->whereColumn('ip.pengambilan_obat_id', 'po.id');
+            })
+            ->groupBy('o.id', 'o.nama_obat', 'o.tipe_obat', 'po.status')
+            ->selectRaw('
+                o.id AS obat_id, o.nama_obat AS nama, o.tipe_obat AS tipe, po.status AS status,
+                SUM(rp.jumlah_default) AS qty,
+                SUM(rp.jumlah_default * COALESCE(o.harga_beli_per_unit, 0)) AS hpp,
+                SUM(CASE WHEN o.tipe_obat = "kronis"
+                    THEN rp.jumlah_default * COALESCE(o.klaim_bpjs_per_unit, 0) * ' . \App\Models\Obat::jfSql('o.faktor_jasa_farmasi') . '
+                    ELSE 0 END) AS klaim
+            ')
+            ->get()
+            ->map(fn ($r) => (array) $r + ['source' => 'resep']);
+
+        // Gabung + merge per (obat, status) agar 1 obat = 1 baris per status
+        $merged = [];
+        foreach ($items->concat($resep) as $row) {
+            $key = $row['obat_id'] . '|' . $row['status'];
+            if (!isset($merged[$key])) {
+                $merged[$key] = [
+                    'obat_id' => (int) $row['obat_id'],
+                    'nama'    => $row['nama'],
+                    'tipe'    => $row['tipe'] ?: 'non_kronis',
+                    'status'  => $row['status'],
+                    'source'  => $row['source'],
+                    'qty'     => 0.0, 'hpp' => 0.0, 'klaim' => 0.0,
+                ];
+            }
+            $merged[$key]['qty']   += (float) $row['qty'];
+            $merged[$key]['hpp']   += (float) $row['hpp'];
+            $merged[$key]['klaim'] += (float) $row['klaim'];
+        }
+
+        $rows = array_values($merged);
+        foreach ($rows as &$r) {
+            $r['laba'] = $r['klaim'] - $r['hpp'];
+        }
+        unset($r);
+
+        // Urut: laba menaik (penyumbang rugi terbesar di atas — membuktikan angka kartu)
+        usort($rows, fn ($a, $b) => $a['laba'] <=> $b['laba']);
+
+        return $rows;
+    }
+
+    /**
+     * Total HPP & klaim untuk status tertentu — dijumlahkan dari rincian per obat
+     * agar kartu KPI dan tabel rincian SELALU rekonsiliasi.
+     *
+     * @return array{hpp: float, klaim: float}
+     */
+    private function financialsForStatuses(array $statuses, int $bulan, int $tahun): array
+    {
+        $rows = $this->financialBreakdown($statuses, $bulan, $tahun);
+        return [
+            'hpp'   => array_sum(array_column($rows, 'hpp')),
+            'klaim' => array_sum(array_column($rows, 'klaim')),
+        ];
+    }
+
     public function index()
     {
         $bulan = now()->month;
         $tahun = now()->year;
 
-        // ── HPP aktual dari item_pengambilan bulan ini ─────────────
-        $hppBulanIni = (float) DB::table('item_pengambilan as ip')
-            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
-            ->where('po.status', 'selesai')
-            ->whereYear('po.tanggal_pengambilan', $tahun)
-            ->whereMonth('po.tanggal_pengambilan', $bulan)
-            ->sum(DB::raw('ip.jumlah_unit * ip.harga_beli_snapshot'));
+        // ── Finansial bulan ini ────────────────────────────────────
+        // Realisasi = pengambilan 'selesai'; Proyeksi = pengambilan 'dijadwalkan'.
+        // Tiap pengambilan dinilai dari item_pengambilan (snapshot harga saat serah)
+        // bila ada; bila item kosong, fallback ke resep aktif pasien × harga katalog.
+        // Rincian per obat (pembukti kartu) — sekali query, lalu dipecah per status
+        $breakdownRows = $this->financialBreakdown(['selesai', 'dijadwalkan'], $bulan, $tahun);
 
-        // ── Proyeksi klaim BPJS dari item diserahkan bulan ini ─────
-        $proyeksiBulanIni = (float) DB::table('item_pengambilan as ip')
-            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
-            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->where('po.status', 'selesai')
-            ->where('o.tipe_obat', 'kronis')
-            ->whereYear('po.tanggal_pengambilan', $tahun)
-            ->whereMonth('po.tanggal_pengambilan', $bulan)
-            ->sum(DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot'));
+        $sumBy = function (array $rows, string $col) {
+            return array_sum(array_column($rows, $col));
+        };
+        $realRows = array_values(array_filter($breakdownRows, fn ($r) => $r['status'] === 'selesai'));
+        $projRows = array_values(array_filter($breakdownRows, fn ($r) => $r['status'] === 'dijadwalkan'));
+
+        $hppRealisasi   = $sumBy($realRows, 'hpp');
+        $klaimRealisasi = $sumBy($realRows, 'klaim');
+        $hppProyeksi    = $sumBy($projRows, 'hpp');
+        $klaimProyeksi  = $sumBy($projRows, 'klaim');
+
+        // Total bulan ini = realisasi + proyeksi
+        $hppBulanIni      = $hppRealisasi + $hppProyeksi;
+        $proyeksiBulanIni = $klaimRealisasi + $klaimProyeksi;
 
         // ── Rekonsiliasi BPJS bulan ini ────────────────────────────
         $rekon = RekonsiliasiiBpjs::where('bulan', $bulan)->where('tahun', $tahun)->first();
@@ -62,6 +170,7 @@ class DashboardController extends Controller
 
         // Jumlah pasien yang mengambil obat bulan ini
         $pasienBulanIni = DB::table('pengambilan_obat')
+            ->whereNull('deleted_at')
             ->where('status', 'selesai')
             ->whereYear('tanggal_pengambilan', $tahun)
             ->whereMonth('tanggal_pengambilan', $bulan)
@@ -74,13 +183,14 @@ class DashboardController extends Controller
         $byDiagnosisReal = DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereNull('po.deleted_at')
             ->where('po.status', 'selesai')
             ->whereYear('po.tanggal_pengambilan', $tahun)
             ->whereMonth('po.tanggal_pengambilan', $bulan)
             ->whereNotNull('o.kategori_diagnosis')
             ->where('o.kategori_diagnosis', '!=', '')
             ->groupBy('o.kategori_diagnosis')
-            ->select('o.kategori_diagnosis', DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) as total'))
+            ->select('o.kategori_diagnosis', DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') as total'))
             ->orderByDesc('total')
             ->havingRaw('total > 0')
             ->get()
@@ -92,6 +202,7 @@ class DashboardController extends Controller
         $rankingObatReal = DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereNull('po.deleted_at')
             ->where('po.status', 'selesai')
             ->whereYear('po.tanggal_pengambilan', $tahun)
             ->whereMonth('po.tanggal_pengambilan', $bulan)
@@ -99,7 +210,7 @@ class DashboardController extends Controller
             ->select(
                 'ip.obat_id as id',
                 'o.nama_obat as nama',
-                DB::raw('ROUND(SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) - SUM(ip.jumlah_unit * ip.harga_beli_snapshot)) as laba')
+                DB::raw('ROUND(SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') - SUM(ip.jumlah_unit * ip.harga_beli_snapshot)) as laba')
             )
             ->orderByDesc('laba')
             ->limit(20)
@@ -147,14 +258,7 @@ class DashboardController extends Controller
                 $dt = now()->subMonths($i);
                 $labels[] = $dt->translatedFormat('M Y');
 
-                $pendapatan[] = round((float) DB::table('item_pengambilan as ip')
-                    ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
-                    ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-                    ->where('po.status', 'selesai')
-                    ->where('o.tipe_obat', 'kronis')
-                    ->whereYear('po.tanggal_pengambilan', $dt->year)
-                    ->whereMonth('po.tanggal_pengambilan', $dt->month)
-                    ->sum(DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot')));
+                $pendapatan[] = round($this->financialsForStatuses(['selesai', 'dijadwalkan'], $dt->month, $dt->year)['klaim']);
 
                 $pengeluaran[] = round(
                     PurchaseOrder::whereMonth('tanggal_po', $dt->month)
@@ -169,6 +273,15 @@ class DashboardController extends Controller
             'pendapatan_bpjs'       => round($pendapatanBpjs),
             'biaya_beli'            => round($hppBulanIni),
             'laba_kotor'            => round($labaKotor),
+            // Rincian realisasi (selesai) vs proyeksi (dijadwalkan)
+            'hpp_realisasi'         => round($hppRealisasi),
+            'klaim_realisasi'       => round($klaimRealisasi),
+            'laba_realisasi'        => round($klaimRealisasi - $hppRealisasi),
+            'hpp_proyeksi'          => round($hppProyeksi),
+            'klaim_proyeksi'        => round($klaimProyeksi),
+            'laba_proyeksi'         => round($klaimProyeksi - $hppProyeksi),
+            // Tabel rincian per obat (pembukti rekonsiliasi kartu)
+            'breakdown_rows'        => $breakdownRows,
             'total_pasien'          => $totalPasienKronis,
             'pasien_bulan_ini'      => $pasienBulanIni,
             'rekon_bpjs'            => $rekonData,

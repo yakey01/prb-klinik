@@ -56,7 +56,7 @@
                             legend: {
                                 labels: {
                                     color: '#8fae9f',
-                                    font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" },
+                                    font: { size: 11, family: "'Inter', system-ui, sans-serif" },
                                     padding: 14,
                                     usePointStyle: true,
                                     pointStyleWidth: 10,
@@ -83,7 +83,7 @@
                                 grid: { display: false },
                                 ticks: {
                                     color: '#eaf3ee',
-                                    font: { size: 10.5, family: "'Plus Jakarta Sans', sans-serif" },
+                                    font: { size: 10.5, family: "'Inter', system-ui, sans-serif" },
                                     callback(val) {
                                         const lbl = this.getLabelForValue(val);
                                         return lbl.length > 18 ? lbl.slice(0,17) + '…' : lbl;
@@ -125,7 +125,7 @@
                                 labels: {
                                     color: '#8fae9f',
                                     padding: 8,
-                                    font: { size: 10.5, family: "'Plus Jakarta Sans', sans-serif" },
+                                    font: { size: 10.5, family: "'Inter', system-ui, sans-serif" },
                                     usePointStyle: true,
                                     pointStyleWidth: 7,
                                 }

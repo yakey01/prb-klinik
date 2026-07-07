@@ -21,7 +21,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
@@ -36,7 +36,7 @@
             --line3: #36705a;
             --ink:   #eaf3ee;
             --mut:   #8fae9f;
-            --mut2:  #5f8071;
+            --mut2:  #82a596;
             --gold:  #d9a441;
             --gold2: #f2c668;
             --gold3: #fcd98a;
@@ -50,7 +50,7 @@
         body {
             background: var(--bg);
             color: var(--ink);
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             min-height: 100vh;
         }
         body::before {
@@ -62,8 +62,8 @@
             pointer-events: none;
             z-index: 0;
         }
-        .font-heading { font-family: 'DM Serif Display', serif; }
-        .font-label   { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
+        .font-heading { font-family: 'Inter', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.03em; }
+        .font-label   { font-family: 'Inter', system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; font-weight: 600; }
         .font-mono    { font-family: 'JetBrains Mono', monospace; }
         .kpi-card {
             background: linear-gradient(135deg, var(--card) 0%, var(--panel) 100%);
@@ -89,7 +89,7 @@
         .data-table { width: 100%; border-collapse: collapse; }
         .data-table th {
             background: var(--panel); color: var(--mut);
-            font-size: .7rem; font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: .7rem; font-family: 'Inter', system-ui, sans-serif;
             text-transform: uppercase; letter-spacing: .07em;
             padding: .75rem 1rem; text-align: left;
             border-bottom: 1px solid var(--line);
@@ -109,7 +109,7 @@
             border-radius: .5rem;
             padding: .6rem .9rem;
             font-size: .875rem;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             width: 100%;
             transition: border-color .2s;
         }
@@ -118,7 +118,7 @@
         .form-input option { background: var(--panel); }
         .form-label {
             display: block; font-size: .72rem; font-weight: 600;
-            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-family: 'Inter', system-ui, sans-serif;
             letter-spacing: .06em; text-transform: uppercase;
             color: var(--mut); margin-bottom: .35rem;
         }
@@ -150,6 +150,16 @@
         input[type=range] { -webkit-appearance: none; width: 100%; height: 4px; background: var(--line2); border-radius: 2px; cursor: pointer; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--gold); cursor: pointer; box-shadow: 0 0 0 3px rgba(217,164,65,.2); }
         input[type=range]:focus { outline: none; }
+        /* Aksesibilitas: focus ring keyboard yang jelas untuk semua elemen interaktif */
+        a:focus-visible, button:focus-visible, [role="button"]:focus-visible,
+        input:focus-visible, select:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+            outline: 2px solid var(--gold);
+            outline-offset: 2px;
+            border-radius: 5px;
+        }
+        /* Jaring pengaman responsif: tabel besar selalu bisa di-scroll di layar sempit */
+        .data-table { min-width: 640px; }
+        @media (min-width: 900px) { .data-table { min-width: 0; } }
         #toast-container { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 999; display: flex; flex-direction: column; gap: .5rem; }
         .toast { padding: .75rem 1.2rem; border-radius: .6rem; font-size: .85rem; font-weight: 500; animation: slideIn .3s ease; max-width: 360px; display: flex; align-items: center; gap: .6rem; }
         .toast-success { background: rgba(63,207,142,.15); border: 1px solid rgba(63,207,142,.3); color: var(--emer2); }
@@ -224,8 +234,8 @@
 
         /* ── Improved global touch targets & font sizes ── */
         .badge { display: inline-flex; align-items: center; padding: .25rem .72rem; border-radius: 999px; font-size: .78rem; font-weight: 600; }
-        .form-label { display: block; font-size: .78rem; font-weight: 600; font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--mut); margin-bottom: .35rem; }
-        .data-table th { background: var(--panel); color: var(--mut); font-size: .72rem; font-family: 'Plus Jakarta Sans', sans-serif; text-transform: uppercase; letter-spacing: .07em; padding: .75rem 1rem; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; }
+        .form-label { display: block; font-size: .78rem; font-weight: 600; font-family: 'Inter', system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--mut); margin-bottom: .35rem; }
+        .data-table th { background: var(--panel); color: var(--mut); font-size: .72rem; font-family: 'Inter', system-ui, sans-serif; text-transform: uppercase; letter-spacing: .07em; padding: .75rem 1rem; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; }
         .btn-gold { background: linear-gradient(135deg, var(--gold) 0%, #c4892e 100%); color: #1a0e00; font-weight: 700; font-size: .85rem; padding: .65rem 1.4rem; border-radius: .5rem; border: none; cursor: pointer; transition: opacity .2s, transform .2s; display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; }
         .btn-outline { background: transparent; color: var(--mut); border: 1px solid var(--line2); border-radius: .5rem; padding: .6rem 1.2rem; font-size: .82rem; cursor: pointer; transition: color .2s, border-color .2s; display: inline-flex; align-items: center; gap: .35rem; text-decoration: none; min-height: 40px; }
 
@@ -315,6 +325,10 @@
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Riwayat PO
             </a>
+            <a href="{{ route('pengadaan.harian') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.harian') ? 'active' : '' }}">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                Barang Masuk Harian
+            </a>
             <a href="{{ route('pengadaan.kebutuhan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.kebutuhan') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 Kebutuhan Obat Kronis
@@ -349,6 +363,9 @@
             </a>
             <a href="{{ route('pasien.pengambilan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.pengambilan') ? 'active' : '' }}">
                 Pengambilan Obat
+            </a>
+            <a href="{{ route('pasien.riwayat') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}">
+                Riwayat Pengambilan
             </a>
             <a href="{{ route('pasien.jadwal') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.jadwal') ? 'active' : '' }}">
                 Jadwal & Reminder
@@ -447,6 +464,10 @@
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             Riwayat PO
                         </a>
+                        <a href="{{ route('pengadaan.harian') }}" class="{{ request()->routeIs('pengadaan.harian') ? 'active' : '' }}">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            Barang Masuk Harian
+                        </a>
                         <div class="sep"></div>
                         <a href="{{ route('pengadaan.kebutuhan') }}" class="{{ request()->routeIs('pengadaan.kebutuhan') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -534,6 +555,10 @@
                         <a href="{{ route('pasien.pengambilan') }}" class="{{ request()->routeIs('pasien.pengambilan') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             Pengambilan Obat
+                        </a>
+                        <a href="{{ route('pasien.riwayat') }}" class="{{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                            Riwayat Pengambilan
                         </a>
                         <a href="{{ route('pasien.jadwal') }}" class="{{ request()->routeIs('pasien.jadwal') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -655,7 +680,7 @@
                         </button>
                         <button onclick="dismissPwa()" style="background:rgba(255,255,255,.07);color:#8fae9f;
                                 border:1px solid rgba(255,255,255,.1);padding:.4rem .6rem;border-radius:.45rem;font-size:.75rem;cursor:pointer;">
-                            ✕
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                         </button>
                     </div>
                 </div>

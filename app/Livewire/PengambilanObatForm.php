@@ -27,7 +27,8 @@ class PengambilanObatForm extends Component
     public ?int $lastPengambilanId = null;
 
     // Jadwal constraint
-    public ?string $minTanggalPengambilan = null;
+    public ?string $minTanggalPengambilan = null;   // jadwal terjadwal (advisory utk klaim BPJS)
+    public ?string $floorTanggalPengambilan = null; // batas mundur keras = penyerahan terakhir
     public ?string $jadwalInfoLabel = null;
 
     // Checklist persyaratan: [['id'=>x,'nama'=>y,'tipe'=>z,'is_wajib'=>bool,'terpenuhi'=>false,'catatan'=>'']]
@@ -61,6 +62,33 @@ class PengambilanObatForm extends Component
     public function obatList()
     {
         return Obat::where('is_active', true)->where('tipe_obat', 'kronis')->orderBy('nama_obat')->get(['id','nama_obat','satuan','unit_per_bulan','kategori_diagnosis']);
+    }
+
+    /** Preview dampak stok per baris (sebelum → sesudah) — keyed by row index. Live saat jumlah diubah. */
+    #[Computed]
+    public function rowsPreview(): array
+    {
+        $ids = collect($this->rows)->pluck('obat_id')->filter()->unique()->values();
+        if ($ids->isEmpty()) return [];
+        $obats = Obat::whereIn('id', $ids)->get()->keyBy('id');
+        $out = [];
+        foreach ($this->rows as $i => $row) {
+            $o    = $obats[$row['obat_id'] ?? 0] ?? null;
+            $stok = (int) ($o->stok_aktual ?? 0);
+            $min  = (int) ($o->stok_minimum ?? 0);
+            $isi  = max(1, (int) ($o->isi_per_box ?? 1));
+            $jml  = (int) ($row['jumlah_unit'] ?? 0);
+            $out[$i] = [
+                'stok'    => $stok,
+                'sesudah' => $stok - $jml,
+                'min'     => $min,
+                'isi'     => $isi,
+                'cukup'   => $stok >= $jml,
+                'low'     => ($stok - $jml) >= 0 && ($stok - $jml) <= $min,
+                'satuan'  => $o->satuan ?? ($row['satuan'] ?? 'tablet'),
+            ];
+        }
+        return $out;
     }
 
     #[Computed]
@@ -138,11 +166,40 @@ class PengambilanObatForm extends Component
         return collect($this->checklist)->where('is_wajib', true)->where('terpenuhi', false)->count();
     }
 
+    /** Ceiling keras: penyerahan tak boleh di masa depan (obat sudah diserahkan = lampau/hari ini). */
+    #[Computed]
+    public function maxTanggal(): string
+    {
+        return now()->format('Y-m-d');
+    }
+
+    /**
+     * Validitas KERAS tanggal: tak boleh masa depan, tak boleh sebelum penyerahan terakhir.
+     * (Backdate diizinkan — petugas sering catat telat — selama dalam rentang ini.)
+     */
     #[Computed]
     public function dateValid(): bool
     {
-        if ($this->minTanggalPengambilan === null) return true;
-        return $this->tanggalPengambilan >= $this->minTanggalPengambilan;
+        if ($this->tanggalPengambilan === '') return false;
+        if ($this->tanggalPengambilan > $this->maxTanggal) return false;
+        if ($this->floorTanggalPengambilan && $this->tanggalPengambilan < $this->floorTanggalPengambilan) return false;
+        return true;
+    }
+
+    /** Peringatan LUNAK: lebih awal dari jadwal BPJS (tidak memblokir — info klaim). */
+    #[Computed]
+    public function beforeJadwal(): bool
+    {
+        return $this->minTanggalPengambilan !== null
+            && $this->tanggalPengambilan !== ''
+            && $this->tanggalPengambilan < $this->minTanggalPengambilan;
+    }
+
+    /** Backdate aktif (tanggal < hari ini) — untuk badge UI. */
+    #[Computed]
+    public function isBackdate(): bool
+    {
+        return $this->tanggalPengambilan !== '' && $this->tanggalPengambilan < $this->maxTanggal;
     }
 
     #[Computed]
@@ -169,6 +226,7 @@ class PengambilanObatForm extends Component
             $this->checklist = [];
             $this->rows = [];
             $this->minTanggalPengambilan = null;
+            $this->floorTanggalPengambilan = null;
             $this->jadwalInfoLabel = null;
         }
     }
@@ -180,11 +238,24 @@ class PengambilanObatForm extends Component
         $this->checklist = [];
         $this->rows = [];
         $this->minTanggalPengambilan = null;
+        $this->floorTanggalPengambilan = null;
         $this->jadwalInfoLabel = null;
     }
 
     private function loadJadwalPasien(int $pasienId): void
     {
+        // Batas mundur KERAS: tak boleh sebelum penyerahan terakhir yang sudah selesai.
+        $lastDone = PengambilanObat::where('pasien_id', $pasienId)
+            ->where('status', 'selesai')
+            ->latest('tanggal_pengambilan')
+            ->first();
+        if ($lastDone) {
+            $tgl = $lastDone->tanggal_pengambilan;
+            $this->floorTanggalPengambilan = $tgl instanceof \Carbon\Carbon ? $tgl->format('Y-m-d') : $tgl;
+        } else {
+            $this->floorTanggalPengambilan = null;
+        }
+
         // Priority 1: explicit dijadwalkan record (apoteker created a schedule)
         $dijadwalkan = PengambilanObat::where('pasien_id', $pasienId)
             ->where('status', 'dijadwalkan')
@@ -229,10 +300,15 @@ class PengambilanObatForm extends Component
             'rows.required'             => 'Pasien belum memiliki resep obat. Tambahkan dulu di halaman Daftar Pasien.',
         ]);
 
-        // Validate tanggal tidak mendahului jadwal
-        if ($this->minTanggalPengambilan && $this->tanggalPengambilan < $this->minTanggalPengambilan) {
-            $tglFormatted = \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y');
-            $this->addError('tanggalPengambilan', "Tidak bisa diserahkan sebelum jadwal ({$tglFormatted}).");
+        // Backdate diizinkan (petugas catat telat), tapi tetap ada batas KERAS:
+        // (1) tak boleh di masa depan, (2) tak boleh sebelum penyerahan terakhir.
+        if ($this->tanggalPengambilan > $this->maxTanggal) {
+            $this->addError('tanggalPengambilan', 'Tanggal penyerahan tidak boleh di masa depan.');
+            return;
+        }
+        if ($this->floorTanggalPengambilan && $this->tanggalPengambilan < $this->floorTanggalPengambilan) {
+            $tglFormatted = \Carbon\Carbon::parse($this->floorTanggalPengambilan)->format('d M Y');
+            $this->addError('tanggalPengambilan', "Tidak boleh sebelum penyerahan terakhir ({$tglFormatted}).");
             return;
         }
 
@@ -296,10 +372,13 @@ class PengambilanObatForm extends Component
                     'faktor_jasa_farmasi_snapshot' => $faktor,
                 ]);
 
+                $stokSblm = (int) Obat::where('id', $row['obat_id'])->value('stok_aktual');
                 StokKeluar::create([
                     'obat_id'              => $row['obat_id'],
                     'tanggal_keluar'       => $this->tanggalPengambilan,
                     'jumlah_unit'          => $jumlah,
+                    'stok_sebelum'         => $stokSblm,
+                    'stok_sesudah'         => $stokSblm - $jumlah,
                     'satuan'               => $satuan,
                     'harga_beli_snapshot'  => $beliBeli,
                     'harga_jual_per_unit'  => round($klaim * $faktor, 2),
@@ -310,9 +389,11 @@ class PengambilanObatForm extends Component
                     'dicatat_oleh'         => auth()->id(),
                 ]);
 
-                // Kurangi stok — safe karena sudah di dalam transaction + lock
-                Obat::where('id', $row['obat_id'])
-                    ->decrement('stok_aktual', $jumlah);
+                // GERBANG ANTI-MINUS: kurangi atomik; bila stok tak cukup → batalkan transaksi.
+                if (! Obat::kurangiStok((int) $row['obat_id'], (int) $jumlah)) {
+                    $o = Obat::find($row['obat_id']);
+                    throw new \RuntimeException("Stok tidak cukup untuk {$o?->nama_obat}. Tersedia {$o?->stok_aktual}, diminta {$jumlah}. Catat stok masuk dulu.");
+                }
             }
 
             ActivityLog::record('dibuat', "Pengambilan obat: {$pasienNama} ({$this->tanggalPengambilan})", 'pengambilan_obat', $pengambilan->id);
@@ -329,6 +410,7 @@ class PengambilanObatForm extends Component
 
         $this->reset(['selectedPasienId','searchPasien','catatan','rows','checklist']);
         $this->minTanggalPengambilan = null;
+        $this->floorTanggalPengambilan = null;
         $this->jadwalInfoLabel = null;
         $this->tanggalPengambilan = now()->format('Y-m-d');
     }
@@ -347,12 +429,15 @@ class PengambilanObatForm extends Component
             return;
         }
 
-        PengambilanObat::create([
-            'pasien_id'           => $pasienId,
-            'tanggal_pengambilan' => $this->jadwalBerikutnya,
-            'status'              => 'dijadwalkan',
-            'total_item'          => 0,
-        ]);
+        // IDEMPOTEN: cegah jadwal ganda (mis. klik dobel) — 1 dijadwalkan per pasien+tanggal.
+        $jadwal = PengambilanObat::firstOrCreate(
+            [
+                'pasien_id'           => $pasienId,
+                'tanggal_pengambilan' => $this->jadwalBerikutnya,
+                'status'              => 'dijadwalkan',
+            ],
+            ['total_item' => 0],
+        );
 
         $this->jadwalSudahDibuat = true;
         $this->dispatch('toast', type: 'success',

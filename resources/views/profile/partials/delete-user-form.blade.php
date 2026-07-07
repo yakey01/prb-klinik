@@ -1,11 +1,11 @@
 <section class="space-y-6">
     <header>
-        <h2 class="text-lg font-medium text-gray-900">
-            {{ __('Delete Account') }}
+        <h2 class="text-lg font-medium" style="color:var(--ink);">
+            {{ __('Hapus Akun') }}
         </h2>
 
-        <p class="mt-1 text-sm text-gray-600">
-            {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Before deleting your account, please download any data or information that you wish to retain.') }}
+        <p class="mt-1 text-sm" style="color:var(--mut);">
+            {{ __('Setelah akun dihapus, seluruh data terkait akan hilang permanen. Unduh data yang ingin Anda simpan terlebih dahulu.') }}
         </p>
     </header>
 
@@ -19,12 +19,12 @@
             @csrf
             @method('delete')
 
-            <h2 class="text-lg font-medium text-gray-900">
-                {{ __('Are you sure you want to delete your account?') }}
+            <h2 class="text-lg font-medium" style="color:var(--ink);">
+                {{ __('Yakin ingin menghapus akun ini?') }}
             </h2>
 
-            <p class="mt-1 text-sm text-gray-600">
-                {{ __('Once your account is deleted, all of its resources and data will be permanently deleted. Please enter your password to confirm you would like to permanently delete your account.') }}
+            <p class="mt-1 text-sm" style="color:var(--mut);">
+                {{ __('Setelah dihapus, semua data akan hilang permanen. Masukkan kata sandi untuk konfirmasi.') }}
             </p>
 
             <div class="mt-6">

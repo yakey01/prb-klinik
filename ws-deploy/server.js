@@ -341,6 +341,54 @@ async function runSmartDeploy(ws, commitMsg) {
   sendGitChanges(ws); // refresh daftar perubahan setelah deploy
 }
 
+// ── Blind Simulasi: stream profitabilitas semua obat aktif ───────────────────
+function runSimulasi(ws, params) {
+  const filter = (params.filter || '').trim();
+  const args   = ['artisan', 'kalkulator:simulasi'];
+  if (filter) args.push('--filter=' + filter);
+
+  send(ws, 'simulasi_start', { filter: filter || null });
+
+  const proc = spawn(BIN.php, args, {
+    cwd: APP_ROOT,
+    env: { ...process.env, FORCE_COLOR: '0' },
+  });
+
+  let buf = '';
+
+  proc.stdout.on('data', chunk => {
+    buf += chunk.toString();
+    const lines = buf.split('\n');
+    buf = lines.pop(); // simpan baris incomplete
+
+    lines.filter(l => l.trim()).forEach(line => {
+      try {
+        const data = JSON.parse(line);
+        if      (data.type === 'meta')    send(ws, 'simulasi_meta',    { total: data.total, filter: data.filter });
+        else if (data.type === 'obat')    send(ws, 'simulasi_item',    { item: data });    // wrap: hindari type field tertimpa
+        else if (data.type === 'summary') send(ws, 'simulasi_summary', { summary: data }); // wrap: hindari type field tertimpa
+      } catch {
+        sendLine(ws, line); // fallback: kirim as-is
+      }
+    });
+  });
+
+  proc.stderr.on('data', d =>
+    d.toString().split('\n').filter(Boolean).forEach(l => sendLine(ws, l, 'stderr')));
+
+  proc.on('close', code => {
+    if (buf.trim()) {
+      try {
+        const data = JSON.parse(buf);
+        if (data.type === 'summary') send(ws, 'simulasi_summary', { summary: data });
+      } catch {}
+    }
+    send(ws, 'simulasi_done', { code, ok: code === 0 });
+  });
+
+  proc.on('error', err => sendErr(ws, err.message));
+}
+
 // ── GitHub-only deploy: git add → commit → push (no rsync) ───────────────────
 async function runGithubDeploy(ws, commitMsg) {
   const msg = (commitMsg || '').trim() || 'chore: update';
@@ -540,6 +588,9 @@ wss.on('connection', (ws, req) => {
         break;
       case 'deploy:github':
         runGithubDeploy(ws, msg.commitMsg || '');
+        break;
+      case 'simulasi:all':
+        runSimulasi(ws, msg.params || {});
         break;
       case 'file:read':
         handleFileRead(ws, msg.path);

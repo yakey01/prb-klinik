@@ -107,6 +107,7 @@ class PasienManager extends Component
             ->join('pasien as p', 'rp.pasien_id', '=', 'p.id')
             ->where('rp.is_aktif', true)
             ->where('p.is_aktif', true)
+            ->whereNull('p.deleted_at')
             ->where('o.is_active', true)
             ->select(
                 'rp.obat_id',
@@ -188,6 +189,30 @@ class PasienManager extends Component
     }
 
     #[Computed]
+    public function drawerStats(): array
+    {
+        if (!$this->drawerPasienId) return [];
+
+        $jadwal = PengambilanObat::where('pasien_id', $this->drawerPasienId)
+            ->where('status', 'dijadwalkan')
+            ->orderBy('tanggal_pengambilan')
+            ->first(['tanggal_pengambilan']);
+
+        $lastPickup = PengambilanObat::where('pasien_id', $this->drawerPasienId)
+            ->where('status', 'selesai')
+            ->orderByDesc('tanggal_pengambilan')
+            ->first(['tanggal_pengambilan', 'total_item']);
+
+        return [
+            'jadwal'           => $jadwal?->tanggal_pengambilan,
+            'last_pickup'      => $lastPickup?->tanggal_pengambilan,
+            'last_pickup_item' => $lastPickup?->total_item ?? 0,
+            'resep_count'      => ResepPasien::where('pasien_id', $this->drawerPasienId)
+                                    ->where('is_aktif', true)->count(),
+        ];
+    }
+
+    #[Computed]
     public function drawerRiwayat()
     {
         if (!$this->drawerPasienId) return collect();
@@ -196,6 +221,92 @@ class PasienManager extends Component
             ->orderByDesc('tanggal_pengambilan')
             ->limit(10)
             ->get();
+    }
+
+    // ── Riwayat Pengambilan Obat — accordion inline per baris pasien (detail untung/rugi) ──
+    public ?int $expandedRiwayatId = null;
+
+    public function toggleRiwayat(int $id): void
+    {
+        $this->expandedRiwayatId = $this->expandedRiwayatId === $id ? null : $id;
+    }
+
+    /** Daftar pengambilan (selesai) + item ber-snapshot harga untuk pasien yang sedang di-expand. */
+    #[Computed]
+    public function riwayatRows()
+    {
+        if (!$this->expandedRiwayatId) return collect();
+        return PengambilanObat::where('pasien_id', $this->expandedRiwayatId)
+            ->where('status', 'selesai')
+            ->with('items.obat')
+            ->orderByDesc('tanggal_pengambilan')
+            ->limit(12)
+            ->get();
+    }
+
+    /** Total kumulatif P&L pasien yang sedang di-expand (HPP, klaim, laba, margin, kunjungan). */
+    #[Computed]
+    public function riwayatTotals(): array
+    {
+        if (!$this->expandedRiwayatId) {
+            return ['biaya' => 0, 'klaim' => 0, 'laba' => 0, 'margin' => 0, 'kunjungan' => 0, 'item' => 0];
+        }
+
+        $row = DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->where('po.pasien_id', $this->expandedRiwayatId)
+            ->where('po.status', 'selesai')
+            ->whereNull('po.deleted_at')
+            ->selectRaw('
+                COALESCE(SUM(ip.jumlah_unit * ip.harga_beli_snapshot), 0) as biaya,
+                COALESCE(SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . '), 0) as klaim,
+                COALESCE(SUM(ip.jumlah_unit), 0) as item,
+                COUNT(DISTINCT po.id) as kunjungan
+            ')
+            ->first();
+
+        $biaya = (float) ($row->biaya ?? 0);
+        $klaim = (float) ($row->klaim ?? 0);
+        $laba  = $klaim - $biaya;
+
+        return [
+            'biaya'     => $biaya,
+            'klaim'     => $klaim,
+            'laba'      => $laba,
+            'margin'    => $klaim > 0 ? round($laba / $klaim * 100, 1) : 0,
+            'kunjungan' => (int) ($row->kunjungan ?? 0),
+            'item'      => (int) ($row->item ?? 0),
+        ];
+    }
+
+    #[Computed]
+    public function drawerPnl(): array
+    {
+        if (!$this->drawerPasienId) {
+            return ['total_biaya' => 0, 'total_klaim' => 0, 'total_laba' => 0, 'count' => 0];
+        }
+
+        $row = DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->where('po.pasien_id', $this->drawerPasienId)
+            ->where('po.status', 'selesai')
+            ->whereNull('po.deleted_at')
+            ->selectRaw('
+                COALESCE(SUM(ip.jumlah_unit * ip.harga_beli_snapshot), 0) as total_biaya,
+                COALESCE(SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . '), 0) as total_klaim,
+                COUNT(DISTINCT po.id) as count_kunjungan
+            ')
+            ->first();
+
+        $biaya = (float)($row->total_biaya ?? 0);
+        $klaim = (float)($row->total_klaim ?? 0);
+
+        return [
+            'total_biaya' => $biaya,
+            'total_klaim' => $klaim,
+            'total_laba'  => $klaim - $biaya,
+            'count'       => (int)($row->count_kunjungan ?? 0),
+        ];
     }
 
     #[Computed]
@@ -520,6 +631,9 @@ class PasienManager extends Component
         PengambilanObat::where('pasien_id', $id)
             ->where('status', 'dijadwalkan')
             ->delete();
+
+        // Deactivate all prescriptions so kebutuhan obat no longer counts this patient
+        ResepPasien::where('pasien_id', $id)->update(['is_aktif' => false]);
 
         $p->delete();
         $this->dispatch('toast', type: 'success', message: 'Pasien dihapus.');

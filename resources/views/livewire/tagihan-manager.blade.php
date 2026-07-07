@@ -84,13 +84,58 @@
             @endforeach
         </div>
 
-        {{-- Distributor --}}
-        <select wire:model.live="filterDist" style="background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:.45rem;padding:.4rem .75rem;font-size:.78rem;appearance:auto;-webkit-appearance:auto;">
-            <option value="0">Semua PBF</option>
-            @foreach($this->distributors as $d)
-            <option value="{{ $d->id }}">{{ $d->name }}</option>
-            @endforeach
-        </select>
+        {{-- ══ PBF COMBOBOX (pure JS, position:fixed) ══ --}}
+        <div id="pbf-wrap" style="position:relative;">
+            {{-- Hidden select — wire:model.live untuk Livewire filter --}}
+            <select wire:model.live="filterDist" id="pbf-sel" style="display:none;" aria-hidden="true">
+                <option value="0">Semua PBF</option>
+                @foreach($this->distributors as $d)
+                <option value="{{ $d->id }}" data-name="{{ $d->name }}">{{ $d->name }}</option>
+                @endforeach
+            </select>
+
+            {{-- Trigger --}}
+            <button type="button" id="pbf-btn"
+                onclick="PbfCb.toggle()"
+                onkeydown="PbfCb.keyBtn(event)"
+                style="display:flex;align-items:center;gap:.45rem;padding:.4rem .75rem;
+                    background:var(--panel);border:1px solid var(--line2);border-radius:.45rem;
+                    cursor:pointer;white-space:nowrap;transition:border-color .15s,box-shadow .15s;outline:none;min-width:140px;">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                    style="color:var(--mut);flex-shrink:0;">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <span id="pbf-display" style="flex:1;font-size:.78rem;color:var(--ink);text-align:left;overflow:hidden;text-overflow:ellipsis;">Semua PBF</span>
+                <svg id="pbf-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"
+                    viewBox="0 0 24 24" style="flex-shrink:0;color:var(--mut);transition:transform .18s,color .15s;">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </button>
+
+            {{-- Dropdown (moved to body) --}}
+            <div id="pbf-dd"
+                style="display:none;position:fixed;z-index:9999;background:#0d1c15;
+                    border:1px solid rgba(217,164,65,.28);border-radius:.6rem;overflow:hidden;
+                    box-shadow:0 16px 48px rgba(0,0,0,.85),0 0 0 1px rgba(255,255,255,.03);">
+                <div style="padding:.4rem .45rem;border-bottom:1px solid rgba(255,255,255,.06);">
+                    <div style="display:flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.05);border-radius:.35rem;padding:.35rem .6rem;">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"
+                            style="color:var(--mut);flex-shrink:0;">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <input id="pbf-qi" type="text" placeholder="Cari PBF…" autocomplete="off"
+                            oninput="PbfCb.filter(this.value)"
+                            onkeydown="PbfCb.keyDd(event)"
+                            style="background:none;border:none;outline:none;color:var(--ink);font-size:.78rem;width:100%;caret-color:var(--gold2);">
+                        <button type="button" id="pbf-qclr" onclick="PbfCb.clearQ()"
+                            style="display:none;background:none;border:none;cursor:pointer;color:var(--mut);font-size:.7rem;padding:0;line-height:1;flex-shrink:0;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                    </div>
+                </div>
+                <div id="pbf-list" class="cb-scroll" style="max-height:200px;overflow-y:auto;"></div>
+                <div id="pbf-foot" style="padding:.25rem .75rem;font-size:.65rem;color:var(--mut);border-top:1px solid rgba(255,255,255,.05);text-align:right;"></div>
+            </div>
+        </div>
+        {{-- ══ END PBF ══ --}}
 
         {{-- Periode (bulanan mode) --}}
         @if($viewMode==='bulanan')
@@ -134,7 +179,7 @@
     @endif
 
     {{-- ══ TAGIHAN LIST — grouped by Faktur/PO ═══════════════════════ --}}
-    <div class="glass-card" style="overflow:hidden;">
+    <div class="glass-card" style="overflow:hidden !important;">
         <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;">
             <div class="font-heading" style="font-size:.95rem;color:var(--ink);">
                 Daftar Tagihan
@@ -183,7 +228,7 @@
         </div>
 
         {{-- Tagihan rows for this PO --}}
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;">
         <table style="width:100%;border-collapse:collapse;min-width:780px;">
             @foreach($poTagihan as $t)
             @php
@@ -250,7 +295,7 @@
                         Bayar
                     </button>
                     @else
-                    <span style="font-size:.65rem;color:var(--mut);">✓</span>
+                    <span style="font-size:.65rem;color:var(--mut);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg></span>
                     @endif
                 </td>
             </tr>
@@ -274,10 +319,10 @@
             <span>Hal {{ $this->tagihanList->currentPage() }} / {{ $this->tagihanList->lastPage() }} · {{ $this->tagihanList->total() }} tagihan</span>
             <div style="display:flex;gap:.35rem;">
                 @if(!$this->tagihanList->onFirstPage())
-                <button wire:click="previousPage" style="padding:.3rem .65rem;border-radius:.35rem;border:1px solid rgba(217,164,65,.3);color:var(--gold2);background:transparent;cursor:pointer;font-size:.75rem;">← Prev</button>
+                <button wire:click="previousPage" style="padding:.3rem .65rem;border-radius:.35rem;border:1px solid rgba(217,164,65,.3);color:var(--gold2);background:transparent;cursor:pointer;font-size:.75rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg> Prev</button>
                 @endif
                 @if($this->tagihanList->hasMorePages())
-                <button wire:click="nextPage" style="padding:.3rem .65rem;border-radius:.35rem;border:1px solid rgba(217,164,65,.3);color:var(--gold2);background:transparent;cursor:pointer;font-size:.75rem;">Next →</button>
+                <button wire:click="nextPage" style="padding:.3rem .65rem;border-radius:.35rem;border:1px solid rgba(217,164,65,.3);color:var(--gold2);background:transparent;cursor:pointer;font-size:.75rem;">Next <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
                 @endif
             </div>
         </div>
@@ -291,7 +336,7 @@
         <div class="glass-card" style="width:100%;max-width:440px;padding:1.75rem;border-color:var(--emer);box-shadow:0 24px 64px rgba(0,0,0,.7);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
                 <div class="font-heading" style="font-size:1rem;color:var(--emer2);">Catat Pembayaran</div>
-                <button wire:click="$set('showBayar',false)" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;">✕</button>
+                <button wire:click="$set('showBayar',false)" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             @if($t)
             <div style="background:rgba(255,255,255,.04);border-radius:.5rem;padding:.75rem 1rem;margin-bottom:1.25rem;font-size:.8rem;">
@@ -315,7 +360,7 @@
             <form wire:submit="bayar">
                 <div style="margin-bottom:.85rem;">
                     <label class="form-label">Jumlah Dibayar (Rp) *</label>
-                    <input wire:model="bayarJumlah" type="number" min="1" step="1000" class="form-input font-mono" style="font-size:1rem;">
+                    <input wire:model="bayarJumlah" type="number" min="1" step="1" class="form-input font-mono" style="font-size:1rem;">
                     @error('bayarJumlah')<div style="color:var(--red2);font-size:.7rem;margin-top:.2rem;">{{ $message }}</div>@enderror
                 </div>
                 <div style="margin-bottom:.85rem;">
@@ -340,3 +385,223 @@
     </div>
     @endif
 </div>
+
+<style>
+.cb-scroll::-webkit-scrollbar{width:4px;}.cb-scroll::-webkit-scrollbar-track{background:transparent;}.cb-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px;}
+mark.hl{background:rgba(217,164,65,.3);color:var(--gold2);border-radius:2px;font-weight:700;font-style:normal;}
+@keyframes pbfSlideIn{from{opacity:0;transform:translateY(-4px) scaleY(.96);}to{opacity:1;transform:translateY(0) scaleY(1);}}
+.pbf-dd-open{animation:pbfSlideIn .12s cubic-bezier(.4,0,.2,1) both;}
+</style>
+
+<script>
+window.PbfCb = (function () {
+    let activeIdx = 0;
+    let filtered  = [];
+    let selId     = 0;
+
+    const el  = id => document.getElementById(id);
+    const esc = s  => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    function hlText(str, q) {
+        if (!q) return esc(str);
+        const r = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return esc(str).replace(new RegExp(r, 'gi'), m => '<mark class="hl">' + m + '</mark>');
+    }
+
+    function getOpts() {
+        const sel = el('pbf-sel');
+        if (!sel) return [];
+        // First item is "Semua PBF" (value 0), keep it always
+        return Array.from(sel.options).map(o => ({ id: o.value, name: o.dataset.name || o.text }));
+    }
+
+    function posDD() {
+        const btn = el('pbf-btn'), dd = el('pbf-dd');
+        if (!btn || !dd) return;
+        const r = btn.getBoundingClientRect();
+        const below = window.innerHeight - r.bottom - 8;
+        dd.style.top   = (r.bottom + 4) + 'px';
+        dd.style.left  = r.left + 'px';
+        dd.style.width = Math.max(r.width, 200) + 'px';
+        dd.style.maxHeight = Math.max(120, Math.min(280, below)) + 'px';
+    }
+
+    function renderList(q) {
+        const listEl = el('pbf-list'), footEl = el('pbf-foot');
+        if (!listEl) return;
+        const query = (q || '').trim().toLowerCase();
+        const opts  = getOpts();
+        filtered = query
+            ? opts.filter(o => o.name.toLowerCase().includes(query))
+            : [...opts];
+        activeIdx = Math.min(activeIdx, Math.max(0, filtered.length - 1));
+
+        if (!filtered.length) {
+            listEl.innerHTML = '<div style="padding:.85rem;text-align:center;font-size:.76rem;color:var(--mut);">Tidak ditemukan</div>';
+        } else {
+            listEl.innerHTML = filtered.map((o, i) => {
+                const isAll     = o.id === '0';
+                const isActive  = i === activeIdx;
+                const isSel     = selId == o.id;
+                return `<div class="pbf-item" data-id="${o.id}" data-name="${esc(o.name)}"
+                    style="display:flex;align-items:center;gap:.55rem;padding:.5rem .85rem;font-size:.8rem;
+                        cursor:pointer;border-bottom:1px solid rgba(255,255,255,.03);transition:background .07s;
+                        ${isActive ? 'background:rgba(217,164,65,.1);' : ''}">
+                    <span style="width:13px;flex-shrink:0;text-align:center;font-size:.72rem;color:var(--gold2);">${isSel ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span>
+                    <span style="${isSel ? 'color:var(--gold2);font-weight:600;' : isAll ? 'color:var(--mut);font-style:italic;' : 'color:var(--ink);'}">${hlText(o.name, q)}</span>
+                </div>`;
+            }).join('');
+
+            listEl.querySelectorAll('.pbf-item').forEach((item, i) => {
+                item.addEventListener('mouseenter', () => {
+                    activeIdx = i;
+                    listEl.querySelectorAll('.pbf-item').forEach((e, j) => {
+                        e.style.background = j === i ? 'rgba(217,164,65,.1)' : '';
+                    });
+                });
+                item.addEventListener('mousedown', e => {
+                    e.preventDefault();
+                    pick(item.dataset.id, item.dataset.name);
+                });
+            });
+        }
+
+        if (footEl) {
+            const total = getOpts().length - 1; // minus "Semua PBF"
+            footEl.textContent = query ? (filtered.length + ' hasil') : (total + ' PBF');
+        }
+
+        const activeEl = listEl.querySelectorAll('.pbf-item')[activeIdx];
+        if (activeEl) activeEl.scrollIntoView({ block: 'nearest' });
+    }
+
+    function pick(id, name) {
+        selId = +id;
+        // Update hidden select -> trigger wire:model.live -> Livewire re-filter
+        const sel = el('pbf-sel');
+        if (sel) {
+            sel.value = id;
+            sel.dispatchEvent(new Event('input',  { bubbles: true }));
+            sel.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        // Update display
+        const disp = el('pbf-display');
+        if (disp) {
+            disp.textContent = id === '0' ? 'Semua PBF' : name;
+            disp.style.color = id === '0' ? 'var(--ink)' : 'var(--gold2)';
+            disp.style.fontWeight = id === '0' ? '' : '600';
+        }
+        doClose();
+    }
+
+    function doOpen() {
+        const dd = el('pbf-dd');
+        if (!dd) return;
+        if (dd.parentElement !== document.body) document.body.appendChild(dd);
+        activeIdx = 0;
+        posDD();
+        const qi = el('pbf-qi');
+        if (qi) qi.value = '';
+        el('pbf-qclr') && (el('pbf-qclr').style.display = 'none');
+        renderList('');
+        dd.style.display = 'block';
+        dd.classList.add('pbf-dd-open');
+        const btn = el('pbf-btn');
+        if (btn) { btn.style.borderColor = 'var(--gold)'; btn.style.boxShadow = '0 0 0 2px rgba(217,164,65,.18)'; }
+        const chev = el('pbf-chevron');
+        if (chev) { chev.style.transform = 'rotate(180deg)'; chev.style.color = 'var(--gold2)'; }
+        setTimeout(() => el('pbf-qi')?.focus(), 40);
+    }
+
+    function doClose() {
+        const dd = el('pbf-dd');
+        if (dd) dd.style.display = 'none';
+        const btn = el('pbf-btn');
+        if (btn) { btn.style.borderColor = ''; btn.style.boxShadow = ''; }
+        const chev = el('pbf-chevron');
+        if (chev) { chev.style.transform = ''; chev.style.color = 'var(--mut)'; }
+    }
+
+    function isOpen() {
+        const dd = el('pbf-dd');
+        return dd && dd.style.display !== 'none';
+    }
+
+    function moveActive(dir) {
+        const listEl = el('pbf-list');
+        if (!listEl) return;
+        const items = listEl.querySelectorAll('.pbf-item');
+        activeIdx = Math.max(0, Math.min(activeIdx + dir, items.length - 1));
+        items.forEach((e, i) => { e.style.background = i === activeIdx ? 'rgba(217,164,65,.1)' : ''; });
+        items[activeIdx]?.scrollIntoView({ block: 'nearest' });
+    }
+
+    function syncDisplay() {
+        const sel = el('pbf-sel');
+        if (!sel) return;
+        selId = +sel.value || 0;
+        const disp = el('pbf-display');
+        if (!disp) return;
+        if (selId) {
+            const opt = Array.from(sel.options).find(o => +o.value === selId);
+            disp.textContent = opt ? (opt.dataset.name || opt.text) : 'Semua PBF';
+            disp.style.color = 'var(--gold2)';
+            disp.style.fontWeight = '600';
+        } else {
+            disp.textContent = 'Semua PBF';
+            disp.style.color = 'var(--ink)';
+            disp.style.fontWeight = '';
+        }
+        // Ensure dd stays in body after Livewire re-render
+        const dd = el('pbf-dd');
+        if (dd && dd.parentElement !== document.body) document.body.appendChild(dd);
+    }
+
+    // Global events
+    document.addEventListener('click', e => {
+        if (!e.target.closest('#pbf-wrap') && !e.target.closest('#pbf-dd')) doClose();
+    });
+    window.addEventListener('scroll', () => {
+        if (isOpen()) posDD();
+    }, true);
+    window.addEventListener('resize', () => { if (isOpen()) posDD(); });
+    document.addEventListener('livewire:update', () => syncDisplay());
+    document.addEventListener('livewire:initialized', () => syncDisplay());
+    if (document.readyState !== 'loading') syncDisplay();
+    else document.addEventListener('DOMContentLoaded', () => syncDisplay());
+
+    return {
+        toggle()  { isOpen() ? doClose() : doOpen(); },
+        keyBtn(e) {
+            if (e.key === 'ArrowDown' || e.key === 'Enter') { doOpen(); e.preventDefault(); }
+            else if (e.key === 'Escape') doClose();
+        },
+        keyDd(e) {
+            if (e.key === 'ArrowDown')  { moveActive(1);  e.preventDefault(); }
+            else if (e.key === 'ArrowUp')   { moveActive(-1); e.preventDefault(); }
+            else if (e.key === 'Enter') {
+                const items = el('pbf-list')?.querySelectorAll('.pbf-item');
+                const item  = items?.[activeIdx];
+                if (item) pick(item.dataset.id, item.dataset.name);
+                e.preventDefault();
+            }
+            else if (e.key === 'Escape') { doClose(); el('pbf-btn')?.focus(); }
+        },
+        filter(q) {
+            activeIdx = 0;
+            const qclr = el('pbf-qclr');
+            if (qclr) qclr.style.display = q ? 'flex' : 'none';
+            renderList(q);
+        },
+        clearQ() {
+            const qi = el('pbf-qi');
+            if (qi) { qi.value = ''; qi.focus(); }
+            el('pbf-qclr') && (el('pbf-qclr').style.display = 'none');
+            activeIdx = 0;
+            renderList('');
+        },
+        doClose,
+        syncDisplay,
+    };
+})();
+</script>

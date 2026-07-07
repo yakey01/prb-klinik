@@ -1,4 +1,12 @@
 <div>
+    {{-- Indikator simpan mengambang (muncul saat inline-edit / request Livewire) --}}
+    <div wire:loading.flex wire:target="updateStok,updateMinimum,updateKadaluarsa,updateKomposisi,updateIsiPerBox"
+         style="position:fixed;right:1.25rem;bottom:1.25rem;z-index:60;align-items:center;gap:.5rem;background:var(--card);border:1px solid var(--gold);color:var(--gold2);border-radius:999px;padding:.5rem .95rem;font-size:.78rem;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.35);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="animation:spin 0.7s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        Menyimpan…
+    </div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
     {{-- Alert Summary --}}
     @php $alert = $this->alertSummary; @endphp
     @if($alert['habis'] > 0 || $alert['kritis'] > 0 || $alert['kadaluarsa'] > 0)
@@ -43,9 +51,11 @@
         <table class="data-table">
             <thead>
                 <tr>
-                    <th wire:click="sortBy('nama_obat')" style="min-width:160px;">Obat {{ $sortBy==='nama_obat' ? ($sortDir==='asc'?'↑':'↓') : '' }}</th>
+                    <th wire:click="sortBy('nama_obat')" style="min-width:160px;">Obat {!! $sortBy==='nama_obat' ? ($sortDir==='asc'?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>') : '' !!}</th>
                     <th>Kategori</th>
-                    <th style="text-align:right;">Stok Aktual ✎</th>
+                    <th style="min-width:190px;" title="Zat aktif + kekuatan — klik untuk edit">Komposisi ✎</th>
+                    <th style="text-align:right;">Stok (item) ✎</th>
+                    <th style="text-align:center;" title="Isi per box — item dalam 1 box">Isi/Box ✎</th>
                     <th style="text-align:right;">Stok Min ✎</th>
                     <th style="text-align:center;">Status Stok</th>
                     <th style="text-align:center;">Kadaluarsa ✎</th>
@@ -54,17 +64,37 @@
             </thead>
             <tbody>
                 @forelse($this->obatList as $obat)
-                <tr>
+                <tr wire:key="stok-{{ $obat->id }}">
                     <td>
                         <div style="font-weight:500;">{{ $obat->nama_obat }}</div>
                         @if($obat->kode_obat)<div style="font-size:.68rem;color:var(--mut2);font-family:monospace;">{{ $obat->kode_obat }}</div>@endif
                     </td>
                     <td style="font-size:.77rem;color:var(--mut);">{{ $obat->kategori_diagnosis }}</td>
+                    <td>
+                        @if($obat->tipe_obat === 'bmhp')
+                        <span style="font-size:.72rem;color:var(--mut2);">—</span>
+                        @else
+                        <input type="text" value="{{ $obat->komposisi }}" title="Komposisi / zat aktif — klik untuk edit"
+                            wire:change="updateKomposisi({{ $obat->id }}, $event.target.value)"
+                            placeholder="Zat aktif + kekuatan…"
+                            style="width:100%;min-width:180px;background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.22);border-radius:.35rem;padding:.22rem .5rem;font-size:.76rem;color:#7ff0e0;line-height:1.3;">
+                        @endif
+                    </td>
                     <td style="text-align:right;">
                         <input type="number" value="{{ $obat->stok_aktual }}" min="0"
                             wire:change="updateStok({{ $obat->id }}, $event.target.value)"
                             class="font-mono"
-                            style="width:70px;text-align:right;background:rgba(63,207,142,.07);border:1px solid rgba(63,207,142,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.82rem;color:{{ $obat->stok_aktual <= 0 ? 'var(--red2)' : ($obat->stok_aktual <= $obat->stok_minimum ? 'var(--gold2)' : 'var(--emer2)') }};">
+                            style="width:74px;text-align:right;background:rgba(63,207,142,.07);border:1px solid rgba(63,207,142,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.82rem;color:{{ $obat->stok_aktual <= 0 ? 'var(--red2)' : ($obat->stok_aktual <= $obat->stok_minimum ? 'var(--gold2)' : 'var(--emer2)') }};">
+                        @php $isiB = max(1, (int) ($obat->isi_per_box ?? 1)); @endphp
+                        <div style="font-size:.62rem;color:var(--mut2);margin-top:2px;">
+                            {{ $obat->satuan }}@if($isiB > 1) · {{ intdiv((int) $obat->stok_aktual, $isiB) }} box{{ ((int) $obat->stok_aktual % $isiB) ? ' +'.((int) $obat->stok_aktual % $isiB) : '' }}@endif
+                        </div>
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="number" value="{{ $obat->isi_per_box ?? 1 }}" min="1" title="Item per box"
+                            wire:change="updateIsiPerBox({{ $obat->id }}, $event.target.value)"
+                            class="font-mono"
+                            style="width:54px;text-align:center;background:rgba(122,162,247,.07);border:1px solid rgba(122,162,247,.2);border-radius:.3rem;padding:.18rem .3rem;font-size:.8rem;color:var(--mut);">
                     </td>
                     <td style="text-align:right;">
                         <input type="number" value="{{ $obat->stok_minimum }}" min="0"
@@ -95,10 +125,13 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--mut);">Tidak ada data.</td></tr>
+                <tr><td colspan="9" style="padding:0;">
+                    <x-empty-state icon="package-search" title="Tidak ada obat cocok"
+                        hint="{{ $search || $filterStok !== 'semua' ? 'Coba ubah kata kunci atau filter di atas.' : 'Belum ada data stok obat.' }}" />
+                </td></tr>
                 @endforelse
             </tbody>
         </table>
     </div>
-    <div style="margin-top:.6rem;font-size:.73rem;color:var(--mut2);">{{ $this->obatList->count() }} obat · ✎ Kolom Stok Aktual, Stok Minimum, dan Kadaluarsa dapat diedit langsung</div>
+    <div style="margin-top:.6rem;font-size:.73rem;color:var(--mut2);">{{ $this->obatList->count() }} obat · ✎ Kolom Komposisi, Stok Aktual, Isi/Box, Stok Minimum, dan Kadaluarsa dapat diedit langsung</div>
 </div>

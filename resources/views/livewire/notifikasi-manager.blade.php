@@ -8,7 +8,7 @@
 <div x-data="{}" @notif-toast.window="
     const el = document.createElement('div');
     el.className = 'toast toast-' + ($event.detail.type === 'error' ? 'error' : 'success');
-    el.innerHTML = ($event.detail.type === 'error' ? '⚠️ ' : '✅ ') + $event.detail.message;
+    el.innerHTML = ($event.detail.type === 'error' ? '<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" viewBox=\"0 0 24 24\" style=\"vertical-align:middle\"><path d=\"M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z\"/><line x1=\"12\" y1=\"9\" x2=\"12\" y2=\"13\"/><line x1=\"12\" y1=\"17\" x2=\"12.01\" y2=\"17\"/></svg> ' : '<svg width=\"15\" height=\"15\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.5\" viewBox=\"0 0 24 24\" style=\"vertical-align:middle\"><polyline points=\"20 6 9 17 4 12\"/></svg> ') + $event.detail.message;
     document.getElementById('toast-container').appendChild(el);
     setTimeout(() => el.remove(), 4000);
 ">
@@ -159,7 +159,7 @@
         <div style="display:flex;flex-direction:column;gap:1rem;">
             {{-- Cara pakai --}}
             <div class="glass-card" style="padding:1.1rem 1.2rem;">
-                <div style="font-size:.7rem;font-weight:700;color:var(--gold2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.8rem;">⚡ Cara Kerja Sistem</div>
+                <div style="font-size:.7rem;font-weight:700;color:var(--gold2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.8rem;">Cara Kerja Sistem</div>
                 <div style="font-size:.78rem;color:var(--mut2);line-height:1.7;">
                     <div style="display:flex;gap:.6rem;margin-bottom:.45rem;">
                         <span style="color:var(--gold2);font-weight:700;flex-shrink:0;">H-1</span>
@@ -198,7 +198,7 @@
 
     {{-- TAB: JADWAL --}}
     @if($tab === 'jadwal')
-    <div class="glass-card" style="overflow:hidden;">
+    <div class="glass-card" style="overflow:hidden !important;">
         <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
             <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
                 @foreach([
@@ -213,7 +213,7 @@
                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </div>
         </div>
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -231,7 +231,7 @@
                 <tr>
                     <td>
                         <div style="font-weight:600;color:var(--ink);font-size:.83rem;">{{ $row['pasien']?->nama ?? '—' }}</div>
-                        <div style="font-size:.68rem;color:var(--mut);">{{ $row['pasien']?->telepon ? '📱 '.$row['pasien']->telepon : '⚠️ Tidak ada nomor' }}</div>
+                        <div style="font-size:.68rem;color:var(--mut);">{{ $row['pasien']?->telepon ? '📱 '.$row['pasien']->telepon : '[!] Tidak ada nomor' }}</div>
                     </td>
                     <td><span style="font-size:.77rem;color:var(--mut2);">{{ $row['pasien']?->kategori_diagnosis ?? '—' }}</span></td>
                     <td><span class="font-mono" style="font-size:.73rem;color:var(--mut);">{{ $row['pasien']?->no_bpjs ?? '—' }}</span></td>
@@ -253,7 +253,7 @@
                     </td>
                     <td>
                         @if($row['sudahNotif'])
-                            <span style="font-size:.67rem;color:var(--emer2);">✅ Terkirim hari ini</span>
+                            <span style="font-size:.67rem;color:var(--emer2);">[OK] Terkirim hari ini</span>
                         @else
                             <span style="font-size:.67rem;color:var(--mut);">—</span>
                         @endif
@@ -269,7 +269,7 @@
                             </button>
                             <button wire:click="konfirmasiSelesai({{ $row['id'] }})"
                                 style="font-size:.68rem;padding:.28rem .65rem;border-radius:.35rem;border:1px solid rgba(217,164,65,.25);background:rgba(217,164,65,.08);color:var(--gold2);cursor:pointer;white-space:nowrap;">
-                                ✓ Selesai
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Selesai
                             </button>
                             @else
                             <span style="font-size:.7rem;color:var(--mut);">{{ ucfirst($row['status']) }}</span>
@@ -288,7 +288,7 @@
 
     {{-- TAB: LOG --}}
     @if($tab === 'log')
-    <div class="glass-card" style="overflow:hidden;">
+    <div class="glass-card" style="overflow:hidden !important;">
         <div style="padding:.8rem 1.2rem;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
             <select wire:model.live="filterLogChannel" class="form-input" style="width:130px;padding:.35rem .7rem;font-size:.75rem;">
                 <option value="">Semua Channel</option>
@@ -318,7 +318,7 @@
             </select>
             <span style="font-size:.72rem;color:var(--mut);margin-left:auto;">{{ $this->logList->count() }} log</span>
         </div>
-        <div style="overflow-x:auto;">
+        <div style="overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;">
             <table class="data-table">
                 <thead>
                     <tr>
@@ -351,8 +351,8 @@
                     </td>
                     <td><span class="font-mono" style="font-size:.72rem;color:var(--mut);">{{ $log->nomor_tujuan }}</span></td>
                     <td>
-                        @if($log->status === 'sent')    <span style="font-size:.72rem;font-weight:600;color:var(--emer2);">✅ Terkirim</span>
-                        @elseif($log->status === 'failed')  <span style="font-size:.72rem;font-weight:600;color:var(--red2);" title="{{ $log->error_message }}">❌ Gagal</span>
+                        @if($log->status === 'sent')    <span style="font-size:.72rem;font-weight:600;color:var(--emer2);">[OK] Terkirim</span>
+                        @elseif($log->status === 'failed')  <span style="font-size:.72rem;font-weight:600;color:var(--red2);" title="{{ $log->error_message }}">[X] Gagal</span>
                         @elseif($log->status === 'skipped') <span style="font-size:.72rem;color:var(--mut);">Skip</span>
                         @else <span style="font-size:.72rem;color:var(--gold2);">Pending</span>
                         @endif
@@ -423,15 +423,15 @@
                     <label class="form-label">
                         URL Endpoint WA Service
                         @if(!$setWaEndpointUrl)
-                        <span style="font-size:.63rem;color:var(--red);font-weight:400;margin-left:.4rem;">⚠ Wajib diisi untuk server live</span>
+                        <span style="font-size:.63rem;color:var(--red);font-weight:400;margin-left:.4rem;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Wajib diisi untuk server live</span>
                         @endif
                     </label>
                     <input type="text" wire:model="setWaEndpointUrl" class="form-input" style="font-size:.82rem;"
                         placeholder="https://xxxx.ngrok-free.app  (atau http://localhost:3001 untuk lokal)">
                     <div style="font-size:.67rem;color:var(--mut);margin-top:.3rem;">
-                        Untuk server live: expose WA service via <strong style="color:var(--emer2);">ngrok</strong> →
+                        Untuk server live: expose WA service via <strong style="color:var(--emer2);">ngrok</strong> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                         <span style="font-family:monospace;color:var(--emer2);">ngrok http 3001</span>
-                        → salin HTTPS URL ke sini
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> salin HTTPS URL ke sini
                     </div>
                 </div>
 
@@ -449,7 +449,7 @@
                                 <li>Install ngrok: <span style="font-family:monospace;color:var(--ink);">brew install ngrok</span></li>
                                 <li>Expose: <span style="font-family:monospace;color:var(--gold2);">ngrok http 3001</span></li>
                                 <li>Salin URL HTTPS dari ngrok (mis. <span style="font-family:monospace;color:var(--gold2);">https://abc.ngrok-free.app</span>)</li>
-                                <li>Masukkan URL tersebut ke field di atas ↑</li>
+                                <li>Masukkan URL tersebut ke field di atas <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></li>
                             </ol>
                         </div>
                         <div>
@@ -461,13 +461,13 @@
                                 <li>URL tidak berubah setiap restart</li>
                             </ol>
                             <div style="margin-top:.5rem;font-size:.66rem;color:var(--mut);padding:.4rem .6rem;background:rgba(0,0,0,.15);border-radius:.35rem;">
-                                💡 Komputer harus <strong>menyala & terhubung internet</strong> agar notifikasi terkirim dari server live.
+                                Komputer harus <strong>menyala & terhubung internet</strong> agar notifikasi terkirim dari server live.
                             </div>
                         </div>
                     </div>
                     <div style="margin-top:.85rem;display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
                         <button wire:click="cekStatusWaLokal" style="padding:.45rem .9rem;border-radius:.45rem;border:1px solid rgba(63,207,142,.35);background:rgba(63,207,142,.1);color:var(--emer2);cursor:pointer;font-size:.73rem;font-weight:600;">
-                            ⚡ Cek Status Koneksi
+                            Cek Status Koneksi
                         </button>
                         @if($setWaEndpointUrl)
                         <a href="{{ $setWaEndpointUrl }}/qr" target="_blank" style="padding:.45rem .9rem;border-radius:.45rem;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--mut2);text-decoration:none;font-size:.72rem;">
@@ -491,7 +491,7 @@
                 <div>
                     <label class="form-label">API Key / Token Fonnte</label>
                     <input type="password" wire:model="setWaApiKey" class="form-input" style="font-size:.82rem;" placeholder="Masukkan API key dari dashboard Fonnte">
-                    <div style="font-size:.67rem;color:var(--mut);margin-top:.3rem;">Dapatkan di <span style="color:var(--gold2);">md.fonnte.com</span> → Perangkat → klik <strong>Token</strong></div>
+                    <div style="font-size:.67rem;color:var(--mut);margin-top:.3rem;">Dapatkan di <span style="color:var(--gold2);">md.fonnte.com</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Perangkat <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> klik <strong>Token</strong></div>
                 </div>
                 <div>
                     <label class="form-label">Nomor WA Pengirim</label>
@@ -532,7 +532,7 @@
                 <div>
                     <label class="form-label">Bot Token</label>
                     <input type="password" wire:model="setTgToken" class="form-input" style="font-size:.82rem;" placeholder="1234567890:ABCDEFGhijklmnop...">
-                    <div style="font-size:.67rem;color:var(--mut);margin-top:.3rem;">Buat bot di <span style="color:var(--blue);">@BotFather</span> → /newbot → salin token</div>
+                    <div style="font-size:.67rem;color:var(--mut);margin-top:.3rem;">Buat bot di <span style="color:var(--blue);">@BotFather</span> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> /newbot <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> salin token</div>
                 </div>
                 <div>
                     <label class="form-label">Chat ID Staff / Group</label>
@@ -589,7 +589,7 @@
     @if($konfirmasiModal)
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;display:flex;align-items:center;justify-content:center;" wire:click.self="$set('konfirmasiModal',false)">
         <div class="glass-card" style="padding:1.75rem 2rem;max-width:380px;width:100%;margin:1rem;text-align:center;">
-            <div style="font-size:2.5rem;margin-bottom:.75rem;">✅</div>
+            <div style="font-size:2.5rem;margin-bottom:.75rem;">[OK]</div>
             <div style="font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:.5rem;">Tandai Selesai?</div>
             <div style="font-size:.82rem;color:var(--mut);margin-bottom:1.5rem;">Konfirmasi bahwa pasien sudah mengambil obat. Status jadwal akan berubah menjadi <strong style="color:var(--emer2);">Selesai</strong>.</div>
             <div style="display:flex;gap:.75rem;justify-content:center;">

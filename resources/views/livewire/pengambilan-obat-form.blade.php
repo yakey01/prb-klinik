@@ -111,21 +111,39 @@
             <svg width="14" height="14" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:.1rem;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <div>
                 <div style="font-size:.8rem;font-weight:600;color:var(--red);margin-bottom:.2rem;">Resep Belum Diatur</div>
-                <div style="font-size:.71rem;color:var(--mut);">Buka halaman <strong style="color:var(--ink);">Daftar Pasien</strong> → klik ikon detail pasien → tab <strong style="color:var(--emer);">Resep Obat</strong> untuk menambahkan obat rutin pasien ini.</div>
+                <div style="font-size:.71rem;color:var(--mut);">Buka halaman <strong style="color:var(--ink);">Daftar Pasien</strong> <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> klik ikon detail pasien <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> tab <strong style="color:var(--emer);">Resep Obat</strong> untuk menambahkan obat rutin pasien ini.</div>
             </div>
         </div>
         @else
         <div style="display:flex;flex-direction:column;gap:.38rem;">
             @foreach($rows as $i => $row)
-            <div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:.4rem;">
-                <div style="width:7px;height:7px;border-radius:50%;background:var(--emer);flex-shrink:0;"></div>
-                <div style="flex:1;font-size:.82rem;color:var(--ink);font-weight:500;">{{ $row['nama_obat'] }}</div>
-                <div style="display:flex;align-items:center;gap:.4rem;">
-                    <input wire:model="rows.{{ $i }}.jumlah_unit" type="number" min="1" max="999"
-                        class="form-input font-mono"
-                        style="width:58px;font-size:.8rem;padding:.28rem .4rem;text-align:center;border-color:rgba(63,207,142,.25);">
-                    <span style="font-size:.7rem;color:var(--mut);white-space:nowrap;">{{ $row['satuan'] }}</span>
+            @php $pv = $this->rowsPreview[$i] ?? null; @endphp
+            <div wire:key="resepRow-{{ $row['obat_id'] ?? $i }}" style="display:flex;flex-direction:column;gap:.35rem;padding:.5rem .75rem;background:rgba(255,255,255,.025);border:1px solid {{ $pv && !$pv['cukup'] ? 'rgba(232,100,90,.4)' : 'var(--line)' }};border-radius:.4rem;">
+                <div style="display:flex;align-items:center;gap:.6rem;">
+                    <div style="width:7px;height:7px;border-radius:50%;background:{{ $pv && !$pv['cukup'] ? 'var(--red2)' : 'var(--emer)' }};flex-shrink:0;"></div>
+                    <div style="flex:1;font-size:.82rem;color:var(--ink);font-weight:500;">{{ $row['nama_obat'] }}</div>
+                    <div style="display:flex;align-items:center;gap:.4rem;">
+                        <input wire:model.live.debounce.400ms="rows.{{ $i }}.jumlah_unit" type="number" min="1" max="999"
+                            class="form-input font-mono"
+                            style="width:58px;font-size:.8rem;padding:.28rem .4rem;text-align:center;border-color:rgba(63,207,142,.25);">
+                        <span style="font-size:.7rem;color:var(--mut);white-space:nowrap;">{{ $row['satuan'] }}</span>
+                    </div>
                 </div>
+                @if($pv)
+                <div style="display:flex;align-items:center;gap:.45rem;padding-left:1.3rem;font-size:.67rem;font-family:monospace;flex-wrap:wrap;">
+                    <span style="color:var(--mut);">stok</span>
+                    <span style="color:var(--mut2);">{{ number_format($pv['stok'],0,',','.') }}</span>
+                    <span style="color:var(--gold2);font-weight:700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+                    <span style="color:{{ !$pv['cukup'] ? 'var(--red2)' : ($pv['low'] ? 'var(--gold2)' : 'var(--emer2)') }};font-weight:700;">{{ number_format($pv['sesudah'],0,',','.') }}</span>
+                    <span style="color:var(--mut);">{{ $pv['satuan'] }}</span>
+                    @if($pv['isi'] > 1)<span style="color:var(--mut2);opacity:.65;">({{ number_format(max(0,intdiv($pv['sesudah'],$pv['isi'])),0,',','.') }} box)</span>@endif
+                    @if(!$pv['cukup'])
+                    <span style="color:var(--red2);background:rgba(232,100,90,.13);border-radius:2rem;padding:.05rem .45rem;font-weight:700;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> stok kurang</span>
+                    @elseif($pv['low'])
+                    <span style="color:var(--gold2);background:rgba(217,164,65,.13);border-radius:2rem;padding:.05rem .45rem;font-weight:600;">menipis (min {{ number_format($pv['min'],0,',','.') }})</span>
+                    @endif
+                </div>
+                @endif
             </div>
             @endforeach
         </div>
@@ -262,11 +280,23 @@
     <form wire:submit="save">
         {{-- Tanggal --}}
         <div style="margin-bottom:.85rem;">
-            <label class="form-label">Tanggal Penyerahan</label>
-            <input wire:model.live="tanggalPengambilan" type="date" class="form-input"
-                {{ !$hasPatient ? 'disabled' : '' }}
-                @if($this->minTanggalPengambilan) min="{{ $this->minTanggalPengambilan }}" @endif
-                style="{{ ($hasPatient && !$dateOk) ? 'border-color:var(--red);box-shadow:0 0 0 3px rgba(232,100,90,.12);' : '' }}">
+            <label class="form-label" style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+                Tanggal Penyerahan
+                <span style="font-weight:400;color:var(--mut2);text-transform:none;letter-spacing:0;font-size:.65rem;">— bisa mundur (backdate) bila penyerahan tercatat telat</span>
+            </label>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                <input wire:model.live="tanggalPengambilan" type="date" class="form-input" style="max-width:200px;
+                    {{ ($hasPatient && !$dateOk) ? 'border-color:var(--red);box-shadow:0 0 0 3px rgba(232,100,90,.12);' : '' }}"
+                    {{ !$hasPatient ? 'disabled' : '' }}
+                    @if($this->floorTanggalPengambilan) min="{{ $this->floorTanggalPengambilan }}" @endif
+                    max="{{ $this->maxTanggal }}">
+                @if($hasPatient && $this->isBackdate && $dateOk)
+                <span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.66rem;font-weight:700;color:var(--blue);background:rgba(111,177,224,.12);border:1px solid rgba(111,177,224,.3);border-radius:999px;padding:.18rem .55rem;">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+                    Backdate · {{ \Carbon\Carbon::parse($this->tanggalPengambilan)->diffForHumans() }}
+                </span>
+                @endif
+            </div>
 
             {{-- Jadwal info hint --}}
             @if($hasPatient && $this->jadwalInfoLabel)
@@ -276,11 +306,21 @@
             </div>
             @endif
 
-            {{-- Live date warning --}}
+            {{-- HARD error: masa depan / sebelum penyerahan terakhir --}}
             @if($hasPatient && !$dateOk)
             <div style="display:flex;align-items:center;gap:.3rem;margin-top:.35rem;padding:.4rem .6rem;background:rgba(232,100,90,.07);border:1px solid rgba(232,100,90,.22);border-radius:.35rem;">
                 <svg width="11" height="11" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span style="font-size:.68rem;color:var(--red);font-weight:500;">Tidak boleh sebelum jadwal: <strong>{{ \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y') }}</strong></span>
+                <span style="font-size:.68rem;color:var(--red);font-weight:500;">
+                    @if($this->tanggalPengambilan > $this->maxTanggal)Tanggal tidak boleh di masa depan.
+                    @elseif($this->floorTanggalPengambilan)Tidak boleh sebelum penyerahan terakhir: <strong>{{ \Carbon\Carbon::parse($this->floorTanggalPengambilan)->format('d M Y') }}</strong>.
+                    @else Tanggal tidak valid. @endif
+                </span>
+            </div>
+            {{-- SOFT warning: lebih awal dari jadwal BPJS (tidak memblokir) --}}
+            @elseif($hasPatient && $this->beforeJadwal)
+            <div style="display:flex;align-items:center;gap:.3rem;margin-top:.35rem;padding:.4rem .6rem;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.25);border-radius:.35rem;">
+                <svg width="11" height="11" fill="none" stroke="var(--gold2)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span style="font-size:.68rem;color:var(--gold2);font-weight:500;">Lebih awal dari jadwal BPJS ({{ \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y') }}) — tetap bisa disimpan, pastikan klaim valid.</span>
             </div>
             @endif
 
@@ -320,8 +360,12 @@
         <div style="padding:.85rem;background:rgba(232,100,90,.06);border:1px solid rgba(232,100,90,.2);border-radius:.45rem;margin-bottom:.75rem;display:flex;align-items:flex-start;gap:.5rem;">
             <svg width="14" height="14" fill="none" stroke="var(--red)" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:.1rem;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
             <div>
-                <div style="font-size:.78rem;color:var(--red);font-weight:600;margin-bottom:.15rem;">Tanggal Mendahului Jadwal</div>
-                <div style="font-size:.7rem;color:var(--mut);">Penyerahan baru boleh dilakukan mulai <strong style="color:var(--ink);">{{ \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y') }}</strong></div>
+                <div style="font-size:.78rem;color:var(--red);font-weight:600;margin-bottom:.15rem;">Tanggal Tidak Valid</div>
+                <div style="font-size:.7rem;color:var(--mut);">
+                    @if($this->tanggalPengambilan > $this->maxTanggal)Tanggal penyerahan tidak boleh di masa depan.
+                    @elseif($this->floorTanggalPengambilan)Tidak boleh sebelum penyerahan terakhir <strong style="color:var(--ink);">{{ \Carbon\Carbon::parse($this->floorTanggalPengambilan)->format('d M Y') }}</strong>.
+                    @else Periksa kembali tanggal penyerahan. @endif
+                </div>
             </div>
         </div>
         <button type="button" disabled

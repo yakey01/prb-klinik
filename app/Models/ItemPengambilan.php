@@ -32,9 +32,10 @@ class ItemPengambilan extends Model
         return round($this->jumlah_unit * $this->harga_beli_snapshot, 2);
     }
 
-    // Proyeksi klaim BPJS untuk item ini (unit × klaim × faktor)
+    // Proyeksi klaim BPJS untuk item ini (unit × klaim × pengali jasa farmasi ternormalisasi)
     public function getProyeksiKlaimAttribute(): float
     {
-        return round($this->jumlah_unit * $this->harga_klaim_bpjs_snapshot * $this->faktor_jasa_farmasi_snapshot, 2);
+        return round($this->jumlah_unit * $this->harga_klaim_bpjs_snapshot
+            * Obat::jfMultiplier($this->faktor_jasa_farmasi_snapshot), 2);
     }
 }

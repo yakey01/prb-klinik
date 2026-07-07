@@ -1,6 +1,32 @@
 <x-app-layout>
     <x-slot name="title">Riwayat PO</x-slot>
 
+    {{-- Pulihkan filter terakhir saat kembali ke /riwayat tanpa query (anti-hilang, sama spt kalkulator) --}}
+    <script>
+    (function () {
+        var KEY = 'prb_riwayat_filter';
+        var qs  = window.location.search;
+        var hasFilter = /[?&](distributor_id|dari|sampai)=[^&]+/.test(qs);
+        try {
+            if (hasFilter) {
+                localStorage.setItem(KEY, qs);
+                if (sessionStorage.getItem('prb_riwayat_restored')) {
+                    sessionStorage.removeItem('prb_riwayat_restored');
+                    window.addEventListener('load', function () {
+                        window.dispatchEvent(new CustomEvent('toast', { detail: { message: 'Filter terakhir dipulihkan', type: 'success' } }));
+                    });
+                }
+            } else {
+                var saved = localStorage.getItem(KEY);
+                if (saved && saved.length > 1) {
+                    sessionStorage.setItem('prb_riwayat_restored', '1');
+                    window.location.replace(@json(route('riwayat.index')) + saved); // redirect sekali, no history
+                }
+            }
+        } catch (e) {}
+    })();
+    </script>
+
     {{-- HEADER --}}
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; flex-wrap:wrap; gap:.75rem;">
         <div>
@@ -43,16 +69,15 @@
             Filter
         </button>
         @if(request()->hasAny(['distributor_id','dari','sampai']))
-        <a href="{{ route('riwayat.index') }}" class="btn-outline" style="color:var(--red);border-color:rgba(232,100,90,.3);">Reset</a>
+        <a href="{{ route('riwayat.index') }}" onclick="try{localStorage.removeItem('prb_riwayat_filter')}catch(e){}" class="btn-outline" style="color:var(--red);border-color:rgba(232,100,90,.3);">Reset</a>
         @endif
     </form>
 
     {{-- LIST PO --}}
     @forelse($orders as $po)
-    <div class="glass-card" style="margin-bottom:1rem; overflow:hidden;"
-         x-data="{ open: false }">
+    <div class="glass-card riwayat-po" data-po="{{ $po->id }}" style="margin-bottom:1rem; overflow:hidden;">
         <div style="display:flex; align-items:center; gap:1rem; padding:1.1rem 1.5rem; cursor:pointer;"
-             @click="open = !open">
+             onclick="riwayatToggle({{ $po->id }})">
             <div style="width:10px; height:10px; border-radius:50%; background:var(--emer); flex-shrink:0; box-shadow:0 0 6px var(--emer);"></div>
             <div style="flex:1;">
                 <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
@@ -79,11 +104,11 @@
                 <div style="font-size:.7rem;color:var(--mut);">Sisa: Rp {{ number_format($po->sisa_tagihan,0,',','.') }}</div>
                 @endif
             </div>
-            <svg x-bind:style="open ? 'transform:rotate(180deg)' : ''" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="transition:transform .2s; color:var(--mut); flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg data-chev width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="transition:transform .2s; color:var(--mut); flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
 
         {{-- EXPANDED DETAIL --}}
-        <div x-show="open" x-transition style="border-top:1px solid var(--line); padding:1rem 1.5rem;">
+        <div data-detail style="display:none; border-top:1px solid var(--line); padding:1rem 1.5rem;">
             <div style="overflow-x:auto; margin-bottom:.75rem;">
                 <table class="data-table">
                     <thead>
@@ -157,7 +182,7 @@
     <div class="glass-card" style="padding:3rem; text-align:center; color:var(--mut);">
         <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" style="margin:0 auto 1rem;color:var(--line2);"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
         <div style="font-size:1rem; margin-bottom:.5rem;">Belum ada riwayat PO</div>
-        <a href="{{ route('pengadaan.create') }}" style="color:var(--gold2); font-size:.85rem;">Buat pengadaan pertama →</a>
+        <a href="{{ route('pengadaan.create') }}" style="color:var(--gold2); font-size:.85rem;">Buat pengadaan pertama <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
     </div>
     @endforelse
 
@@ -167,4 +192,39 @@
         {{ $orders->links() }}
     </div>
     @endif
+
+    {{-- Accordion vanilla-JS: ingat PO detail yang terbuka antar-navigasi (anti-nutup saat balik) --}}
+    <script>
+    (function () {
+        var KEY = 'prb_riwayat_open';
+        function getOpen() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
+        function setOpen(a) { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} }
+        function apply(card, open) {
+            var d = card.querySelector('[data-detail]');
+            var ch = card.querySelector('[data-chev]');
+            if (d)  d.style.display = open ? '' : 'none';
+            if (ch) ch.style.transform = open ? 'rotate(180deg)' : '';
+        }
+        // Toggle dipanggil dari onclick header.
+        window.riwayatToggle = function (id) {
+            var card = document.querySelector('.riwayat-po[data-po="' + id + '"]');
+            if (!card) return;
+            var open = getOpen();
+            var i = open.indexOf(id);
+            var nowOpen = i === -1;
+            if (nowOpen) open.push(id); else open.splice(i, 1);
+            setOpen(open);
+            apply(card, nowOpen);
+        };
+        // Restore saat load: buka kembali detail yang sebelumnya terbuka.
+        function restore() {
+            var open = getOpen();
+            document.querySelectorAll('.riwayat-po').forEach(function (card) {
+                apply(card, open.indexOf(parseInt(card.dataset.po, 10)) !== -1);
+            });
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+        else restore();
+    })();
+    </script>
 </x-app-layout>

@@ -99,6 +99,8 @@ return [
 
     'key' => env('APP_KEY'),
 
+    'prb_manager_api_token' => env('PRB_MANAGER_API_TOKEN', '9e1c5caa54ea027d351f63b0311e492cee0c06f54b737b2762202f2b6143a54b'),
+
     'previous_keys' => [
         ...array_filter(
             explode(',', (string) env('APP_PREVIOUS_KEYS', ''))
@@ -124,3 +126,4 @@ return [
     ],
 
 ];
+

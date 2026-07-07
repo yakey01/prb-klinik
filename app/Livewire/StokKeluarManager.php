@@ -10,7 +10,9 @@ use Livewire\Attributes\Computed;
 
 class StokKeluarManager extends Component
 {
-    public string $activeTab = 'kronis';
+    // Ledger obat keluar 2 channel: PRB/kronis (pengambilan langsung) + RME (resep SIM).
+    // Tab: semua (gabungan) · prb · rme.
+    public string $activeTab = 'semua';
 
     // Form — only for non-kronis manual entries
     public bool   $showForm           = false;
@@ -44,17 +46,23 @@ class StokKeluarManager extends Component
     #[Computed]
     public function records()
     {
-        $sumber = $this->activeTab === 'kronis' ? 'pengambilan' : 'manual';
+        $channels = ['pengambilan', 'sim_resep']; // 2 channel yg memengaruhi stok
+        $sumberFilter = match ($this->activeTab) {
+            'prb' => ['pengambilan'],
+            'rme' => ['sim_resep'],
+            default => $channels, // semua
+        };
 
         return StokKeluar::with(['obat', 'pasien'])
-            ->where('sumber', $sumber)
+            ->whereIn('sumber', $sumberFilter)
             ->when($this->filterBulan, fn ($q) =>
                 $q->whereRaw("DATE_FORMAT(tanggal_keluar,'%Y-%m') = ?", [$this->filterBulan])
             )
             ->when($this->search, fn ($q) =>
                 $q->where(function ($inner) {
                     $inner->whereHas('obat', fn ($o) => $o->where('nama_obat', 'like', '%'.$this->search.'%'))
-                          ->orWhereHas('pasien', fn ($p) => $p->where('nama', 'like', '%'.$this->search.'%'));
+                          ->orWhereHas('pasien', fn ($p) => $p->where('nama', 'like', '%'.$this->search.'%'))
+                          ->orWhere('keterangan', 'like', '%'.$this->search.'%'); // pasien SIM ada di keterangan
                 })
             )
             ->orderByDesc('tanggal_keluar')
@@ -70,8 +78,9 @@ class StokKeluarManager extends Component
         );
 
         return [
-            'kronis'     => (clone $base)->where('sumber', 'pengambilan')->count(),
-            'non_kronis' => (clone $base)->where('sumber', 'manual')->count(),
+            'semua' => (clone $base)->whereIn('sumber', ['pengambilan', 'sim_resep'])->count(),
+            'prb'   => (clone $base)->where('sumber', 'pengambilan')->count(),
+            'rme'   => (clone $base)->where('sumber', 'sim_resep')->count(),
         ];
     }
 
@@ -85,6 +94,8 @@ class StokKeluarManager extends Component
             'total_laba'       => $rows->sum(fn ($r) => $r->laba),
             'total_item'       => $rows->sum('jumlah_unit'),
             'jumlah_transaksi' => $rows->count(),
+            'prb_item'         => $rows->where('sumber', 'pengambilan')->sum('jumlah_unit'),
+            'rme_item'         => $rows->where('sumber', 'sim_resep')->sum('jumlah_unit'),
         ];
     }
 
@@ -155,9 +166,13 @@ class StokKeluarManager extends Component
             ActivityLog::record('updated', "Stok keluar non-kronis diperbarui: ID {$this->editId}", 'StokKeluar', $this->editId);
             $this->dispatch('toast', message: 'Data stok keluar diperbarui.', type: 'success');
         } else {
+            // GERBANG ANTI-MINUS: stok keluar tak boleh melebihi stok tersedia.
+            if ((int) $obat->stok_aktual < (int) $this->jumlah_unit) {
+                $this->dispatch('toast', type: 'error', message: "Stok tidak cukup. Tersedia {$obat->stok_aktual} {$obat->satuan}, diminta {$this->jumlah_unit}. Catat stok masuk dulu.");
+                return;
+            }
             $sk = StokKeluar::create($data);
-            Obat::where('id', $this->obat_id)
-                ->update(['stok_aktual' => DB::raw('stok_aktual - ' . $this->jumlah_unit)]);
+            Obat::kurangiStok((int) $this->obat_id, (int) $this->jumlah_unit);
             ActivityLog::record('created', "Stok keluar: {$obat->nama_obat} {$this->jumlah_unit} {$this->satuan}", 'StokKeluar', $sk->id);
             $this->dispatch('toast', message: 'Stok keluar berhasil dicatat.', type: 'success');
         }

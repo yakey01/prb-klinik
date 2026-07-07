@@ -3,8 +3,8 @@
  * Strategy: Network-first for HTML, Cache-first for assets
  */
 
-const CACHE_NAME = 'prb-klinik-v1';
-const STATIC_CACHE = 'prb-static-v1';
+const CACHE_NAME = 'prb-klinik-v2';
+const STATIC_CACHE = 'prb-static-v2';
 
 // Assets to pre-cache for offline support
 const PRECACHE_ASSETS = [

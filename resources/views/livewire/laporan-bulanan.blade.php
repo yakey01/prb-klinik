@@ -10,7 +10,7 @@
     .lpr-section-hd { font-size: .6rem; text-transform: uppercase; letter-spacing: .12em; color: var(--mut); font-weight: 700; }
     .lpr-flow-bar { height: 8px; border-radius: 4px; overflow: hidden; background: rgba(0,0,0,.3); }
     .lpr-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-    .lpr-table th { background: rgba(14,30,23,.95); color: var(--mut); font-size: .63rem; font-family: 'Plus Jakarta Sans',sans-serif; text-transform: uppercase; letter-spacing: .09em; padding: .65rem .9rem; text-align: left; border-bottom: 1px solid var(--line2); white-space: nowrap; position: sticky; top: 0; z-index: 2; }
+    .lpr-table th { background: rgba(14,30,23,.95); color: var(--mut); font-size: .63rem; font-family: 'Inter',sans-serif; text-transform: uppercase; letter-spacing: .09em; padding: .65rem .9rem; text-align: left; border-bottom: 1px solid var(--line2); white-space: nowrap; position: sticky; top: 0; z-index: 2; }
     .lpr-table td { padding: .6rem .9rem; border-bottom: 1px solid rgba(31,61,48,.5); font-size: .8rem; }
     .lpr-table tr:hover td { background: rgba(255,255,255,.025); }
     .lpr-table tfoot td { background: rgba(0,0,0,.2); border-top: 1.5px solid var(--line2); font-weight: 700; }
@@ -175,7 +175,7 @@ $opsW     = $r['labaKotor'] > 0 ? min($r['totalBiayaOps']/$r['labaKotor']*100, 1
         </div>
         <div style="margin-bottom:.6rem;">
             <span class="lpr-delta {{ $isKotorProfit ? 'lpr-badge-pos' : 'lpr-badge-neg' }}">
-                {{ $isKotorProfit ? '↑' : '↓' }} {{ $r['marginPersen'] }}% margin
+                @if($isKotorProfit)<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>@else<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>@endif {{ $r['marginPersen'] }}% margin
             </span>
         </div>
         <div class="lpr-flow-bar">
@@ -209,7 +209,7 @@ $opsW     = $r['labaKotor'] > 0 ? min($r['totalBiayaOps']/$r['labaKotor']*100, 1
         </div>
         <div style="margin-bottom:.6rem;">
             <span class="lpr-delta {{ $isProfit ? 'lpr-badge-gold' : 'lpr-badge-neg' }}">
-                {{ $isProfit ? '✓ Untung' : '✗ Rugi' }} Bulan Ini
+                <x-i :name="$isProfit ? 'arrow-up' : 'arrow-down'" :size="13" /> {{ $isProfit ? 'Untung' : 'Rugi' }} Bulan Ini
             </span>
         </div>
         <div class="lpr-flow-bar">
@@ -224,7 +224,7 @@ $opsW     = $r['labaKotor'] > 0 ? min($r['totalBiayaOps']/$r['labaKotor']*100, 1
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
         <div>
             <div class="lpr-section-hd">Alur Laba Rugi · {{ $this->periode }}</div>
-            <div style="font-size:.75rem; color:var(--ink); font-weight:600; margin-top:.2rem;">Pendapatan → HPP → Laba Kotor → Biaya Ops → Laba Bersih</div>
+            <div style="font-size:.75rem; color:var(--ink); font-weight:600; margin-top:.2rem;">Pendapatan <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> HPP <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Laba Kotor <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Biaya Ops <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Laba Bersih</div>
         </div>
         <span style="font-size:.58rem; color:var(--mut2); background:var(--bg2); border:1px solid var(--line); padding:.2rem .65rem; border-radius:.4rem; letter-spacing:.05em;">IFRS-like Format</span>
     </div>
@@ -414,7 +414,7 @@ $opsW     = $r['labaKotor'] > 0 ? min($r['totalBiayaOps']/$r['labaKotor']*100, 1
             @if($r['pendTunai'] == 0)
             <div style="text-align:center; padding:.75rem 0; color:var(--mut); font-size:.75rem;">
                 Belum ada transaksi.<br>
-                <a href="{{ route('stok-keluar.index') }}" style="color:var(--blue);">→ Catat Stok Keluar</a>
+                <a href="{{ route('stok-keluar.index') }}" style="color:var(--blue);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Catat Stok Keluar</a>
             </div>
             @else
             <div class="lpr-num" style="font-size:1.2rem; font-weight:800; color:var(--blue); margin-bottom:.55rem; letter-spacing:-.025em;">Rp {{ number_format($r['pendTunai'],0,',','.') }}</div>
@@ -471,66 +471,6 @@ $opsW     = $r['labaKotor'] > 0 ? min($r['totalBiayaOps']/$r['labaKotor']*100, 1
                     </span>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
-
-{{-- ④ CHARTS: Tren + Donut --}}
-<div style="display:grid; grid-template-columns:2fr 1fr; gap:1.1rem; margin-bottom:1.35rem;">
-
-    {{-- Area Trend Chart --}}
-    <div class="glass-card" style="padding:1.2rem 1.35rem;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
-            <div>
-                <div class="lpr-section-hd">Tren Pendapatan &amp; Pengeluaran</div>
-                <div style="font-size:.73rem; color:var(--ink); font-weight:600; margin-top:.15rem;">6 Bulan Terakhir</div>
-            </div>
-            <div style="display:flex; gap:.75rem; align-items:center;">
-                <div style="display:flex; align-items:center; gap:.3rem; font-size:.67rem; color:var(--mut2);">
-                    <div style="width:8px; height:8px; border-radius:2px; background:#3fcf8e;"></div>Kronis
-                </div>
-                <div style="display:flex; align-items:center; gap:.3rem; font-size:.67rem; color:var(--mut2);">
-                    <div style="width:8px; height:8px; border-radius:2px; background:#6fb1e0;"></div>Tunai
-                </div>
-                <div style="display:flex; align-items:center; gap:.3rem; font-size:.67rem; color:var(--mut2);">
-                    <div style="width:8px; height:8px; border-radius:2px; background:#e8645a;"></div>PO
-                </div>
-            </div>
-        </div>
-        <canvas id="chartTren" style="max-height:240px;"></canvas>
-    </div>
-
-    {{-- Donut + legend --}}
-    <div class="glass-card" style="padding:1.2rem 1.35rem; display:flex; flex-direction:column;">
-        <div class="lpr-section-hd" style="margin-bottom:.2rem;">Komposisi Pendapatan</div>
-        <div style="font-size:.73rem; color:var(--ink); font-weight:600; margin-bottom:.85rem;">{{ $this->periode }}</div>
-        <canvas id="chartDonut" style="max-height:170px; margin:auto;"></canvas>
-        <div style="margin-top:.85rem; display:flex; flex-direction:column; gap:.5rem;">
-            <div style="display:flex; align-items:center; justify-content:space-between;">
-                <div style="display:flex; align-items:center; gap:.4rem;">
-                    <div style="width:10px; height:10px; border-radius:2px; background:rgba(63,207,142,.8);"></div>
-                    <span style="font-size:.72rem; color:var(--mut2);">BPJS / Obat Kronis</span>
-                </div>
-                <span class="lpr-num" style="font-size:.72rem; font-weight:700; color:var(--emer2);">{{ $bpjsPct }}%</span>
-            </div>
-            <div style="height:4px; background:rgba(0,0,0,.3); border-radius:2px; overflow:hidden;">
-                <div style="height:100%; width:{{ $bpjsPct }}%; background:rgba(63,207,142,.7); border-radius:2px;"></div>
-            </div>
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.2rem;">
-                <div style="display:flex; align-items:center; gap:.4rem;">
-                    <div style="width:10px; height:10px; border-radius:2px; background:rgba(111,177,224,.8);"></div>
-                    <span style="font-size:.72rem; color:var(--mut2);">Tunai / Pasien Umum</span>
-                </div>
-                <span class="lpr-num" style="font-size:.72rem; font-weight:700; color:var(--blue);">{{ $tunaiPct }}%</span>
-            </div>
-            <div style="height:4px; background:rgba(0,0,0,.3); border-radius:2px; overflow:hidden;">
-                <div style="height:100%; width:{{ $tunaiPct }}%; background:rgba(111,177,224,.7); border-radius:2px;"></div>
-            </div>
-        </div>
-        {{-- Total summary --}}
-        <div style="margin-top:1rem; padding:.65rem .8rem; background:rgba(0,0,0,.2); border-radius:.6rem; border:1px solid var(--line);">
-            <div style="font-size:.6rem; color:var(--mut); margin-bottom:.2rem;">Total Pendapatan</div>
-            <div class="lpr-num" style="font-size:.88rem; font-weight:800; color:var(--gold2);">Rp {{ number_format($r['totalPend'],0,',','.') }}</div>
         </div>
     </div>
 </div>
@@ -594,6 +534,66 @@ $opsW     = $r['labaKotor'] > 0 ? min($r['totalBiayaOps']/$r['labaKotor']*100, 1
     </div>
 </div>
 
+{{-- ④ CHARTS: Tren + Donut --}}
+<div style="display:grid; grid-template-columns:2fr 1fr; gap:1.1rem; margin-top:1.35rem; margin-bottom:1.35rem;">
+
+    {{-- Area Trend Chart --}}
+    <div class="glass-card" style="padding:1.2rem 1.35rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+            <div>
+                <div class="lpr-section-hd">Tren Pendapatan &amp; Pengeluaran</div>
+                <div style="font-size:.73rem; color:var(--ink); font-weight:600; margin-top:.15rem;">6 Bulan Terakhir</div>
+            </div>
+            <div style="display:flex; gap:.75rem; align-items:center;">
+                <div style="display:flex; align-items:center; gap:.3rem; font-size:.67rem; color:var(--mut2);">
+                    <div style="width:8px; height:8px; border-radius:2px; background:#3fcf8e;"></div>Kronis
+                </div>
+                <div style="display:flex; align-items:center; gap:.3rem; font-size:.67rem; color:var(--mut2);">
+                    <div style="width:8px; height:8px; border-radius:2px; background:#6fb1e0;"></div>Tunai
+                </div>
+                <div style="display:flex; align-items:center; gap:.3rem; font-size:.67rem; color:var(--mut2);">
+                    <div style="width:8px; height:8px; border-radius:2px; background:#e8645a;"></div>PO
+                </div>
+            </div>
+        </div>
+        <canvas id="chartTren" style="max-height:240px;"></canvas>
+    </div>
+
+    {{-- Donut + legend --}}
+    <div class="glass-card" style="padding:1.2rem 1.35rem; display:flex; flex-direction:column;">
+        <div class="lpr-section-hd" style="margin-bottom:.2rem;">Komposisi Pendapatan</div>
+        <div style="font-size:.73rem; color:var(--ink); font-weight:600; margin-bottom:.85rem;">{{ $this->periode }}</div>
+        <canvas id="chartDonut" style="max-height:170px; margin:auto;"></canvas>
+        <div style="margin-top:.85rem; display:flex; flex-direction:column; gap:.5rem;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:.4rem;">
+                    <div style="width:10px; height:10px; border-radius:2px; background:rgba(63,207,142,.8);"></div>
+                    <span style="font-size:.72rem; color:var(--mut2);">BPJS / Obat Kronis</span>
+                </div>
+                <span class="lpr-num" style="font-size:.72rem; font-weight:700; color:var(--emer2);">{{ $bpjsPct }}%</span>
+            </div>
+            <div style="height:4px; background:rgba(0,0,0,.3); border-radius:2px; overflow:hidden;">
+                <div style="height:100%; width:{{ $bpjsPct }}%; background:rgba(63,207,142,.7); border-radius:2px;"></div>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:.2rem;">
+                <div style="display:flex; align-items:center; gap:.4rem;">
+                    <div style="width:10px; height:10px; border-radius:2px; background:rgba(111,177,224,.8);"></div>
+                    <span style="font-size:.72rem; color:var(--mut2);">Tunai / Pasien Umum</span>
+                </div>
+                <span class="lpr-num" style="font-size:.72rem; font-weight:700; color:var(--blue);">{{ $tunaiPct }}%</span>
+            </div>
+            <div style="height:4px; background:rgba(0,0,0,.3); border-radius:2px; overflow:hidden;">
+                <div style="height:100%; width:{{ $tunaiPct }}%; background:rgba(111,177,224,.7); border-radius:2px;"></div>
+            </div>
+        </div>
+        {{-- Total summary --}}
+        <div style="margin-top:1rem; padding:.65rem .8rem; background:rgba(0,0,0,.2); border-radius:.6rem; border:1px solid var(--line);">
+            <div style="font-size:.6rem; color:var(--mut); margin-bottom:.2rem;">Total Pendapatan</div>
+            <div class="lpr-num" style="font-size:.88rem; font-weight:800; color:var(--gold2);">Rp {{ number_format($r['totalPend'],0,',','.') }}</div>
+        </div>
+    </div>
+</div>
+
 {{-- ⑥ REKONSILIASI BPJS — Siklus Klaim --}}
 @php
 $rekonStatus = $r['statusRekon'];
@@ -610,7 +610,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
     <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem;">
         <div>
             <div style="font-size:.6rem; text-transform:uppercase; letter-spacing:.1em; color:{{ $sc['color'] }}; font-weight:700; margin-bottom:.15rem;">Rekonsiliasi BPJS / JKN — {{ $this->periode }}</div>
-            <div style="font-size:.88rem; font-weight:700; color:var(--ink);">Siklus Klaim: Pengajuan → Persetujuan → Pembayaran</div>
+            <div style="font-size:.88rem; font-weight:700; color:var(--ink);">Siklus Klaim: Pengajuan <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Persetujuan <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Pembayaran</div>
         </div>
         <span style="font-size:.7rem; font-weight:700; padding:.3rem .85rem; border-radius:.45rem;
                      background:{{ $sc['bg'] }}; color:{{ $sc['color'] }}; border:1px solid {{ $sc['border'] }};">
@@ -865,7 +865,7 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
     <div style="padding:3.5rem; text-align:center; color:var(--mut);">
         <svg width="38" height="38" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" style="display:block; margin:0 auto .75rem; color:var(--line2);"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
         <div style="font-size:.82rem; margin-bottom:.5rem;">Belum ada stok keluar obat non-kronis bulan ini.</div>
-        <a href="{{ route('stok-keluar.index') }}" style="color:var(--blue); font-size:.78rem; text-decoration:none;">→ Catat Stok Keluar</a>
+        <a href="{{ route('stok-keluar.index') }}" style="color:var(--blue); font-size:.78rem; text-decoration:none;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg> Catat Stok Keluar</a>
     </div>
     @else
     <div style="overflow-x:auto;">

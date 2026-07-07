@@ -13,8 +13,8 @@
     @if($showForm)
     <div class="glass-card" style="padding:1.25rem;margin-bottom:1.25rem;border-color:var(--gold);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-            <div class="font-heading" style="font-size:.95rem;color:var(--gold2);">{{ $editId ? '✏️ Edit Diagnosis' : '+ Tambah Diagnosis Baru' }}</div>
-            <button wire:click="cancel" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.1rem;">✕</button>
+            <div class="font-heading" style="font-size:.95rem;color:var(--gold2);">{{ $editId ? 'Edit Diagnosis' : '+ Tambah Diagnosis Baru' }}</div>
+            <button wire:click="cancel" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.1rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
         </div>
         <form wire:submit="save">
             <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:.75rem;align-items:end;">

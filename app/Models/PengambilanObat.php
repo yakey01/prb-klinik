@@ -13,6 +13,7 @@ class PengambilanObat extends Model
         'pasien_id','tanggal_pengambilan','jadwal_berikutnya',
         'status','total_item','dicatat_oleh','catatan',
         'checklist_json','persyaratan_ok',
+        'ref_rme','sumber_resep',
     ];
     protected $casts = [
         'tanggal_pengambilan' => 'date',
@@ -33,4 +34,5 @@ class PengambilanObat extends Model
     {
         return $this->belongsTo(User::class, 'dicatat_oleh');
     }
+
 }

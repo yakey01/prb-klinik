@@ -65,7 +65,7 @@ $totalObatPerluPesan = $rekapRows->where('reko_pengadaan','>',0)->count();
     </div>
     <div style="flex:1;">
         <div style="font-size:.83rem;font-weight:700;color:var(--red2);margin-bottom:.35rem;">
-            ⚠ {{ $stats['kritis_count'] }} obat KRITIS — reorder segera diperlukan
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> {{ $stats['kritis_count'] }} obat KRITIS — reorder segera diperlukan
         </div>
         <div style="font-size:.76rem;color:var(--mut);display:flex;flex-wrap:wrap;gap:.35rem;">
             @foreach($kebutuhanKronis->whereIn('status',['habis','kritis'])->take(8) as $item)
@@ -167,7 +167,7 @@ $totalObatPerluPesan = $rekapRows->where('reko_pengadaan','>',0)->count();
         </div>
         <div style="margin-top:.4rem;font-size:.68rem;color:var(--mut2);">
             @if($stats['kritis_count'] == 0 && $stats['hampir_habis_count'] == 0)
-                <span style="color:var(--emer2);">✓ Semua stok dalam kondisi baik</span>
+                <span style="color:var(--emer2);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Semua stok dalam kondisi baik</span>
             @else
                 {{ $stats['kritis_count'] + $stats['hampir_habis_count'] }} obat memerlukan perhatian segera
             @endif

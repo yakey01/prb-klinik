@@ -18,6 +18,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/pengadaan/baru', [PengadaanController::class, 'create'])->name('pengadaan.create');
     Route::post('/pengadaan', [PengadaanController::class, 'store'])->name('pengadaan.store');
     Route::get('/pengadaan/kebutuhan', fn () => view('pengadaan.kebutuhan'))->name('pengadaan.kebutuhan');
+    Route::get('/pengadaan/harian', fn () => view('pengadaan.harian'))->name('pengadaan.harian');
 
     Route::get('/riwayat', [RiwayatController::class, 'index'])->name('riwayat.index');
     Route::get('/riwayat/export', [RiwayatController::class, 'exportCsv'])->name('riwayat.export');
@@ -37,6 +38,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/pasien',             fn () => view('pasien.index'))->name('pasien.index');
     Route::get('/pasien/pengambilan', fn () => view('pasien.pengambilan'))->name('pasien.pengambilan');
     Route::get('/pasien/jadwal',      fn () => view('pasien.jadwal'))->name('pasien.jadwal');
+    Route::get('/pasien/riwayat',     fn () => view('pasien.riwayat'))->name('pasien.riwayat');
     Route::get('/persyaratan-klaim',  fn () => view('persyaratan-klaim.index'))->name('persyaratan-klaim.index');
     Route::get('/notifikasi', fn () => view('notifikasi.index'))->name('notifikasi.index');
 

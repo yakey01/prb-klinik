@@ -42,7 +42,7 @@
                     </div>
                 </div>
                 <button wire:click="$set('show',false)"
-                    style="background:none;border:none;color:var(--mut);cursor:pointer;padding:.2rem;line-height:1;font-size:1.2rem;">✕</button>
+                    style="background:none;border:none;color:var(--mut);cursor:pointer;padding:.2rem;line-height:1;font-size:1.2rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
 
             {{-- Format info --}}

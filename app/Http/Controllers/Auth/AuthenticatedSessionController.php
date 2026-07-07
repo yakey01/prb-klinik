@@ -16,7 +16,27 @@ class AuthenticatedSessionController extends Controller
      */
     public function create(): View
     {
-        return view('auth.login');
+        $stats = [
+            'pasien'      => 0,
+            'obat'        => 0,
+            'pengambilan' => 0,
+            'distributor' => 0,
+            'tanggal'     => now()->locale('id')->isoFormat('D MMM YYYY'),
+        ];
+
+        try {
+            $stats['pasien'] = \Illuminate\Support\Facades\DB::table('pasien')->where('is_aktif', true)->count();
+            $stats['obat']   = \Illuminate\Support\Facades\DB::table('obat')->where('is_active', true)->count();
+            $stats['pengambilan'] = \Illuminate\Support\Facades\DB::table('pengambilan_obat')
+                ->whereYear('tanggal_pengambilan', now()->year)
+                ->whereMonth('tanggal_pengambilan', now()->month)
+                ->count();
+            $stats['distributor'] = \Illuminate\Support\Facades\DB::table('distributors')->count();
+        } catch (\Throwable $e) {
+            // Stats are decorative only — never block the login page.
+        }
+
+        return view('auth.login', compact('stats'));
     }
 
     /**

@@ -50,6 +50,17 @@ yarn-error.log*
 
 # ── Claude Code session data ──────────────────────────────────────────────────
 /.claude/data/
+.claude/
+**/logs/
+post_tool_use.json
+pre_tool_use.json
+user_prompt_submit.json
+stop.json
+chat.json
+*.tmp
+*.orig
+*.bak
+cdp_*.py
 
 # ── IDE & OS ──────────────────────────────────────────────────────────────────
 .DS_Store

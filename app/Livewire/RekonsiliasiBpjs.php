@@ -45,7 +45,7 @@ class RekonsiliasiBpjs extends Component
             ->select(
                 \DB::raw('YEAR(po.tanggal_pengambilan) as tahun'),
                 \DB::raw('MONTH(po.tanggal_pengambilan) as bulan'),
-                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) as proyeksi_aktual')
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') as proyeksi_aktual')
             )
             ->groupBy('tahun', 'bulan')
             ->get()
@@ -78,7 +78,7 @@ class RekonsiliasiBpjs extends Component
             ->whereMonth('po.tanggal_pengambilan', $bulan)
             ->whereIn('po.status', ['selesai'])
             ->where('o.tipe_obat', 'kronis')
-            ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot'));
+            ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot')));
 
         return (float) $total;
     }

@@ -53,23 +53,53 @@
     </div>
 </div>
 
-{{-- ===================== PERIOD FILTER PILLS ===================== --}}
-<div style="display:flex;align-items:center;gap:.5rem;margin-bottom:1.5rem;border-bottom:1px solid var(--line);padding-bottom:.85rem;flex-wrap:wrap;">
-    @foreach([
-        'hari_ini'        => ['label' => 'Hari Ini',        'color' => 'var(--gold2)',  'bg' => 'rgba(217,164,65,.12)', 'border' => 'rgba(217,164,65,.35)'],
-        'minggu_ini'      => ['label' => 'Minggu Ini',      'color' => 'var(--blue)',   'bg' => 'rgba(111,177,224,.1)', 'border' => 'rgba(111,177,224,.3)'],
-        'bulan_ini'       => ['label' => 'Bulan Ini',       'color' => 'var(--emer)',   'bg' => 'rgba(63,207,142,.1)',  'border' => 'rgba(63,207,142,.3)'],
-        'semua_mendatang' => ['label' => 'Semua Mendatang', 'color' => 'var(--ink)',    'bg' => 'rgba(255,255,255,.06)', 'border' => 'var(--line2)'],
-        'terlewat'        => ['label' => 'Terlambat',       'color' => 'var(--red)',    'bg' => 'rgba(232,100,90,.1)', 'border' => 'rgba(232,100,90,.3)'],
-    ] as $val => $cfg)
-    <button wire:click="$set('filterPeriode','{{ $val }}')"
-        style="padding:.4rem 1rem;font-size:.78rem;border-radius:999px;border:1px solid;cursor:pointer;font-weight:500;transition:all .18s;
-            {{ $filterPeriode===$val
-                ? 'background:'.$cfg['bg'].';border-color:'.$cfg['border'].';color:'.$cfg['color'].';'
-                : 'background:transparent;border-color:var(--line2);color:var(--mut);' }}">
-        {{ $cfg['label'] }}
+{{-- ===================== PERIOD FILTER PILLS (grouped: alert · sekarang · depan · semua) ===================== --}}
+@php
+    $cfgMap = [
+        'hari_ini'        => ['label' => 'Hari Ini',     'color' => 'var(--gold2)', 'bg' => 'rgba(217,164,65,.14)',  'border' => 'rgba(217,164,65,.4)'],
+        'minggu_ini'      => ['label' => 'Minggu Ini',   'color' => 'var(--blue)',  'bg' => 'rgba(111,177,224,.12)', 'border' => 'rgba(111,177,224,.35)'],
+        'bulan_ini'       => ['label' => 'Bulan Ini',    'color' => 'var(--emer)',  'bg' => 'rgba(63,207,142,.12)',  'border' => 'rgba(63,207,142,.35)'],
+        'minggu_depan'    => ['label' => 'Minggu Depan', 'color' => '#a78bfa',      'bg' => 'rgba(167,139,250,.14)', 'border' => 'rgba(167,139,250,.4)'],
+        'bulan_depan'     => ['label' => 'Bulan Depan',  'color' => '#a78bfa',      'bg' => 'rgba(167,139,250,.14)', 'border' => 'rgba(167,139,250,.4)'],
+        'semua_mendatang' => ['label' => 'Semua',        'color' => 'var(--ink)',   'bg' => 'rgba(255,255,255,.07)', 'border' => 'var(--line3)'],
+    ];
+    $pillCss = fn ($val) => $filterPeriode === $val
+        ? 'background:'.$cfgMap[$val]['bg'].';border-color:'.$cfgMap[$val]['border'].';color:'.$cfgMap[$val]['color'].';font-weight:600;'
+        : 'background:transparent;border-color:var(--line2);color:var(--mut);font-weight:500;';
+    $sep = '<span style="color:var(--line3);font-size:.9rem;opacity:.55;user-select:none;padding:0 .1rem;">&#8202;&#8758;&#8202;</span>';
+@endphp
+<div style="display:flex;align-items:center;gap:.4rem;margin-bottom:1.5rem;border-bottom:1px solid var(--line);padding-bottom:.85rem;flex-wrap:wrap;">
+
+    {{-- Alert: Terlambat (badge angka, merah bila ada) --}}
+    @php $tl = $this->stats['terlewat'] ?? 0; @endphp
+    <button wire:click="$set('filterPeriode','terlewat')"
+        style="display:inline-flex;align-items:center;gap:.4rem;padding:.38rem .8rem;font-size:.76rem;border-radius:999px;border:1px solid;cursor:pointer;transition:all .18s;
+            {{ $filterPeriode==='terlewat'
+                ? 'background:rgba(232,100,90,.14);border-color:rgba(232,100,90,.45);color:var(--red);font-weight:600;'
+                : ($tl > 0 ? 'background:transparent;border-color:rgba(232,100,90,.3);color:var(--red2);font-weight:500;' : 'background:transparent;border-color:var(--line2);color:var(--mut);font-weight:500;') }}">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Terlambat
+        @if($tl > 0)<span style="background:rgba(232,100,90,.25);color:var(--red2);border-radius:999px;padding:0 .4rem;font-size:.66rem;font-weight:800;line-height:1.5;">{{ $tl }}</span>@endif
     </button>
+
+    <span style="width:1px;height:18px;background:var(--line2);margin:0 .25rem;"></span>
+
+    {{-- Kluster SEKARANG --}}
+    @foreach(['hari_ini','minggu_ini','bulan_ini'] as $val)
+    <button wire:click="$set('filterPeriode','{{ $val }}')" style="padding:.38rem .85rem;font-size:.76rem;border-radius:999px;border:1px solid;cursor:pointer;transition:all .18s;{{ $pillCss($val) }}">{{ $cfgMap[$val]['label'] }}</button>
     @endforeach
+
+    {!! $sep !!}
+
+    {{-- Kluster DEPAN --}}
+    @foreach(['minggu_depan','bulan_depan'] as $val)
+    <button wire:click="$set('filterPeriode','{{ $val }}')" style="padding:.38rem .85rem;font-size:.76rem;border-radius:999px;border:1px solid;cursor:pointer;transition:all .18s;{{ $pillCss($val) }}">{{ $cfgMap[$val]['label'] }}</button>
+    @endforeach
+
+    {!! $sep !!}
+
+    {{-- Semua --}}
+    <button wire:click="$set('filterPeriode','semua_mendatang')" style="padding:.38rem .85rem;font-size:.76rem;border-radius:999px;border:1px solid;cursor:pointer;transition:all .18s;{{ $pillCss('semua_mendatang') }}">{{ $cfgMap['semua_mendatang']['label'] }}</button>
 </div>
 
 {{-- ===================== JADWAL CARDS GRID ===================== --}}

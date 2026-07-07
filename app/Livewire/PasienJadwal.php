@@ -23,9 +23,13 @@ class PasienJadwal extends Component
 
         if ($this->filterPeriode === 'minggu_ini') {
             $q->whereBetween('tanggal_pengambilan', [now()->startOfWeek(), now()->endOfWeek()]);
+        } elseif ($this->filterPeriode === 'minggu_depan') {
+            $q->whereBetween('tanggal_pengambilan', [now()->addWeek()->startOfWeek(), now()->addWeek()->endOfWeek()]);
         } elseif ($this->filterPeriode === 'bulan_ini') {
             $q->whereYear('tanggal_pengambilan', now()->year)
               ->whereMonth('tanggal_pengambilan', now()->month);
+        } elseif ($this->filterPeriode === 'bulan_depan') {
+            $q->whereBetween('tanggal_pengambilan', [now()->addMonthNoOverflow()->startOfMonth(), now()->addMonthNoOverflow()->endOfMonth()]);
         } elseif ($this->filterPeriode === 'semua_mendatang') {
             $q->where('tanggal_pengambilan', '>=', now()->format('Y-m-d'));
         } elseif ($this->filterPeriode === 'terlewat') {
@@ -44,9 +48,13 @@ class PasienJadwal extends Component
             'hari_ini'   => PengambilanObat::where('status', 'dijadwalkan')->where('tanggal_pengambilan', $today)->count(),
             'minggu_ini' => PengambilanObat::where('status', 'dijadwalkan')
                 ->whereBetween('tanggal_pengambilan', [now()->startOfWeek(), now()->endOfWeek()])->count(),
+            'minggu_depan' => PengambilanObat::where('status', 'dijadwalkan')
+                ->whereBetween('tanggal_pengambilan', [now()->addWeek()->startOfWeek(), now()->addWeek()->endOfWeek()])->count(),
             'bulan_ini'  => PengambilanObat::where('status', 'dijadwalkan')
                 ->whereYear('tanggal_pengambilan', now()->year)
                 ->whereMonth('tanggal_pengambilan', now()->month)->count(),
+            'bulan_depan' => PengambilanObat::where('status', 'dijadwalkan')
+                ->whereBetween('tanggal_pengambilan', [now()->addMonthNoOverflow()->startOfMonth(), now()->addMonthNoOverflow()->endOfMonth()])->count(),
             'terlewat'   => PengambilanObat::where('status', 'dijadwalkan')
                 ->where('tanggal_pengambilan', '<', $today)->count(),
         ];

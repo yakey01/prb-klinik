@@ -29,6 +29,7 @@ class KebutuhanObatKronis extends Component
             ->join('pasien as p', 'rp.pasien_id', '=', 'p.id')
             ->where('rp.is_aktif', true)
             ->where('p.is_aktif', true)
+            ->whereNull('p.deleted_at')
             ->where('o.is_active', true)
             ->where('o.tipe_obat', 'kronis')
             ->when($this->filterDiagnosis, fn($q) => $q->where('o.kategori_diagnosis', $this->filterDiagnosis))

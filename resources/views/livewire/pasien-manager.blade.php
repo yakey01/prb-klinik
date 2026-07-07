@@ -195,7 +195,7 @@
         </div>
         <div style="display:flex;flex-direction:column;gap:.4rem;margin-bottom:.6rem;">
             @foreach($formResepRows as $fi => $frow)
-            <div style="display:flex;align-items:center;gap:.4rem;padding:.55rem .65rem;background:rgba(255,255,255,.04);border:1px solid var(--line2);border-radius:.4rem;">
+            <div wire:key="formResep-{{ $fi }}" style="display:flex;align-items:center;gap:.4rem;padding:.55rem .65rem;background:rgba(255,255,255,.04);border:1px solid var(--line2);border-radius:.4rem;">
                 <div style="flex:1;min-width:0;">
                     <select wire:model.live="formResepRows.{{ $fi }}.obat_id" class="form-input" style="font-size:.76rem;padding:.32rem .45rem;background:var(--card);border-color:var(--line2);">
                         <option value="0">— Pilih Obat —</option>
@@ -312,13 +312,17 @@
                             <span style="color:{{ $avatarColor }};font-weight:700;font-size:.8rem;">{{ $initial }}</span>
                         </div>
                         <div>
-                            <div style="font-weight:600;font-size:.85rem;color:var(--ink);">{{ $pasien->nama }}</div>
+                            <div wire:click="openDrawer({{ $pasien->id }})"
+                                 style="font-weight:600;font-size:.85rem;color:var(--ink);cursor:pointer;transition:color .15s;display:inline-block;"
+                                 onmouseover="this.style.color='var(--emer2)';this.style.textDecoration='underline'"
+                                 onmouseout="this.style.color='var(--ink)';this.style.textDecoration='none'"
+                                 title="Klik untuk lihat rekam medis">{{ $pasien->nama }}</div>
                             <div class="font-mono" style="font-size:.68rem;color:var(--mut2);">{{ $pasien->no_bpjs ?: '—' }}</div>
                             @if($age || $pasien->jenis_kelamin)
                             <div style="font-size:.66rem;color:var(--mut);margin-top:.1rem;">
                                 @if($age){{ $age }} thn @endif
                                 @if($age && $pasien->jenis_kelamin) &middot; @endif
-                                @if($pasien->jenis_kelamin) {{ $pasien->jenis_kelamin === 'L' ? '♂ L' : '♀ P' }} @endif
+                                @if($pasien->jenis_kelamin) {{ $pasien->jenis_kelamin === 'L' ? 'L' : 'P' }} @endif
                             </div>
                             @endif
                         </div>
@@ -413,12 +417,103 @@
                             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
                             Resep
                         </button>
+                        @php $isExpanded = $expandedRiwayatId === $pasien->id; @endphp
+                        <button wire:click="toggleRiwayat({{ $pasien->id }})" wire:key="rwbtn-{{ $pasien->id }}"
+                            style="background:{{ $isExpanded ? 'rgba(111,177,224,.22)' : 'rgba(111,177,224,.08)' }};border:1px solid rgba(111,177,224,.3);color:var(--blue);border-radius:.35rem;padding:.28rem .55rem;cursor:pointer;font-size:.7rem;transition:all .15s;display:flex;align-items:center;gap:.25rem;"
+                            onmouseover="this.style.background='rgba(111,177,224,.2)'" onmouseout="this.style.background='{{ $isExpanded ? 'rgba(111,177,224,.22)' : 'rgba(111,177,224,.08)' }}'" title="Riwayat pengambilan obat + untung/rugi">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                            Riwayat
+                            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .2s;{{ $isExpanded ? 'transform:rotate(180deg);' : '' }}"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
                         <button wire:click="deletePasien({{ $pasien->id }})" wire:confirm="Hapus pasien '{{ $pasien->nama }}'? Data pengambilan juga ikut terhapus." class="btn-danger" style="padding:.28rem .4rem;font-size:.7rem;" title="Hapus">
                             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                         </button>
                     </div>
                 </td>
             </tr>
+
+            {{-- ═══ RIWAYAT PENGAMBILAN OBAT — accordion detail (untung/rugi per obat) ═══ --}}
+            @if($expandedRiwayatId === $pasien->id)
+            @php $rt = $this->riwayatTotals; @endphp
+            <tr wire:key="rwdetail-{{ $pasien->id }}">
+                <td colspan="7" style="padding:0;background:linear-gradient(180deg,rgba(111,177,224,.05),rgba(10,20,16,.2));border-bottom:1px solid rgba(31,61,48,.5);">
+                    <div style="padding:1.1rem 1.25rem;">
+                        {{-- Header + total kumulatif --}}
+                        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;margin-bottom:1rem;">
+                            <div style="display:flex;align-items:center;gap:.55rem;">
+                                <svg width="15" height="15" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
+                                <span style="font-size:.82rem;font-weight:700;color:var(--ink);">Riwayat Pengambilan Obat</span>
+                                <span style="font-size:.72rem;color:var(--mut);">— {{ $pasien->nama }}</span>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+                                <span style="font-size:.66rem;padding:.2rem .55rem;border-radius:999px;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--mut);">{{ $rt['kunjungan'] }} kunjungan · {{ $rt['item'] }} item</span>
+                                <span style="font-size:.66rem;padding:.2rem .55rem;border-radius:999px;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.25);color:var(--red2);">HPP Rp {{ number_format($rt['biaya'],0,',','.') }}</span>
+                                <span style="font-size:.66rem;padding:.2rem .55rem;border-radius:999px;background:rgba(111,177,224,.1);border:1px solid rgba(111,177,224,.25);color:var(--blue);">Klaim Rp {{ number_format($rt['klaim'],0,',','.') }}</span>
+                                @php $glColor = $rt['laba'] > 0 ? 'var(--emer2)' : ($rt['laba'] < 0 ? 'var(--red2)' : 'var(--gold2)'); $glBg = $rt['laba']>0?'rgba(63,207,142,.12)':($rt['laba']<0?'rgba(232,100,90,.12)':'rgba(217,164,65,.12)'); @endphp
+                                <span style="font-size:.68rem;font-weight:800;padding:.2rem .6rem;border-radius:999px;background:{{ $glBg }};border:1px solid {{ $glColor }};color:{{ $glColor }};">
+                                    {{ $rt['laba'] >= 0 ? 'LABA' : 'RUGI' }} Rp {{ number_format(abs($rt['laba']),0,',','.') }} · {{ number_format(abs($rt['margin']),1) }}%
+                                </span>
+                            </div>
+                        </div>
+
+                        @forelse($this->riwayatRows as $rw)
+                        @php
+                            $pBiaya = 0; $pKlaim = 0;
+                            foreach($rw->items as $it){ $bu=(float)$it->harga_beli_snapshot; $ku=(float)$it->harga_klaim_bpjs_snapshot*\App\Models\Obat::jfMultiplier($it->faktor_jasa_farmasi_snapshot); $pBiaya+=$it->jumlah_unit*$bu; $pKlaim+=$it->jumlah_unit*$ku; }
+                            $pLaba = $pKlaim - $pBiaya; $pColor = $pLaba>0?'var(--emer2)':($pLaba<0?'var(--red2)':'var(--gold2)');
+                        @endphp
+                        <div style="background:rgba(17,36,28,.5);border:1px solid var(--line);border-radius:.7rem;overflow:hidden;margin-bottom:.7rem;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.4rem;padding:.6rem .9rem;border-bottom:1px solid rgba(31,61,48,.5);">
+                                <div style="display:flex;align-items:center;gap:.5rem;">
+                                    <span class="font-mono" style="font-size:.74rem;color:var(--gold2);">{{ \Carbon\Carbon::parse($rw->tanggal_pengambilan)->format('d M Y') }}</span>
+                                    <span style="font-size:.66rem;color:var(--mut);">{{ $rw->items->count() }} obat</span>
+                                    @if($rw->sumber_resep==='rme')<span style="font-size:.6rem;padding:.05rem .4rem;border-radius:999px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);color:#c4b5fd;">RME</span>@endif
+                                </div>
+                                <span style="font-size:.7rem;font-weight:700;color:{{ $pColor }};">{{ $pLaba>=0?'+':'−' }}Rp {{ number_format(abs($pLaba),0,',','.') }}</span>
+                            </div>
+                            <div style="overflow-x:auto;">
+                            <table style="width:100%;border-collapse:collapse;font-size:.72rem;">
+                                <thead>
+                                    <tr style="color:var(--mut);">
+                                        <th style="text-align:left;padding:.4rem .9rem;font-weight:600;font-size:.62rem;text-transform:uppercase;letter-spacing:.04em;">Obat</th>
+                                        <th style="text-align:right;padding:.4rem .6rem;font-weight:600;font-size:.62rem;text-transform:uppercase;">Jml</th>
+                                        <th style="text-align:right;padding:.4rem .6rem;font-weight:600;font-size:.62rem;text-transform:uppercase;">Beli/unit</th>
+                                        <th style="text-align:right;padding:.4rem .6rem;font-weight:600;font-size:.62rem;text-transform:uppercase;">Klaim/unit</th>
+                                        <th style="text-align:right;padding:.4rem .6rem;font-weight:600;font-size:.62rem;text-transform:uppercase;">HPP</th>
+                                        <th style="text-align:right;padding:.4rem .6rem;font-weight:600;font-size:.62rem;text-transform:uppercase;">Klaim</th>
+                                        <th style="text-align:right;padding:.4rem .9rem;font-weight:600;font-size:.62rem;text-transform:uppercase;">Laba/Rugi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($rw->items as $it)
+                                    @php
+                                        $bu=(float)$it->harga_beli_snapshot; $ku=(float)$it->harga_klaim_bpjs_snapshot*\App\Models\Obat::jfMultiplier($it->faktor_jasa_farmasi_snapshot);
+                                        $hpp=$it->jumlah_unit*$bu; $klm=$it->jumlah_unit*$ku; $lb=$klm-$hpp;
+                                        $lc=$lb>0?'var(--emer2)':($lb<0?'var(--red2)':'var(--mut)');
+                                    @endphp
+                                    <tr style="border-top:1px solid rgba(31,61,48,.35);">
+                                        <td style="padding:.4rem .9rem;color:var(--ink);">{{ $it->obat->nama_obat ?? '—' }}</td>
+                                        <td class="font-mono" style="padding:.4rem .6rem;text-align:right;color:var(--mut);">{{ $it->jumlah_unit }} {{ $it->satuan }}</td>
+                                        <td class="font-mono" style="padding:.4rem .6rem;text-align:right;color:var(--red2);">{{ number_format($bu,0,',','.') }}</td>
+                                        <td class="font-mono" style="padding:.4rem .6rem;text-align:right;color:var(--blue);">{{ number_format($ku,0,',','.') }}</td>
+                                        <td class="font-mono" style="padding:.4rem .6rem;text-align:right;color:var(--mut);">{{ number_format($hpp,0,',','.') }}</td>
+                                        <td class="font-mono" style="padding:.4rem .6rem;text-align:right;color:var(--ink);">{{ number_format($klm,0,',','.') }}</td>
+                                        <td class="font-mono" style="padding:.4rem .9rem;text-align:right;font-weight:700;color:{{ $lc }};">{{ $lb>=0?'+':'−' }}{{ number_format(abs($lb),0,',','.') }}</td>
+                                    </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                            </div>
+                        </div>
+                        @empty
+                        <div style="padding:1.5rem;text-align:center;color:var(--mut);font-size:.78rem;border:1px dashed var(--line);border-radius:.6rem;">
+                            Belum ada pengambilan obat selesai untuk pasien ini.
+                        </div>
+                        @endforelse
+                    </div>
+                </td>
+            </tr>
+            @endif
             @empty
             <tr>
                 <td colspan="7" style="text-align:center;padding:3rem 1rem;">
@@ -455,7 +550,7 @@
     x-transition:leave-start="transform translate-x-0"
     x-transition:leave-end="transform translate-x-full"
     class="prb-drawer"
-    style="display:none;position:fixed;top:0;right:0;bottom:0;width:430px;max-width:95vw;background:var(--panel);border-left:1px solid var(--line2);z-index:100;overflow:hidden;box-shadow:-8px 0 40px rgba(0,0,0,.5);">
+    style="display:none;position:fixed;top:0;right:0;bottom:0;width:500px;max-width:98vw;background:var(--panel);border-left:1px solid var(--line2);z-index:100;overflow:hidden;box-shadow:-12px 0 60px rgba(0,0,0,.6);">
 
     @if($this->drawerPasien)
     @php
@@ -468,102 +563,263 @@
         } else { $dpAge = null; }
     @endphp
 
-    {{-- Drawer Header --}}
-    <div style="padding:1.5rem 1.25rem 1rem;border-bottom:1px solid var(--line);background:var(--card);flex-shrink:0;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;">
-            <div style="display:flex;align-items:center;gap:.9rem;">
-                <div style="width:54px;height:54px;border-radius:50%;background:{{ $dpColor }}1a;border:2px solid {{ $dpColor }}55;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <span style="color:{{ $dpColor }};font-weight:700;font-size:1.25rem;">{{ $dpInitial }}</span>
+    {{-- ══ DRAWER HEADER — Rekam Medis ══════════════════════════════════════ --}}
+    @php
+        $dStats  = $this->drawerStats;
+        $dPnl    = $this->drawerPnl;
+        $dPlus   = ($dPnl['total_laba'] ?? 0) >= 0;
+        $dHasPnl = ($dPnl['count'] ?? 0) > 0;
+
+        // Jadwal countdown
+        $dJadwal = $dStats['jadwal'] ?? null;
+        if ($dJadwal) {
+            $dJadwalCarbon = \Carbon\Carbon::parse($dJadwal);
+            $dJadwalDiff   = (int) now()->startOfDay()->diffInDays($dJadwalCarbon->startOfDay(), false);
+        }
+    @endphp
+    <div style="flex-shrink:0;border-bottom:1px solid var(--line);background:var(--card);">
+
+        {{-- ── Baris 1: Avatar + Identitas + Close ──────────────────── --}}
+        <div style="padding:1.35rem 1.35rem .9rem;display:flex;align-items:flex-start;justify-content:space-between;gap:.85rem;">
+            <div style="display:flex;align-items:flex-start;gap:1rem;flex:1;min-width:0;">
+                {{-- Avatar dengan status dot --}}
+                <div style="position:relative;flex-shrink:0;">
+                    <div style="width:64px;height:64px;border-radius:50%;
+                        background:linear-gradient(135deg,{{ $dpColor }}30,{{ $dpColor }}12);
+                        border:3px solid {{ $dpColor }}60;
+                        display:flex;align-items:center;justify-content:center;
+                        box-shadow:0 6px 24px {{ $dpColor }}35;">
+                        <span style="color:{{ $dpColor }};font-weight:800;font-size:1.55rem;line-height:1;">{{ $dpInitial }}</span>
+                    </div>
+                    <span style="position:absolute;bottom:2px;right:2px;width:16px;height:16px;border-radius:50%;
+                        border:2.5px solid var(--card);
+                        background:{{ $dp->is_aktif ? 'var(--emer)' : 'var(--mut)' }};
+                        box-shadow:{{ $dp->is_aktif ? '0 0 8px rgba(63,207,142,.8)' : 'none' }};"></span>
                 </div>
-                <div>
-                    <div class="font-heading" style="font-size:1.05rem;color:var(--ink);">{{ $dp->nama }}</div>
-                    <div class="font-mono" style="font-size:.7rem;color:var(--mut2);margin-top:.12rem;">{{ $dp->no_bpjs ?: 'No BPJS belum diisi' }}</div>
-                    <div style="margin-top:.4rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+                {{-- Identitas --}}
+                <div style="flex:1;min-width:0;">
+                    <div class="font-heading" style="font-size:1.18rem;color:var(--ink);line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700;">{{ $dp->nama }}</div>
+                    <div class="font-mono" style="font-size:.76rem;color:var(--mut2);margin-top:.1rem;letter-spacing:.04em;">{{ $dp->no_bpjs ?: '— BPJS belum diisi' }}</div>
+                    <div style="margin-top:.4rem;display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;">
                         @if($dp->kategori_diagnosis)
-                        <span style="font-size:.65rem;padding:.15rem .5rem;border-radius:999px;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.25);color:var(--gold2);">{{ $dp->kategori_diagnosis }}</span>
+                        <span style="font-size:.72rem;padding:.14rem .52rem;border-radius:999px;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.28);color:var(--gold2);font-weight:600;letter-spacing:.03em;">{{ $dp->kategori_diagnosis }}</span>
                         @endif
-                        @if($dpAge) <span style="font-size:.68rem;color:var(--mut);">{{ $dpAge }} thn</span> @endif
-                        @if($dp->jenis_kelamin) <span style="font-size:.7rem;color:var(--mut);">{{ $dp->jenis_kelamin === 'L' ? '♂' : '♀' }}</span> @endif
-                        @if($dp->is_aktif) <span style="font-size:.64rem;color:var(--emer);display:inline-flex;align-items:center;gap:.25rem;"><span style="width:5px;height:5px;border-radius:50%;background:var(--emer);flex-shrink:0;"></span>Aktif</span> @endif
+                        @if($dpAge)<span style="font-size:.76rem;color:var(--mut);">{{ $dpAge }}&thinsp;thn</span>@endif
+                        @if($dp->jenis_kelamin)<span style="font-size:.78rem;color:var(--mut);">{{ $dp->jenis_kelamin==='L' ? 'L' : 'P' }}</span>@endif
+                        @if($dp->tanggal_lahir)<span style="font-size:.72rem;color:var(--mut2);">{{ \Carbon\Carbon::parse($dp->tanggal_lahir)->format('d M Y') }}</span>@endif
                     </div>
                 </div>
             </div>
-            <div style="display:flex;align-items:center;gap:.5rem;flex-shrink:0;">
-                <img src="/img/logo-klinik-hd.png" alt="Klinik Dokterku"
-                     style="width:40px;height:40px;object-fit:contain;border-radius:.6rem;opacity:.88;
-                            filter:drop-shadow(0 2px 10px rgba(74,144,217,.45)) drop-shadow(0 1px 5px rgba(242,192,0,.3));
-                            flex-shrink:0;">
-                <button @click="drawerOpen=false; $wire.closeDrawer()" style="background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--mut);cursor:pointer;border-radius:.35rem;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">&times;</button>
+            {{-- Close --}}
+            <button @click="drawerOpen=false; $wire.closeDrawer()"
+                style="background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--mut);cursor:pointer;border-radius:.5rem;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;transition:all .15s;"
+                onmouseover="this.style.background='rgba(232,100,90,.18)';this.style.color='var(--red)'" onmouseout="this.style.background='rgba(255,255,255,.06)';this.style.color='var(--mut)'">&times;</button>
+        </div>
+
+        {{-- ── Baris 2: P&L Summary (jika ada data) ────────────────── --}}
+        @if($dHasPnl)
+        <div style="margin:0 1.35rem .85rem;padding:.9rem 1.1rem;
+            border-radius:.65rem;
+            background:{{ $dPlus ? 'linear-gradient(135deg,rgba(63,207,142,.1),rgba(63,207,142,.04))' : 'linear-gradient(135deg,rgba(232,100,90,.1),rgba(232,100,90,.04))' }};
+            border:1px solid {{ $dPlus ? 'rgba(63,207,142,.25)' : 'rgba(232,100,90,.25)' }};">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem;">
+                <span style="font-size:.7rem;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;font-weight:700;">Analisis Keuangan Pasien</span>
+                <span style="font-size:.7rem;padding:.2rem .55rem;border-radius:999px;font-weight:700;
+                    background:{{ $dPlus ? 'rgba(63,207,142,.18)' : 'rgba(232,100,90,.18)' }};
+                    color:{{ $dPlus ? 'var(--emer)' : 'var(--red2)' }};
+                    border:1px solid {{ $dPlus ? 'rgba(63,207,142,.35)' : 'rgba(232,100,90,.35)' }};">
+                    <x-i :name="$dPlus ? 'arrow-up' : 'arrow-down'" :size="12" /> {{ $dPlus ? 'PROFIT' : 'DEFISIT' }}
+                </span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;gap:.6rem;align-items:center;">
+                <div style="text-align:center;">
+                    <div style="font-size:.68rem;color:var(--mut);margin-bottom:.18rem;font-weight:500;">HPP Kumulatif</div>
+                    <div class="font-mono" style="font-size:.95rem;font-weight:700;color:var(--ink);">Rp&nbsp;{{ number_format($dPnl['total_biaya'],0,',','.') }}</div>
+                </div>
+                <div style="background:var(--line);height:36px;"></div>
+                <div style="text-align:center;">
+                    <div style="font-size:.68rem;color:var(--emer2);margin-bottom:.18rem;font-weight:500;">Klaim BPJS</div>
+                    <div class="font-mono" style="font-size:.95rem;font-weight:700;color:var(--emer2);">Rp&nbsp;{{ number_format($dPnl['total_klaim'],0,',','.') }}</div>
+                </div>
+                <div style="background:var(--line);height:36px;"></div>
+                <div style="text-align:center;">
+                    <div style="font-size:.68rem;color:var(--mut);margin-bottom:.18rem;font-weight:500;">Net P&amp;L</div>
+                    <div class="font-mono" style="font-size:1.1rem;font-weight:800;line-height:1;color:{{ $dPlus ? 'var(--emer)' : 'var(--red2)' }};">
+                        {{ $dPlus ? '+' : '−' }}Rp&nbsp;{{ number_format(abs($dPnl['total_laba']),0,',','.') }}
+                    </div>
+                </div>
+            </div>
+            @if($dPnl['total_klaim'] > 0)
+            @php $margin = round(($dPnl['total_laba'] / $dPnl['total_klaim']) * 100, 1); @endphp
+            <div style="margin-top:.55rem;display:flex;align-items:center;gap:.6rem;">
+                <div style="flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.07);overflow:hidden;">
+                    <div style="height:100%;width:{{ min(100,abs($margin)) }}%;border-radius:3px;background:{{ $dPlus ? 'var(--emer)' : 'var(--red2)' }};transition:width .4s;"></div>
+                </div>
+                <span style="font-size:.74rem;color:{{ $dPlus ? 'var(--emer)' : 'var(--red2)' }};font-weight:700;white-space:nowrap;flex-shrink:0;">{{ $margin }}% margin</span>
+            </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- ── Baris 3: Quick Stats (4 tiles) ──────────────────────── --}}
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem;margin:0 1.35rem .9rem;">
+            {{-- Jadwal --}}
+            <div style="padding:.6rem .35rem;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.5rem;">
+                <div style="font-size:.64rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.18rem;font-weight:600;">Jadwal</div>
+                @if($dJadwal ?? null)
+                    @php $jc = $dJadwalDiff ?? 0; @endphp
+                    <div style="font-size:.9rem;font-weight:800;color:{{ $jc < 0 ? 'var(--red)' : ($jc <= 7 ? 'var(--gold2)' : 'var(--emer)') }};">
+                        @if($jc < 0) −{{ abs($jc) }}hr @elseif($jc === 0) Hari ini @else {{ $jc }}hr @endif
+                    </div>
+                @else
+                    <div style="font-size:.8rem;color:var(--mut);">—</div>
+                @endif
+            </div>
+            {{-- Terakhir Ambil --}}
+            <div style="padding:.6rem .35rem;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.5rem;">
+                <div style="font-size:.64rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.18rem;font-weight:600;">Terakhir</div>
+                @if($dStats['last_pickup'] ?? null)
+                    <div style="font-size:.82rem;font-weight:700;color:var(--ink);">{{ \Carbon\Carbon::parse($dStats['last_pickup'])->format('d M') }}</div>
+                @else
+                    <div style="font-size:.8rem;color:var(--mut);">—</div>
+                @endif
+            </div>
+            {{-- Obat Aktif --}}
+            <div style="padding:.6rem .35rem;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.5rem;">
+                <div style="font-size:.64rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.18rem;font-weight:600;">Obat</div>
+                <div style="font-size:.95rem;font-weight:800;color:var(--emer2);">{{ $dStats['resep_count'] ?? 0 }}</div>
+            </div>
+            {{-- Total Kunjungan --}}
+            <div style="padding:.6rem .35rem;text-align:center;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.5rem;">
+                <div style="font-size:.64rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.18rem;font-weight:600;">Kunjungan</div>
+                <div style="font-size:.95rem;font-weight:800;color:var(--gold2);">{{ $dPnl['count'] ?? 0 }}</div>
             </div>
         </div>
-        <div style="display:flex;gap:.5rem;">
-            <button wire:click="catat({{ $dp->id }})" @click="drawerOpen=false; $wire.closeDrawer()" class="btn-gold" style="flex:1;justify-content:center;font-size:.78rem;padding:.5rem .75rem;">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Catat Pengambilan
+
+        {{-- ── Baris 4: Catatan (jika ada) ─────────────────────────── --}}
+        @if($dp->catatan)
+        <div style="margin:0 1.35rem .8rem;padding:.55rem .8rem;background:rgba(217,164,65,.07);border-left:3px solid rgba(217,164,65,.45);border-radius:0 .5rem .5rem 0;font-size:.8rem;color:var(--gold2);font-style:italic;line-height:1.45;">
+            {{ $dp->catatan }}
+        </div>
+        @endif
+
+        {{-- ── Baris 5: Action Buttons ──────────────────────────────── --}}
+        <div style="padding:0 1.35rem 1rem;display:flex;gap:.5rem;">
+            <button wire:click="catat({{ $dp->id }})" @click="drawerOpen=false; $wire.closeDrawer()"
+                class="btn-gold" style="flex:1;justify-content:center;font-size:.82rem;padding:.58rem .85rem;">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Catat Pengambilan
             </button>
-            <button wire:click="openEdit({{ $dp->id }})" @click="drawerOpen=false" class="btn-outline" style="font-size:.78rem;padding:.5rem .75rem;">
-                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
+            <button wire:click="openEdit({{ $dp->id }})" @click="drawerOpen=false"
+                class="btn-outline" style="font-size:.82rem;padding:.58rem .8rem;">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Edit
             </button>
+            @if($dp->telepon)
+            <a href="https://wa.me/62{{ ltrim($dp->telepon,'0') }}" target="_blank"
+                style="display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.58rem .75rem;
+                    background:rgba(37,211,102,.12);border:1px solid rgba(37,211,102,.3);color:#25D366;
+                    border-radius:.5rem;font-size:.82rem;font-weight:600;text-decoration:none;transition:all .15s;white-space:nowrap;"
+                onmouseover="this.style.background='rgba(37,211,102,.24)'" onmouseout="this.style.background='rgba(37,211,102,.12)'">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                WA
+            </a>
+            @endif
         </div>
     </div>
 
-    {{-- Drawer Tabs --}}
-    <div style="display:flex;border-bottom:1px solid var(--line);background:var(--card);flex-shrink:0;">
-        <button @click="drawerTab='resep'"
-            :style="drawerTab==='resep' ? 'color:var(--emer);border-bottom:2px solid var(--emer);' : 'color:var(--mut);border-bottom:2px solid transparent;'"
-            style="flex:1;padding:.7rem .5rem;background:none;border:none;border-top:none;border-left:none;border-right:none;cursor:pointer;font-size:.75rem;font-weight:500;transition:all .15s;">
-            💊 Resep Obat
-        </button>
-        <button @click="drawerTab='riwayat'"
-            :style="drawerTab==='riwayat' ? 'color:var(--gold2);border-bottom:2px solid var(--gold);' : 'color:var(--mut);border-bottom:2px solid transparent;'"
-            style="flex:1;padding:.7rem .5rem;background:none;border:none;border-top:none;border-left:none;border-right:none;cursor:pointer;font-size:.75rem;font-weight:500;transition:all .15s;">
-            Riwayat
-        </button>
-        <button @click="drawerTab='persyaratan'"
-            :style="drawerTab==='persyaratan' ? 'color:var(--gold2);border-bottom:2px solid var(--gold);' : 'color:var(--mut);border-bottom:2px solid transparent;'"
-            style="flex:1;padding:.7rem .5rem;background:none;border:none;border-top:none;border-left:none;border-right:none;cursor:pointer;font-size:.75rem;font-weight:500;transition:all .15s;">
-            Persyaratan
-        </button>
+    {{-- ── Drawer Tabs — Segmented Control ──────────────────────────────── --}}
+    <div style="padding:.8rem 1rem;background:var(--card);flex-shrink:0;border-bottom:1px solid var(--line);">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.45rem;background:rgba(0,0,0,.25);border-radius:.7rem;padding:.3rem;">
+
+            {{-- Tab Resep --}}
+            <button @click="drawerTab='resep'"
+                :style="drawerTab==='resep'
+                    ? 'background:rgba(63,207,142,.2);color:var(--emer);box-shadow:0 2px 12px rgba(63,207,142,.2);border:1px solid rgba(63,207,142,.3);'
+                    : 'background:transparent;color:var(--mut);border:1px solid transparent;'"
+                style="padding:.65rem .4rem;border:none;cursor:pointer;transition:all .2s;border-radius:.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.28rem;min-width:0;">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                </svg>
+                <span style="font-size:.76rem;font-weight:700;letter-spacing:.01em;white-space:nowrap;line-height:1;">Resep</span>
+            </button>
+
+            {{-- Tab Riwayat P&L --}}
+            <button @click="drawerTab='riwayat'"
+                :style="drawerTab==='riwayat'
+                    ? 'background:rgba(217,164,65,.2);color:var(--gold2);box-shadow:0 2px 12px rgba(217,164,65,.2);border:1px solid rgba(217,164,65,.3);'
+                    : 'background:transparent;color:var(--mut);border:1px solid transparent;'"
+                style="padding:.65rem .4rem;border:none;cursor:pointer;transition:all .2s;border-radius:.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.28rem;min-width:0;">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                <span style="font-size:.76rem;font-weight:700;letter-spacing:.01em;white-space:nowrap;line-height:1;">Riwayat P&amp;L</span>
+            </button>
+
+            {{-- Tab Persyaratan --}}
+            <button @click="drawerTab='persyaratan'"
+                :style="drawerTab==='persyaratan'
+                    ? 'background:rgba(111,177,224,.2);color:var(--blue);box-shadow:0 2px 12px rgba(111,177,224,.2);border:1px solid rgba(111,177,224,.3);'
+                    : 'background:transparent;color:var(--mut);border:1px solid transparent;'"
+                style="padding:.65rem .4rem;border:none;cursor:pointer;transition:all .2s;border-radius:.5rem;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.28rem;min-width:0;">
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <polyline points="20 6 9 17 4 12"/><circle cx="12" cy="12" r="10"/>
+                </svg>
+                <span style="font-size:.76rem;font-weight:700;letter-spacing:.01em;white-space:nowrap;line-height:1;">Persyaratan</span>
+            </button>
+
+        </div>
     </div>
 
     {{-- Scrollable tab content area --}}
     <div style="flex:1;overflow-y:auto;min-height:0;">
 
-    {{-- Tab: Resep Obat --}}
+    {{-- ══ Tab: Resep Obat ════════════════════════════════════════════════ --}}
     <div x-show="drawerTab==='resep'" style="padding:1.25rem;">
         @if(!$resepEditing)
         {{-- View mode --}}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-            <span style="font-size:.7rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;font-weight:600;">Obat Rutin Bulanan</span>
+            <div style="display:flex;align-items:center;gap:.5rem;">
+                <span style="font-size:.72rem;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;font-weight:700;">Obat Rutin Bulanan</span>
+                @if($this->drawerResep->count() > 0)
+                <span style="font-size:.7rem;padding:.14rem .45rem;border-radius:999px;background:rgba(63,207,142,.12);border:1px solid rgba(63,207,142,.28);color:var(--emer);font-weight:700;">{{ $this->drawerResep->count() }} obat</span>
+                @endif
+            </div>
             <button wire:click="startResepEdit"
-                style="font-size:.72rem;padding:.32rem .7rem;background:rgba(63,207,142,.1);border:1px solid rgba(63,207,142,.25);color:var(--emer);border-radius:.35rem;cursor:pointer;display:inline-flex;align-items:center;gap:.3rem;">
-                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit Resep
+                style="font-size:.78rem;padding:.38rem .75rem;background:rgba(63,207,142,.08);border:1px solid rgba(63,207,142,.22);color:var(--emer);border-radius:.45rem;cursor:pointer;display:inline-flex;align-items:center;gap:.35rem;transition:all .15s;"
+                onmouseover="this.style.background='rgba(63,207,142,.18)'" onmouseout="this.style.background='rgba(63,207,142,.08)'">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
             </button>
         </div>
         @if($this->drawerResep->isEmpty())
-        <div style="text-align:center;padding:2rem 0;">
-            <div style="width:40px;height:40px;border-radius:50%;background:rgba(63,207,142,.08);display:flex;align-items:center;justify-content:center;margin:0 auto .6rem;">
-                <svg width="18" height="18" fill="none" stroke="var(--emer)" stroke-width="1.8" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+        <div style="text-align:center;padding:3rem 0;">
+            <div style="width:56px;height:56px;border-radius:50%;background:rgba(63,207,142,.07);border:1.5px solid rgba(63,207,142,.18);display:flex;align-items:center;justify-content:center;margin:0 auto .85rem;">
+                <svg width="24" height="24" fill="none" stroke="rgba(63,207,142,.55)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
             </div>
-            <div style="font-size:.8rem;color:var(--mut);margin-bottom:.4rem;">Belum ada resep obat.</div>
-            <div style="font-size:.72rem;color:var(--mut2);">Klik Edit Resep untuk menambah obat rutin pasien ini.</div>
+            <div style="font-size:.9rem;color:var(--mut);margin-bottom:.38rem;font-weight:500;">Belum ada resep obat.</div>
+            <div style="font-size:.78rem;color:var(--mut2);">Klik Edit untuk menambah obat rutin pasien ini.</div>
         </div>
         @else
-        <div style="display:flex;flex-direction:column;gap:.5rem;">
-            @foreach($this->drawerResep as $rsp)
-            <div style="display:flex;align-items:center;gap:.75rem;padding:.65rem .85rem;background:rgba(63,207,142,.04);border:1px solid rgba(63,207,142,.15);border-radius:.45rem;">
-                <div style="width:32px;height:32px;border-radius:.4rem;background:rgba(63,207,142,.1);border:1px solid rgba(63,207,142,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                    <svg width="14" height="14" fill="none" stroke="var(--emer)" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        <div style="display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem;">
+            @foreach($this->drawerResep as $ri => $rsp)
+            <div style="display:flex;align-items:center;gap:.75rem;padding:.75rem .95rem;
+                background:rgba(63,207,142,.04);border:1px solid rgba(63,207,142,.14);
+                border-left:4px solid rgba(63,207,142,.4);border-radius:0 .55rem .55rem 0;transition:border-color .15s;"
+                onmouseover="this.style.borderLeftColor='var(--emer)'" onmouseout="this.style.borderLeftColor='rgba(63,207,142,.4)'">
+                <div style="width:32px;height:32px;border-radius:.4rem;background:rgba(63,207,142,.13);border:1px solid rgba(63,207,142,.22);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:.76rem;font-weight:800;color:var(--emer);">{{ $ri + 1 }}</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:.95rem;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $rsp->obat?->nama_obat ?? '—' }}</div>
+                    <div style="font-size:.74rem;color:var(--mut);margin-top:.08rem;">{{ $rsp->satuan ?? 'tablet' }}</div>
                 </div>
-                <div style="flex:1;">
-                    <div style="font-size:.84rem;font-weight:600;color:var(--ink);">{{ $rsp->obat?->nama_obat ?? '—' }}</div>
-                    <div style="font-size:.7rem;color:var(--mut);margin-top:.1rem;">{{ $rsp->jumlah_default }} {{ $rsp->satuan }}/bulan</div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <div class="font-mono" style="font-size:1.05rem;font-weight:800;color:var(--emer2);">{{ $rsp->jumlah_default }}</div>
+                    <div style="font-size:.66rem;color:var(--mut);">/bulan</div>
                 </div>
-                <span style="font-size:.63rem;padding:.12rem .45rem;border-radius:999px;background:rgba(63,207,142,.1);border:1px solid rgba(63,207,142,.2);color:var(--emer);font-weight:600;">{{ $rsp->jumlah_default }}</span>
             </div>
             @endforeach
         </div>
-        <div style="margin-top:.85rem;padding:.6rem .85rem;background:rgba(111,177,224,.07);border:1px solid rgba(111,177,224,.2);border-radius:.4rem;font-size:.72rem;color:var(--blue);">
-            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:.3rem;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div style="padding:.65rem .9rem;background:rgba(111,177,224,.05);border:1px solid rgba(111,177,224,.18);border-radius:.5rem;font-size:.76rem;color:var(--blue);display:flex;align-items:center;gap:.45rem;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             Resep ini otomatis terisi saat catat pengambilan obat.
         </div>
         @endif
@@ -613,52 +869,182 @@
             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Tambah Obat
         </button>
 
-        <button wire:click="saveResep" class="btn-gold" style="width:100%;justify-content:center;">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-            Simpan Resep
+        <button wire:click="saveResep" class="btn-gold" style="width:100%;justify-content:center;" wire:loading.attr="disabled" wire:target="saveResep">
+            <span wire:loading.remove wire:target="saveResep" style="display:inline-flex;align-items:center;gap:.4rem;">
+                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                Simpan Resep
+            </span>
+            <span wire:loading wire:target="saveResep">Menyimpan…</span>
         </button>
         @endif
     </div>
 
-    {{-- Tab: Riwayat Pengambilan --}}
+    {{-- Tab: Riwayat Pengambilan + P&L --}}
     <div x-show="drawerTab==='riwayat'" style="padding:1.25rem;">
+
+        {{-- ── P&L SUMMARY BANNER ──────────────────────────────────────── --}}
+        @php
+            $pnl      = $this->drawerPnl;
+            $pnlPlus  = $pnl['total_laba'] >= 0;
+            $pnlColor = $pnlPlus ? 'var(--emer)' : 'var(--red2)';
+            $pnlBg    = $pnlPlus ? 'rgba(63,207,142,.06)' : 'rgba(232,100,90,.06)';
+            $pnlBdr   = $pnlPlus ? 'rgba(63,207,142,.22)' : 'rgba(232,100,90,.22)';
+        @endphp
+        @if($pnl['count'] > 0)
+        <div style="margin-bottom:1.2rem;padding:1rem 1.1rem;background:{{ $pnlBg }};border:1px solid {{ $pnlBdr }};border-radius:.65rem;">
+            <div style="font-size:.7rem;color:var(--mut);text-transform:uppercase;letter-spacing:.07em;font-weight:700;margin-bottom:.7rem;display:flex;align-items:center;justify-content:space-between;">
+                <span>Akumulasi P&amp;L Pasien</span>
+                <span style="font-weight:500;color:var(--mut2);font-size:.68rem;text-transform:none;letter-spacing:0;">{{ $pnl['count'] }} kunjungan selesai</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.5rem;text-align:center;">
+                <div>
+                    <div style="font-size:.68rem;color:var(--mut);margin-bottom:.18rem;font-weight:500;">HPP Total</div>
+                    <div class="font-mono" style="font-size:.92rem;font-weight:700;color:var(--ink);">Rp&nbsp;{{ number_format($pnl['total_biaya'],0,',','.') }}</div>
+                </div>
+                <div style="border-left:1px solid var(--line);border-right:1px solid var(--line);">
+                    <div style="font-size:.68rem;color:var(--mut);margin-bottom:.18rem;font-weight:500;">Klaim BPJS</div>
+                    <div class="font-mono" style="font-size:.92rem;font-weight:700;color:var(--emer2);">Rp&nbsp;{{ number_format($pnl['total_klaim'],0,',','.') }}</div>
+                </div>
+                <div>
+                    <div style="font-size:.68rem;color:var(--mut);margin-bottom:.18rem;font-weight:500;">Net P&amp;L</div>
+                    <div class="font-mono" style="font-size:1.05rem;font-weight:800;color:{{ $pnlColor }};">
+                        {{ $pnlPlus ? '+' : '−' }}Rp&nbsp;{{ number_format(abs($pnl['total_laba']),0,',','.') }}
+                    </div>
+                </div>
+            </div>
+            @if($pnl['total_biaya'] > 0)
+            <div style="margin-top:.6rem;padding-top:.55rem;border-top:1px solid {{ $pnlBdr }};font-size:.74rem;color:{{ $pnlColor }};text-align:center;font-weight:700;">
+                @php $margin = $pnl['total_klaim'] > 0 ? round(($pnl['total_laba'] / $pnl['total_klaim']) * 100, 1) : 0; @endphp
+                <x-i :name="$pnlPlus ? 'arrow-up' : 'arrow-down'" :size="12" /> {{ $pnlPlus ? 'Profit' : 'Defisit' }} {{ abs($margin) }}% dari total klaim
+            </div>
+            @endif
+        </div>
+        @endif
+
+        {{-- ── TIMELINE KUNJUNGAN ──────────────────────────────────────── --}}
         @if($this->drawerRiwayat->count() > 0)
         <div style="position:relative;padding-left:1.5rem;">
             <div style="position:absolute;left:.6rem;top:.5rem;bottom:1rem;width:1px;background:var(--line2);"></div>
+
             @foreach($this->drawerRiwayat as $rwyt)
             @php
-                $rStatus = $rwyt->status ?? 'dijadwalkan';
-                $rColor = match($rStatus) { 'selesai' => 'var(--emer)', 'lewat' => 'var(--red)', default => 'var(--gold2)' };
-                $rBg = match($rStatus) { 'selesai' => 'rgba(63,207,142,.1)', 'lewat' => 'rgba(232,100,90,.1)', default => 'rgba(217,164,65,.1)' };
-                $rBorder = match($rStatus) { 'selesai' => 'rgba(63,207,142,.25)', 'lewat' => 'rgba(232,100,90,.25)', default => 'rgba(217,164,65,.25)' };
-                $rLabel = match($rStatus) { 'selesai' => '&#10003; Selesai', 'lewat' => '&#9888; Lewat', default => '&#8987; Jadwal' };
+                $rStatus  = $rwyt->status ?? 'dijadwalkan';
+                $rColor   = match($rStatus) { 'selesai' => 'var(--emer)', 'lewat' => 'var(--red)', default => 'var(--gold2)' };
+                $rBg      = match($rStatus) { 'selesai' => 'rgba(63,207,142,.1)', 'lewat' => 'rgba(232,100,90,.1)', default => 'rgba(217,164,65,.1)' };
+                $rBorder  = match($rStatus) { 'selesai' => 'rgba(63,207,142,.25)', 'lewat' => 'rgba(232,100,90,.25)', default => 'rgba(217,164,65,.25)' };
+                $rLabel   = match($rStatus) { 'selesai' => '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg> Selesai', 'lewat' => '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> Lewat', default => '⏳ Jadwal' };
+
+                // P&L per kunjungan ini
+                $kBiaya   = $rwyt->items->sum(fn($i) => $i->total_biaya);
+                $kKlaim   = $rwyt->items->sum(fn($i) => $i->proyeksi_klaim);
+                $kLaba    = $kKlaim - $kBiaya;
+                $kPlus    = $kLaba >= 0;
+                $hasHarga = $kBiaya > 0 || $kKlaim > 0;
             @endphp
             <div style="position:relative;margin-bottom:1rem;">
-                <div style="position:absolute;left:-1.2rem;top:.4rem;width:10px;height:10px;border-radius:50%;background:{{ $rColor }};border:2px solid var(--panel);box-shadow:0 0 5px {{ $rColor }}55;"></div>
-                <div class="glass-card" style="padding:.85rem;margin-left:.2rem;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.45rem;">
-                        <span style="font-size:.8rem;font-weight:600;color:var(--ink);">{{ \Carbon\Carbon::parse($rwyt->tanggal_pengambilan)->format('d M Y') }}</span>
-                        <span style="font-size:.65rem;padding:.15rem .5rem;border-radius:999px;background:{{ $rBg }};border:1px solid {{ $rBorder }};color:{{ $rColor }};font-weight:600;">{!! $rLabel !!}</span>
-                    </div>
-                    @if($rwyt->items && $rwyt->items->count() > 0)
-                    <div style="font-size:.68rem;color:var(--mut2);margin-bottom:.4rem;">{{ $rwyt->items->count() }} item obat</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:.3rem;">
-                        @foreach($rwyt->items->take(4) as $item)
-                        <span style="font-size:.66rem;padding:.15rem .45rem;border-radius:.3rem;background:rgba(255,255,255,.04);border:1px solid var(--line);color:var(--mut2);">
-                            {{ $item->obat?->nama_obat ?? '—' }} &times; {{ $item->jumlah_unit }}
+                <div style="position:absolute;left:-1.2rem;top:.45rem;width:10px;height:10px;border-radius:50%;background:{{ $rColor }};border:2px solid var(--panel);box-shadow:0 0 6px {{ $rColor }}55;"></div>
+                <div class="glass-card" style="padding:.8rem;margin-left:.2rem;">
+
+                    {{-- Baris header tanggal + badge --}}
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem;gap:.4rem;flex-wrap:wrap;">
+                        <span style="font-size:.82rem;font-weight:700;color:var(--ink);">
+                            {{ \Carbon\Carbon::parse($rwyt->tanggal_pengambilan)->locale('id')->translatedFormat('d M Y') }}
                         </span>
-                        @endforeach
-                        @if($rwyt->items->count() > 4)
-                        <span style="font-size:.66rem;color:var(--mut);padding:.15rem 0;">+{{ $rwyt->items->count()-4 }} lainnya</span>
+                        <div style="display:flex;align-items:center;gap:.35rem;flex-wrap:wrap;">
+                            @if($hasHarga && $rStatus === 'selesai')
+                            <span class="font-mono" style="font-size:.74rem;padding:.16rem .55rem;border-radius:999px;font-weight:700;
+                                background:{{ $kPlus ? 'rgba(63,207,142,.12)' : 'rgba(232,100,90,.12)' }};
+                                border:1px solid {{ $kPlus ? 'rgba(63,207,142,.3)' : 'rgba(232,100,90,.3)' }};
+                                color:{{ $kPlus ? 'var(--emer)' : 'var(--red2)' }};">
+                                {{ $kPlus ? '+' : '−' }}Rp&nbsp;{{ number_format(abs($kLaba),0,',','.') }}
+                            </span>
+                            @endif
+                            <span style="font-size:.74rem;padding:.16rem .55rem;border-radius:999px;background:{{ $rBg }};border:1px solid {{ $rBorder }};color:{{ $rColor }};font-weight:600;">{{ $rLabel }}</span>
+                        </div>
+                    </div>
+
+                    {{-- Tabel per-item --}}
+                    @if($rwyt->items && $rwyt->items->count() > 0)
+                    <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;min-width:260px;">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(255,255,255,.07);">
+                                <th style="text-align:left;font-size:.68rem;color:var(--mut);font-weight:700;padding:.3rem .35rem;text-transform:uppercase;letter-spacing:.04em;">Obat</th>
+                                <th style="text-align:center;font-size:.68rem;color:var(--mut);font-weight:700;padding:.3rem .35rem;text-transform:uppercase;letter-spacing:.04em;">Jml</th>
+                                @if($hasHarga)
+                                <th style="text-align:right;font-size:.68rem;color:var(--mut);font-weight:700;padding:.3rem .35rem;text-transform:uppercase;letter-spacing:.04em;">HPP</th>
+                                <th style="text-align:right;font-size:.68rem;color:var(--emer2);font-weight:700;padding:.3rem .35rem;text-transform:uppercase;letter-spacing:.04em;">Klaim</th>
+                                <th style="text-align:right;font-size:.68rem;color:var(--mut);font-weight:700;padding:.3rem .35rem;text-transform:uppercase;letter-spacing:.04em;">P&amp;L</th>
+                                @endif
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($rwyt->items as $itm)
+                            @php
+                                $iBiaya  = $itm->total_biaya;
+                                $iKlaim  = $itm->proyeksi_klaim;
+                                $iLaba   = $iKlaim - $iBiaya;
+                                $iPlus   = $iLaba >= 0;
+                                $iHasHrg = $iBiaya > 0 || $iKlaim > 0;
+                            @endphp
+                            <tr style="border-bottom:1px solid rgba(255,255,255,.04);">
+                                <td style="padding:.35rem .35rem;font-size:.82rem;color:var(--ink);">{{ $itm->obat?->nama_obat ?? '—' }}</td>
+                                <td style="padding:.35rem .35rem;text-align:center;">
+                                    <span class="font-mono" style="font-size:.8rem;color:var(--mut2);font-weight:600;">{{ $itm->jumlah_unit }}</span>
+                                    <span style="font-size:.68rem;color:var(--mut);margin-left:.15rem;">{{ $itm->satuan }}</span>
+                                </td>
+                                @if($hasHarga)
+                                <td class="font-mono" style="padding:.35rem .35rem;text-align:right;font-size:.78rem;color:var(--mut2);">
+                                    @if($iBiaya > 0) Rp&nbsp;{{ number_format($iBiaya,0,',','.') }} @else <span style="color:var(--mut);">—</span> @endif
+                                </td>
+                                <td class="font-mono" style="padding:.35rem .35rem;text-align:right;font-size:.78rem;color:var(--emer2);">
+                                    @if($iKlaim > 0) Rp&nbsp;{{ number_format($iKlaim,0,',','.') }} @else <span style="color:var(--mut);">—</span> @endif
+                                </td>
+                                <td class="font-mono" style="padding:.35rem .35rem;text-align:right;font-size:.82rem;font-weight:700;
+                                    color:{{ $iHasHrg ? ($iPlus ? 'var(--emer)' : 'var(--red2)') : 'var(--mut)' }};">
+                                    @if($iHasHrg)
+                                        {{ $iPlus ? '+' : '−' }}Rp&nbsp;{{ number_format(abs($iLaba),0,',','.') }}
+                                    @else <span style="color:var(--mut);">—</span>
+                                    @endif
+                                </td>
+                                @endif
+                            </tr>
+                            @endforeach
+                        </tbody>
+                        @if($hasHarga && $rwyt->items->count() > 1)
+                        <tfoot>
+                            <tr style="border-top:1px solid rgba(255,255,255,.1);">
+                                <td colspan="2" style="padding:.38rem .35rem;font-size:.7rem;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.04em;">Total</td>
+                                <td class="font-mono" style="padding:.38rem .35rem;text-align:right;font-size:.8rem;font-weight:700;color:var(--ink);">Rp&nbsp;{{ number_format($kBiaya,0,',','.') }}</td>
+                                <td class="font-mono" style="padding:.38rem .35rem;text-align:right;font-size:.8rem;font-weight:700;color:var(--emer2);">Rp&nbsp;{{ number_format($kKlaim,0,',','.') }}</td>
+                                <td class="font-mono" style="padding:.38rem .35rem;text-align:right;font-size:.88rem;font-weight:800;color:{{ $kPlus ? 'var(--emer)' : 'var(--red2)' }};">
+                                    {{ $kPlus ? '+' : '−' }}Rp&nbsp;{{ number_format(abs($kLaba),0,',','.') }}
+                                </td>
+                            </tr>
+                        </tfoot>
                         @endif
+                    </table>
                     </div>
                     @else
-                    <div style="font-size:.72rem;color:var(--mut);">Tidak ada data obat.</div>
+                    <div style="font-size:.72rem;color:var(--mut);margin-top:.25rem;">Tidak ada data obat.</div>
+                    @endif
+
+                    @if($rwyt->catatan)
+                    <div style="margin-top:.5rem;font-size:.69rem;color:var(--mut);font-style:italic;padding:.3rem .5rem;background:rgba(255,255,255,.03);border-radius:.3rem;border-left:2px solid var(--line2);">
+                        {{ $rwyt->catatan }}
+                    </div>
                     @endif
                 </div>
             </div>
             @endforeach
+
+            @if($this->drawerRiwayat->count() >= 10)
+            <div style="text-align:center;font-size:.68rem;color:var(--mut2);padding:.4rem 0 0;margin-left:.2rem;">
+                Menampilkan 10 kunjungan terakhir
+            </div>
+            @endif
         </div>
+
         @else
         <div style="text-align:center;padding:2.5rem 0;">
             <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.04);display:flex;align-items:center;justify-content:center;margin:0 auto .75rem;">
@@ -686,16 +1072,16 @@
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;">
                 <div style="flex:1;">
                     <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.35rem;flex-wrap:wrap;">
-                        <span style="font-size:.63rem;padding:.14rem .45rem;border-radius:.3rem;background:{{ $sStyle['bg'] }};border:1px solid {{ $sStyle['border'] }};color:{{ $sStyle['text'] }};font-weight:600;">{{ $sLabel }}</span>
+                        <span style="font-size:.74rem;padding:.17rem .5rem;border-radius:.35rem;background:{{ $sStyle['bg'] }};border:1px solid {{ $sStyle['border'] }};color:{{ $sStyle['text'] }};font-weight:600;">{{ $sLabel }}</span>
                         @if($syarat->is_wajib ?? false)
-                        <span style="font-size:.62rem;padding:.12rem .4rem;border-radius:.3rem;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.25);color:var(--red);font-weight:700;">WAJIB</span>
+                        <span style="font-size:.72rem;padding:.15rem .48rem;border-radius:.35rem;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.25);color:var(--red);font-weight:700;">WAJIB</span>
                         @endif
                     </div>
-                    <div style="font-size:.84rem;font-weight:600;color:var(--ink);">{{ $syarat->nama_syarat }}</div>
+                    <div style="font-size:.95rem;font-weight:600;color:var(--ink);">{{ $syarat->nama_syarat }}</div>
                     @if($syarat->deskripsi ?? null)
-                    <div style="font-size:.72rem;color:var(--mut);margin-top:.2rem;">{{ $syarat->deskripsi }}</div>
+                    <div style="font-size:.82rem;color:var(--mut);margin-top:.25rem;">{{ $syarat->deskripsi }}</div>
                     @endif
-                    <div style="font-size:.67rem;color:var(--mut2);margin-top:.3rem;">
+                    <div style="font-size:.76rem;color:var(--mut2);margin-top:.35rem;">
                         <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:inline;vertical-align:middle;margin-right:.2rem;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                         @if(($syarat->periode_bulan ?? 0) > 0) Setiap {{ $syarat->periode_bulan }} bulan @else Setiap kunjungan @endif
                     </div>

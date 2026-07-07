@@ -19,20 +19,38 @@ class StokTable extends Component
         $this->sortDir = $this->sortDir === 'asc' ? 'desc' : 'asc';
     }
 
-    public function updateStok(int $id, int $value): void
+    public function updateStok(int $id, $value): void
     {
         $obat     = Obat::findOrFail($id);
         $old      = $obat->stok_aktual;
-        $obat->update(['stok_aktual' => max(0, $value)]);
+        $value    = max(0, (int) $value);
+        $obat->update(['stok_aktual' => $value]);
         ActivityLog::record('updated',"Stok diupdate: {$obat->nama_obat} ({$old}→{$value})",'Obat',$id,
             ['stok_aktual'=>$old],['stok_aktual'=>$value]);
         $this->dispatch('toast', message: 'Stok diperbarui.', type: 'success');
     }
 
-    public function updateMinimum(int $id, int $value): void
+    public function updateMinimum(int $id, $value): void
     {
-        Obat::findOrFail($id)->update(['stok_minimum' => max(0, $value)]);
+        Obat::findOrFail($id)->update(['stok_minimum' => max(0, (int) $value)]);
         $this->dispatch('toast', message: 'Stok minimum diperbarui.', type: 'success');
+    }
+
+    /** Ubah isi per box (item per box) — hanya faktor konversi tampilan, tak ubah jumlah item. */
+    public function updateIsiPerBox(int $id, $value): void
+    {
+        Obat::findOrFail($id)->update(['isi_per_box' => max(1, (int) $value)]);
+        $this->dispatch('toast', message: 'Isi per box diperbarui.', type: 'success');
+    }
+
+    /** Tambah stok dalam BOX → konversi ke item (mis. +5 box × isi 100 = +500 item). */
+    public function tambahBox(int $id, int $box): void
+    {
+        $obat = Obat::findOrFail($id);
+        $isi  = max(1, (int) $obat->isi_per_box);
+        $tambah = max(0, $box) * $isi;
+        $obat->increment('stok_aktual', $tambah);
+        $this->dispatch('toast', message: "+{$box} box ({$tambah} item) ditambahkan.", type: 'success');
     }
 
     public function updateKadaluarsa(int $id, ?string $value): void
@@ -41,13 +59,28 @@ class StokTable extends Component
         $this->dispatch('toast', message: 'Tanggal kadaluarsa diperbarui.', type: 'success');
     }
 
+    /** Ubah komposisi (zat aktif + kekuatan) langsung dari tabel stok. */
+    public function updateKomposisi(int $id, ?string $value): void
+    {
+        $val  = trim((string) $value);
+        $obat = Obat::findOrFail($id);
+        $old  = $obat->komposisi;
+        $obat->update(['komposisi' => $val !== '' ? mb_substr($val, 0, 255) : null]);
+        ActivityLog::record('updated', "Komposisi diupdate: {$obat->nama_obat}", 'Obat', $id,
+            ['komposisi' => $old], ['komposisi' => $obat->komposisi]);
+        $this->dispatch('toast', message: 'Komposisi diperbarui.', type: 'success');
+    }
+
     #[Computed]
     public function obatList()
     {
         $query = Obat::where('is_active', true);
 
         if ($this->search) {
-            $query->where('nama_obat', 'like', '%'.$this->search.'%');
+            $query->where(function ($q) {
+                $q->where('nama_obat', 'like', '%'.$this->search.'%')
+                  ->orWhere('komposisi', 'like', '%'.$this->search.'%');
+            });
         }
 
         $list = $query->orderBy($this->sortBy, $this->sortDir)->get();

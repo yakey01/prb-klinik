@@ -61,7 +61,7 @@ class LaporanBulanan extends Component
             ->whereMonth('po.tanggal_pengambilan', $this->bulan)
             ->where('po.status', 'selesai')
             ->where('o.tipe_obat', 'kronis')
-            ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot'));
+            ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ''));
 
         // Revenue aktual dari rekonsiliasi BPJS periode ini
         $rekon = RekonsiliasiiBpjs::where('bulan', $this->bulan)
@@ -150,7 +150,7 @@ class LaporanBulanan extends Component
                 \DB::raw('AVG(ip.harga_klaim_bpjs_snapshot) AS klaim'),
                 \DB::raw('AVG(ip.faktor_jasa_farmasi_snapshot) AS faktor'),
                 \DB::raw('AVG(ip.harga_beli_snapshot) AS harga_beli'),
-                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) AS proyeksi'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') AS proyeksi'),
                 \DB::raw('SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS biaya')
             )
             ->groupBy('o.id', 'o.nama_obat', 'o.kategori_diagnosis')
@@ -164,7 +164,8 @@ class LaporanBulanan extends Component
             'unit'       => (float) $r->total_unit,
             'klaim'      => round((float) $r->klaim, 2),
             'faktor'     => round((float) $r->faktor, 4),
-            'bayar_bpjs' => round((float) $r->klaim * (float) $r->faktor, 2),
+            // klaim dibayar per-unit = total proyeksi (sudah ternormalisasi) ÷ unit
+            'bayar_bpjs' => (float) $r->total_unit > 0 ? round((float) $r->proyeksi / (float) $r->total_unit, 2) : 0,
             'harga_beli' => round((float) $r->harga_beli, 2),
             'pendapatan' => round((float) $r->proyeksi, 2),  // proyeksi klaim
             'biaya'      => round((float) $r->biaya, 2),
@@ -207,9 +208,9 @@ class LaporanBulanan extends Component
             ->where('o.tipe_obat', 'kronis')
             ->select(
                 'o.nama_obat',
-                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) AS proyeksi'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') AS proyeksi'),
                 \DB::raw('SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS biaya'),
-                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot)
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ')
                          - SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS laba')
             )
             ->groupBy('o.id', 'o.nama_obat')
@@ -231,9 +232,9 @@ class LaporanBulanan extends Component
             ->where('o.tipe_obat', 'kronis')
             ->select(
                 'o.nama_obat',
-                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot) AS proyeksi'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') AS proyeksi'),
                 \DB::raw('SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS biaya'),
-                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot)
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ')
                          - SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS laba')
             )
             ->groupBy('o.id', 'o.nama_obat')
@@ -266,7 +267,7 @@ class LaporanBulanan extends Component
                 ->whereMonth('po.tanggal_pengambilan', $d->month)
                 ->where('po.status', 'selesai')
                 ->where('o.tipe_obat', 'kronis')
-                ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ip.faktor_jasa_farmasi_snapshot'));
+                ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ''));
 
             // Tunai non-kronis: aktual dari stok keluar per bulan
             $pendTunaiData[] = (float) StokKeluar::whereYear('tanggal_keluar', $d->year)
