@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# bin/sync — PRB Apotik: tarik versi terbaru dari GitHub SEBELUM mulai kerja (Mac mana pun).
+# Pakai: ./bin/sync
+set -euo pipefail
+cd "$(dirname "$0")/.."
+echo "⬇️  Menarik perubahan terbaru dari GitHub…"
+git pull --rebase --autostash
+echo "✅ Kode PRB Apotik sudah versi terbaru. Silakan mulai kerja."

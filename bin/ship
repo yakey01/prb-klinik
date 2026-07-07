@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# bin/ship — PRB Apotik: simpan → GitHub → DEPLOY ke produksi (apotik.klinikdokterku.id).
+# Pakai: ./bin/ship "pesan singkat perubahan"
+# Jalankan dari Mac (Mac Mini / MacBook) yang punya key ~/.ssh/biznet_sim.
+#
+# 🔴 KEAMANAN: rsync memakai file excludes yang WAJIB memuat .env, dan TIDAK memakai --delete
+#    (tak pernah menimpa .env prod atau menghapus file di server).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+MSG="${1:-update $(date '+%Y-%m-%d %H:%M')}"
+SSH="ssh -i $HOME/.ssh/biznet_sim"
+HOST="klinikadmin@103.93.133.244"
+APP="/var/www/apotik"
+
+echo "▶ 1/5 · sinkron GitHub (rebase)…"
+git pull --rebase --autostash || true
+
+echo "▶ 2/5 · commit + push…"
+git add -A
+git commit -m "$MSG" || echo "  (tidak ada perubahan untuk di-commit)"
+git push
+
+echo "▶ 3/5 · tulis excludes (WAJIB .env) + kirim kode ke VPS…"
+EXC="$(mktemp)"
+cat > "$EXC" << 'EOF'
+.git
+.claude
+node_modules
+vendor
+.env
+.env.backup
+.env.production
+storage/logs
+storage/framework/cache
+storage/framework/sessions
+storage/framework/views
+bootstrap/cache
+tests
+**/logs
+public/build
+EOF
+rsync -az --no-owner --no-group --no-perms --exclude-from="$EXC" -e "$SSH" ./ "$HOST:$APP/"
+
+echo "▶ 4/5 · deps + build + migrate + cache di server…"
+$SSH "$HOST" "cd $APP && \
+  COMPOSER_ALLOW_SUPERUSER=1 composer install --no-dev --optimize-autoloader --no-interaction -q && \
+  npm ci -s && npm run build && \
+  php artisan migrate --force && \
+  php artisan config:cache && php artisan route:cache"
+
+echo "▶ 5/5 · izin + restart FPM (apps) + health…"
+$SSH "$HOST" "cd $APP && \
+  sudo chown -R klinikadmin:www-data storage bootstrap/cache && sudo chmod -R 775 storage bootstrap/cache && \
+  sudo systemctl restart php8.4-fpm-apps && \
+  echo '✅ DEPLOY_OK' && curl -sk -o /dev/null -w '  health apotik.klinikdokterku.id = %{http_code}\n' https://apotik.klinikdokterku.id/"
+
+echo "🚀 Selesai. Live: https://apotik.klinikdokterku.id"
+echo "   (Mac lain: jalankan ./bin/sync untuk ikut ter-update.)"
