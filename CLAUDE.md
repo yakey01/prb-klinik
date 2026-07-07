@@ -5,8 +5,8 @@
 Aplikasi Laravel 12 untuk manajemen obat BPJS/PRB (Program Rujuk Balik) klinik.
 Fitur: manajemen pasien & resep, katalog obat, stok, pengadaan, kebutuhan obat kronis, laporan.
 
-- **Path**: `/Users/yaya/Documents/prb-klinik`
-- **Stack**: Laravel 12.61 · PHP 8.5 · Livewire 4.3.1 · Alpine.js · MySQL
+- **Path**: `/Users/kym/prb-klinik`
+- **Stack**: Laravel 12.61 · PHP 8.4 · Livewire 4.3.1 · Alpine.js · MySQL
 - **Dev server**: `php artisan serve --port=8181` → `http://localhost:8181`
 - **Login**: `admin@klinikdokterku.id` / `klinik2024`
 - **DB**: MySQL, database `prb_klinik`, user `root`
@@ -308,7 +308,7 @@ lw_call(s, 'pengadaan', 'save')
 
 ```bash
 # Jalankan server
-cd /Users/yaya/Documents/prb-klinik
+cd /Users/kym/prb-klinik
 php artisan serve --port=8181
 
 # Tinker (debug DB)
