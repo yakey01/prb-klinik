@@ -166,13 +166,13 @@ class StokKeluarManager extends Component
             ActivityLog::record('updated', "Stok keluar non-kronis diperbarui: ID {$this->editId}", 'StokKeluar', $this->editId);
             $this->dispatch('toast', message: 'Data stok keluar diperbarui.', type: 'success');
         } else {
-            // GERBANG ANTI-MINUS: stok keluar tak boleh melebihi stok tersedia.
-            if ((int) $obat->stok_aktual < (int) $this->jumlah_unit) {
+            // GERBANG ANTI-MINUS ATOMIK: potong stok DULU (conditional decrement race-safe),
+            // baru catat ledger. Bila stok tak cukup, kurangiStok() return false → tak ada baris keluar.
+            if (! Obat::kurangiStok((int) $this->obat_id, (int) $this->jumlah_unit)) {
                 $this->dispatch('toast', type: 'error', message: "Stok tidak cukup. Tersedia {$obat->stok_aktual} {$obat->satuan}, diminta {$this->jumlah_unit}. Catat stok masuk dulu.");
                 return;
             }
             $sk = StokKeluar::create($data);
-            Obat::kurangiStok((int) $this->obat_id, (int) $this->jumlah_unit);
             ActivityLog::record('created', "Stok keluar: {$obat->nama_obat} {$this->jumlah_unit} {$this->satuan}", 'StokKeluar', $sk->id);
             $this->dispatch('toast', message: 'Stok keluar berhasil dicatat.', type: 'success');
         }

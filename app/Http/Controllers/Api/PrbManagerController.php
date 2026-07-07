@@ -236,7 +236,7 @@ class PrbManagerController extends Controller
                             'stok_sesudah'        => $sblm - $jumlah,
                             'satuan'              => $satuan,
                             'harga_beli_snapshot' => $beli,
-                            'harga_jual_per_unit' => round($klaim * $faktor, 2),
+                            'harga_jual_per_unit' => round($klaim * \App\Models\Obat::jfMultiplier($faktor), 2),
                             'keterangan'          => 'Pengambilan (RME): ' . $pasien->nama,
                             'sumber'              => 'pengambilan',
                             'pengambilan_obat_id' => $pengambilan->id,
@@ -814,8 +814,9 @@ class PrbManagerController extends Controller
                 $stokSebelum = (int) $obat->stok_aktual;          // snapshot sebelum potong
                 $stokSesudah = $stokSebelum - $jml;
 
-                // GERBANG ANTI-MINUS: stok tak cukup → JANGAN catat & JANGAN potong.
-                if ($stokSebelum < $jml) {
+                // GERBANG ANTI-MINUS ATOMIK: potong DULU (conditional decrement race-safe).
+                // Bila gagal (stok tak cukup) → JANGAN catat ledger, masuk daftar lacking.
+                if (! \App\Models\Obat::kurangiStok((int) $obat->id, $jml)) {
                     $lacking[] = [
                         'obat_id'  => (int) $obat->id,
                         'nama'     => $obat->nama_obat,
@@ -839,8 +840,6 @@ class PrbManagerController extends Controller
                     'sumber'              => $sumber,
                     'pasien_id'           => null,
                 ]);
-                // Atomik & race-safe (sudah dipre-cek di atas).
-                \App\Models\Obat::kurangiStok((int) $obat->id, $jml);
                 $obat->refresh();
                 $out[] = ['obat_id' => (int) $obat->id, 'stok_aktual' => (int) $obat->stok_aktual];
             }

@@ -53,6 +53,17 @@ class StokKeluar extends Model
         return $q->where('sumber', 'manual');
     }
 
+    /**
+     * Segmen TUNAI/UMUM = penjualan kanal tunai: input manual PRB + resep UMUM dari SIM.
+     * SENGAJA mengecualikan sumber='pengambilan' (kronis BPJS) karena baris itu
+     * ditulis berbarengan dengan item_pengambilan → sudah dihitung di Segmen A.
+     * Tanpa filter ini, laporan Segmen B double-count pengambilan kronis sebagai "tunai".
+     */
+    public function scopeTunai($q)
+    {
+        return $q->whereIn('sumber', ['manual', 'sim_resep']);
+    }
+
     public function getTotalPendapatanAttribute(): float
     {
         return round($this->jumlah_unit * $this->harga_jual_per_unit, 2);

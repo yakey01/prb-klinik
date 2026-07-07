@@ -81,7 +81,10 @@ class LaporanBulanan extends Component
         $marginBpjs = $pendBpjsDisplay > 0 ? round($labaBpjs / $pendBpjsDisplay * 100, 1) : 0;
 
         // ── Segmen B: Obat Non-Kronis — Revenue TUNAI dari Pasien Umum (stok keluar aktual) ──
-        $skBulan   = StokKeluar::whereYear('tanggal_keluar', $this->tahun)
+        // Hanya kanal tunai (manual + sim_resep). Baris sumber='pengambilan' (kronis BPJS)
+        // sudah dihitung di Segmen A via item_pengambilan → dikecualikan agar tak double-count.
+        $skBulan   = StokKeluar::tunai()
+                                ->whereYear('tanggal_keluar', $this->tahun)
                                 ->whereMonth('tanggal_keluar', $this->bulan)->get();
         $pendTunai  = (float) $skBulan->sum(fn ($sk) => $sk->total_pendapatan);
         $hppTunai   = (float) $skBulan->sum(fn ($sk) => $sk->total_biaya);
@@ -176,7 +179,8 @@ class LaporanBulanan extends Component
     #[Computed]
     public function detailNonKronis()
     {
-        return StokKeluar::with('obat')
+        return StokKeluar::tunai()
+            ->with('obat')
             ->whereYear('tanggal_keluar', $this->tahun)
             ->whereMonth('tanggal_keluar', $this->bulan)
             ->orderByDesc('tanggal_keluar')
@@ -269,8 +273,9 @@ class LaporanBulanan extends Component
                 ->where('o.tipe_obat', 'kronis')
                 ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ''));
 
-            // Tunai non-kronis: aktual dari stok keluar per bulan
-            $pendTunaiData[] = (float) StokKeluar::whereYear('tanggal_keluar', $d->year)
+            // Tunai non-kronis: aktual dari stok keluar per bulan (kanal tunai saja, tanpa pengambilan)
+            $pendTunaiData[] = (float) StokKeluar::tunai()
+                ->whereYear('tanggal_keluar', $d->year)
                 ->whereMonth('tanggal_keluar', $d->month)
                 ->get()->sum(fn ($sk) => $sk->total_pendapatan);
         }
