@@ -15,6 +15,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/katalog', [ObatController::class, 'index'])->name('katalog.index');
     Route::get('/katalog/gabung', fn () => view('katalog.gabung'))->name('katalog.gabung');
 
+    Route::get('/pengadaan/pengajuan', fn () => view('pengadaan.pengajuan'))->name('pengadaan.pengajuan');
     Route::get('/pengadaan/baru', [PengadaanController::class, 'create'])->name('pengadaan.create');
     Route::post('/pengadaan', [PengadaanController::class, 'store'])->name('pengadaan.store');
     Route::get('/pengadaan/kebutuhan', fn () => view('pengadaan.kebutuhan'))->name('pengadaan.kebutuhan');
