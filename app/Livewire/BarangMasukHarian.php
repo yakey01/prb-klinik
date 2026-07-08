@@ -123,9 +123,9 @@ class BarangMasukHarian extends Component
     public static function payMeta(?array $pay): array
     {
         return match ($pay['status'] ?? 'none') {
-            'lunas'    => ['s' => 'lunas',    'label' => 'Lunas',             'color' => 'var(--emer)',  'ring' => 'rgba(63,207,142,.55)',  'hollow' => false],
-            'sebagian' => ['s' => 'sebagian', 'label' => 'Sebagian dibayar',  'color' => 'var(--gold2)', 'ring' => 'rgba(242,198,104,.55)', 'hollow' => false],
-            'belum'    => ['s' => 'belum',    'label' => 'Belum dibayar',     'color' => 'var(--gold)',  'ring' => 'rgba(217,164,65,.55)',  'hollow' => false],
+            'lunas'    => ['s' => 'lunas',    'label' => 'Lunas',             'color' => '#3fcf8e', 'ring' => 'rgba(63,207,142,.55)',  'hollow' => false],
+            'sebagian' => ['s' => 'sebagian', 'label' => 'Sebagian dibayar',  'color' => '#5b9bd5', 'ring' => 'rgba(91,155,213,.55)',  'hollow' => false],
+            'belum'    => ['s' => 'belum',    'label' => 'Belum dibayar',     'color' => '#e0a53a', 'ring' => 'rgba(224,165,58,.55)',  'hollow' => false],
             'overdue'  => ['s' => 'overdue',  'label' => 'Jatuh tempo lewat', 'color' => 'var(--red2)',  'ring' => 'rgba(232,100,90,.6)',   'hollow' => false],
             default    => ['s' => 'none',     'label' => 'Belum ada tagihan', 'color' => 'var(--mut2)',  'ring' => 'var(--line3)',          'hollow' => true],
         };

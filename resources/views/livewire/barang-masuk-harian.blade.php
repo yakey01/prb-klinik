@@ -254,10 +254,10 @@
         .pay-dot:hover{ transform:scale(1.5); box-shadow:0 0 12px 3px var(--pc,#888), inset 0 0 4px rgba(255,255,255,.6); }
 
         /* warna per status (dipakai kalender + legend) */
-        .pay-lunas   { --pc:#3fcf8e; --pr:rgba(63,207,142,.6); }
-        .pay-sebagian{ --pc:#f2c668; --pr:rgba(242,198,104,.6); }
-        .pay-belum   { --pc:#d9a441; --pr:rgba(217,164,65,.6); }
-        .pay-overdue { --pc:#e8645a; --pr:rgba(232,100,90,.72); }
+        .pay-lunas   { --pc:#3fcf8e; --pr:rgba(63,207,142,.6); }   /* hijau  = lunas */
+        .pay-sebagian{ --pc:#5b9bd5; --pr:rgba(91,155,213,.6); }  /* biru   = sebagian */
+        .pay-belum   { --pc:#e0a53a; --pr:rgba(224,165,58,.62); } /* emas   = belum */
+        .pay-overdue { --pc:#e8645a; --pr:rgba(232,100,90,.72); } /* merah  = jatuh tempo */
         .pay-none    { --pc:transparent; --pr:var(--line3); }
         .pay-hollow  { background:radial-gradient(circle at 32% 27%, rgba(255,255,255,.16), transparent 60%); box-shadow:none; border:1px dashed var(--mut2); backdrop-filter:none; }
 
