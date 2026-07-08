@@ -52,33 +52,53 @@
                         $isSel   = in_array($dateStr, $selected, true);
                         $isToday = $dateStr === $today;
                         $hasPO   = $info && $info['count'] > 0;
+                        $labaPos = $hasPO && $info['laba'] >= 0;
+                        $pm      = $hasPO ? \App\Livewire\BarangMasukHarian::payMeta($info['pay'] ?? null) : null;
+                        $terut   = $hasPO ? ($info['pay']['terutang'] ?? 0) : 0;
                     @endphp
-                    @php $labaPos = $hasPO && $info['laba'] >= 0; @endphp
-                    <button type="button" wire:click="toggleDate('{{ $dateStr }}', $event.shiftKey)" wire:key="cal-{{ $dateStr }}"
-                        @if($hasPO) title="{{ $info['count'] }} PO · Beli {{ $rp($info['beli']) }} · Klaim {{ $rp($info['klaim']) }} · {{ $info['laba']>=0?'Untung':'Rugi' }} {{ $rp(abs($info['laba'])) }}" @endif
-                        style="position:relative;aspect-ratio:1;border-radius:.5rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .12s;font-size:.78rem;
-                            {{ $isSel
-                                ? 'background:rgba(217,164,65,.9);border:1px solid var(--gold);color:#1a0e00;font-weight:800;'
-                                : ($hasPO
-                                    ? ($labaPos ? 'background:rgba(63,207,142,.08);border:1px solid rgba(63,207,142,.3);color:var(--ink);' : 'background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.3);color:var(--ink);')
-                                    : 'background:rgba(255,255,255,.015);border:1px solid var(--line);color:var(--mut2);') }}
-                            {{ $isToday && !$isSel ? 'box-shadow:0 0 0 2px rgba(111,177,224,.4);' : '' }}">
-                        <span style="line-height:1;">{{ $d }}</span>
-                        @if($hasPO)
-                        <span style="font-size:.5rem;font-weight:800;line-height:1;{{ $isSel ? 'color:#3d2600;' : ($labaPos ? 'color:var(--emer);' : 'color:var(--red2);') }}">{{ ($info['laba']>=0?'+':'−').$rpShort(abs($info['laba'])) }}</span>
-                        @else
-                        <span style="height:.5rem;"></span>
+                    <div class="bmh-cell {{ $hasPO && $pm ? 'paycell paycell-'.$pm['s'] : '' }}" wire:key="cal-{{ $dateStr }}"
+                         style="position:relative;{{ $hasPO && $pm ? '--pc:'.$pm['color'].';--pr:'.$pm['ring'].';' : '' }}">
+                        <button type="button" wire:click="toggleDate('{{ $dateStr }}', $event.shiftKey)"
+                            @if($hasPO) title="{{ $info['count'] }} PO · Beli {{ $rp($info['beli']) }} · Klaim {{ $rp($info['klaim']) }} · {{ $info['laba']>=0?'Untung':'Rugi' }} {{ $rp(abs($info['laba'])) }} · Bayar: {{ $pm['label'] }}" @endif
+                            style="position:relative;width:100%;aspect-ratio:1;border-radius:.5rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .12s;font-size:.78rem;
+                                {{ $isSel
+                                    ? 'background:rgba(217,164,65,.9);border:1px solid var(--gold);color:#1a0e00;font-weight:800;'
+                                    : ($hasPO
+                                        ? ($labaPos ? 'background:rgba(63,207,142,.08);border:1px solid rgba(63,207,142,.3);color:var(--ink);' : 'background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.3);color:var(--ink);')
+                                        : 'background:rgba(255,255,255,.015);border:1px solid var(--line);color:var(--mut2);') }}
+                                {{ $isToday && !$isSel ? 'box-shadow:0 0 0 2px rgba(111,177,224,.4);' : '' }}">
+                            <span style="line-height:1;">{{ $d }}</span>
+                            @if($hasPO)
+                            <span style="font-size:.5rem;font-weight:800;line-height:1;{{ $isSel ? 'color:#3d2600;' : ($labaPos ? 'color:var(--emer);' : 'color:var(--red2);') }}">{{ ($info['laba']>=0?'+':'−').$rpShort(abs($info['laba'])) }}</span>
+                            @else
+                            <span style="height:.5rem;"></span>
+                            @endif
+                        </button>
+                        @if($hasPO && $pm)
+                        {{-- Titik status bayar (glass · glowing · blinking) → link ke Tagihan hari ini --}}
+                        <a href="{{ route('tagihan.index', ['tanggal' => $dateStr]) }}" wire:navigate
+                           onclick="event.stopPropagation()"
+                           title="Status bayar: {{ $pm['label'] }}{{ $terut > 0 ? ' · terutang '.$rp($terut) : '' }} — klik untuk lihat tagihan"
+                           class="pay-dot pay-{{ $pm['s'] }} {{ $pm['hollow'] ? 'pay-hollow' : '' }}"></a>
                         @endif
-                    </button>
+                    </div>
                 @endfor
             </div>
 
-            {{-- Legend --}}
+            {{-- Legend laba/rugi --}}
             <div style="display:flex;align-items:center;gap:.7rem;margin-top:.7rem;font-size:.58rem;color:var(--mut2);flex-wrap:wrap;">
                 <span style="display:inline-flex;align-items:center;gap:.3rem;"><span style="width:9px;height:9px;border-radius:3px;background:rgba(63,207,142,.3);border:1px solid rgba(63,207,142,.5);"></span>untung</span>
                 <span style="display:inline-flex;align-items:center;gap:.3rem;"><span style="width:9px;height:9px;border-radius:3px;background:rgba(232,100,90,.3);border:1px solid rgba(232,100,90,.5);"></span>rugi</span>
                 <span style="display:inline-flex;align-items:center;gap:.3rem;"><span style="width:9px;height:9px;border-radius:3px;background:var(--gold);"></span>terpilih</span>
-                <span style="color:var(--mut2);">· angka = laba/rugi hari itu</span>
+            </div>
+            {{-- Legend status bayar (titik sudut → klik ke Tagihan) --}}
+            <div style="display:flex;align-items:center;gap:.75rem;margin-top:.45rem;font-size:.58rem;color:var(--mut2);flex-wrap:wrap;">
+                <span style="font-weight:700;color:var(--mut);letter-spacing:.03em;">Bayar:</span>
+                <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-lunas" style="position:static;display:inline-block;"></span>lunas</span>
+                <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-sebagian" style="position:static;display:inline-block;"></span>sebagian</span>
+                <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-belum" style="position:static;display:inline-block;"></span>belum</span>
+                <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-overdue" style="position:static;display:inline-block;"></span>jatuh tempo</span>
+                <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-none pay-hollow" style="position:static;display:inline-block;"></span>belum ada</span>
             </div>
 
             {{-- Preset cepat --}}
@@ -136,6 +156,14 @@
                             <div style="width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px var(--gold);"></div>
                             <span class="font-heading" style="font-size:.95rem;color:var(--ink);">{{ $c->translatedFormat('l, d M Y') }}</span>
                             <span style="font-size:.66rem;padding:.1rem .5rem;border-radius:999px;background:rgba(111,177,224,.12);border:1px solid rgba(111,177,224,.25);color:var(--blue);">{{ $g['count'] }} PO</span>
+                            @php $pmH = \App\Livewire\BarangMasukHarian::payMeta($g['pay'] ?? null); $terH = $g['pay']['terutang'] ?? 0; @endphp
+                            <a href="{{ route('tagihan.index', ['tanggal' => $tgl]) }}" wire:navigate
+                               title="{{ $pmH['label'] }}{{ $terH > 0 ? ' · terutang '.$rp($terH) : '' }} — buka Tagihan hari ini"
+                               style="display:inline-flex;align-items:center;gap:.34rem;font-size:.64rem;font-weight:700;padding:.14rem .55rem .14rem .4rem;border-radius:999px;text-decoration:none;--pc:{{ $pmH['color'] }};--pr:{{ $pmH['ring'] }};background:linear-gradient(180deg,rgba(255,255,255,.05),transparent);border:1px solid var(--pr);color:var(--pc);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);">
+                                <span class="pay-dot pay-{{ $pmH['s'] }} {{ $pmH['hollow'] ? 'pay-hollow' : '' }}" style="position:static;width:9px;height:9px;"></span>
+                                {{ $pmH['label'] }}@if($terH > 0) · {{ $rp($terH) }}@endif
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" style="margin-left:1px;opacity:.85;"><polyline points="9 18 15 12 9 6"/></svg>
+                            </a>
                         </div>
                         @php $dLaba=$g['laba']; $dCol=$dLaba>0?'var(--emer2)':($dLaba<0?'var(--red2)':'var(--gold2)'); @endphp
                         <div style="display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;">
@@ -209,5 +237,57 @@
 
     <style>
         @media (max-width: 820px) { .bmh-grid { grid-template-columns: 1fr !important; } }
+
+        /* ═══ Titik status bayar — GLASS · GLOW · BLINK ═══ */
+        .pay-dot{
+            position:absolute; top:3px; right:3px;
+            width:12px; height:12px; border-radius:50%;
+            z-index:3; cursor:pointer; text-decoration:none;
+            border:1px solid var(--pr, rgba(255,255,255,.45));
+            background:
+                radial-gradient(circle at 32% 27%, rgba(255,255,255,.9), rgba(255,255,255,.18) 42%, transparent 64%),
+                var(--pc, #888);
+            box-shadow:0 0 7px 1px var(--pc, #888), inset 0 0 3px rgba(255,255,255,.45);
+            backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+            transition:transform .14s ease, box-shadow .14s ease;
+        }
+        .pay-dot:hover{ transform:scale(1.5); box-shadow:0 0 12px 3px var(--pc,#888), inset 0 0 4px rgba(255,255,255,.6); }
+
+        /* warna per status (dipakai kalender + legend) */
+        .pay-lunas   { --pc:#3fcf8e; --pr:rgba(63,207,142,.6); }
+        .pay-sebagian{ --pc:#f2c668; --pr:rgba(242,198,104,.6); }
+        .pay-belum   { --pc:#d9a441; --pr:rgba(217,164,65,.6); }
+        .pay-overdue { --pc:#e8645a; --pr:rgba(232,100,90,.72); }
+        .pay-none    { --pc:transparent; --pr:var(--line3); }
+        .pay-hollow  { background:radial-gradient(circle at 32% 27%, rgba(255,255,255,.16), transparent 60%); box-shadow:none; border:1px dashed var(--mut2); backdrop-filter:none; }
+
+        /* BLINK — tarik perhatian utk yg belum lunas */
+        .pay-overdue { animation:payBlink 1s steps(1,end) infinite; }
+        .pay-belum   { animation:payPulse 1.8s ease-in-out infinite; }
+        .pay-sebagian{ animation:payPulse 2.5s ease-in-out infinite; }
+        @keyframes payBlink{
+            0%,100%{ box-shadow:0 0 9px 2px var(--pc), inset 0 0 3px rgba(255,255,255,.55); opacity:1; }
+            50%    { box-shadow:0 0 2px 0 var(--pc), inset 0 0 2px rgba(255,255,255,.3); opacity:.32; }
+        }
+        @keyframes payPulse{
+            0%,100%{ box-shadow:0 0 5px 1px var(--pc), inset 0 0 3px rgba(255,255,255,.45); }
+            50%    { box-shadow:0 0 12px 3px var(--pc), inset 0 0 3px rgba(255,255,255,.55); }
+        }
+
+        /* Ring berdenyut di SEL utk hari belum lunas — glass halo */
+        .paycell{ border-radius:.6rem; }
+        .paycell-overdue{ animation:cellBlink 1s steps(1,end) infinite; }
+        .paycell-belum  { animation:cellPulse 2s ease-in-out infinite; }
+        @keyframes cellBlink{
+            0%,100%{ box-shadow:0 0 0 1.5px var(--pr,#e8645a), 0 0 10px 1px var(--pr,#e8645a); }
+            50%    { box-shadow:0 0 0 1px rgba(232,100,90,.12); }
+        }
+        @keyframes cellPulse{
+            0%,100%{ box-shadow:0 0 0 1px var(--pr,#d9a441); }
+            50%    { box-shadow:0 0 0 1.5px var(--pr,#d9a441), 0 0 9px 0 var(--pr,#d9a441); }
+        }
+        @media (prefers-reduced-motion: reduce){
+            .pay-overdue,.pay-belum,.pay-sebagian,.paycell-overdue,.paycell-belum{ animation:none !important; }
+        }
     </style>
 </div>

@@ -71,9 +71,64 @@ class BarangMasukHarian extends Component
         $out = [];
         foreach ($rows as $r) {
             $beli = (float) $r->beli; $klaim = (float) $r->klaim;
-            $out[$r->d] = ['count' => (int) $r->c, 'beli' => $beli, 'klaim' => $klaim, 'laba' => $klaim - $beli];
+            $out[$r->d] = ['count' => (int) $r->c, 'beli' => $beli, 'klaim' => $klaim, 'laba' => $klaim - $beli, 'pay' => null];
         }
+
+        // ── Rollup STATUS BAYAR per hari (dari tabel tagihan, via PO.tanggal_po) ──
+        // Menyatukan semua tagihan (kronis + non_kronis) milik PO hari itu → satu status hari.
+        $today = now()->toDateString();
+        $pay = DB::table('tagihan as t')
+            ->join('purchase_orders as po', 't.purchase_order_id', '=', 'po.id')
+            ->whereBetween('po.tanggal_po', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw("
+                DATE(po.tanggal_po) as d,
+                COUNT(*) as bills,
+                SUM(t.status = 'lunas') as lunas,
+                SUM(t.status = 'sebagian') as sebagian,
+                SUM(t.status <> 'lunas' AND t.tanggal_jatuh_tempo < ?) as overdue,
+                COALESCE(SUM(t.total_tagihan),0) as tagih,
+                COALESCE(SUM(t.jumlah_dibayar),0) as bayar
+            ", [$today])
+            ->groupBy('d')
+            ->get();
+
+        foreach ($pay as $p) {
+            if (! isset($out[$p->d])) continue;                    // hanya hari yang punya PO
+            $bills = (int) $p->bills; $lunas = (int) $p->lunas; $sebagian = (int) $p->sebagian; $overdue = (int) $p->overdue;
+            $out[$p->d]['pay'] = [
+                'status'   => self::rollupStatus($bills, $lunas, $sebagian, $overdue),
+                'bills'    => $bills,
+                'overdue'  => $overdue,
+                'terutang' => max(0, (float) $p->tagih - (float) $p->bayar),
+            ];
+        }
+        // Hari punya PO tapi tanpa tagihan → pay tetap null → di UI = "belum ada tagihan".
         return $out;
+    }
+
+    /** Status bayar 1 hari dari agregat tagihan. Prioritas: overdue > lunas-penuh > ada-progres > belum. */
+    public static function rollupStatus(int $bills, int $lunas, int $sebagian, int $overdue): string
+    {
+        if ($bills === 0)          return 'none';
+        if ($overdue > 0)          return 'overdue';
+        if ($lunas === $bills)     return 'lunas';
+        if ($lunas > 0 || $sebagian > 0) return 'sebagian';
+        return 'belum';
+    }
+
+    /**
+     * Meta visual status bayar 1 hari (dipakai kalender + panel kanan). $pay = monthMap[..]['pay'] atau null.
+     * Channel warna SENGAJA beda dari laba/rugi (laba = tint latar + teks; bayar = titik sudut).
+     */
+    public static function payMeta(?array $pay): array
+    {
+        return match ($pay['status'] ?? 'none') {
+            'lunas'    => ['s' => 'lunas',    'label' => 'Lunas',             'color' => 'var(--emer)',  'ring' => 'rgba(63,207,142,.55)',  'hollow' => false],
+            'sebagian' => ['s' => 'sebagian', 'label' => 'Sebagian dibayar',  'color' => 'var(--gold2)', 'ring' => 'rgba(242,198,104,.55)', 'hollow' => false],
+            'belum'    => ['s' => 'belum',    'label' => 'Belum dibayar',     'color' => 'var(--gold)',  'ring' => 'rgba(217,164,65,.55)',  'hollow' => false],
+            'overdue'  => ['s' => 'overdue',  'label' => 'Jatuh tempo lewat', 'color' => 'var(--red2)',  'ring' => 'rgba(232,100,90,.6)',   'hollow' => false],
+            default    => ['s' => 'none',     'label' => 'Belum ada tagihan', 'color' => 'var(--mut2)',  'ring' => 'var(--line3)',          'hollow' => true],
+        };
     }
 
     /** Normalisasi faktor jasa farmasi → pengali. Delegasi ke satu sumber kebenaran. */
@@ -160,12 +215,13 @@ class BarangMasukHarian extends Component
     {
         if (empty($this->selected)) return [];
 
-        $pos = PurchaseOrder::with(['distributor', 'items.obat'])
+        $pos = PurchaseOrder::with(['distributor', 'items.obat', 'tagihan'])
             ->whereIn(DB::raw('DATE(tanggal_po)'), $this->selected)
             ->orderByDesc('tanggal_po')
             ->orderByDesc('id')
             ->get();
 
+        $today = now()->toDateString();
         $out = [];
         foreach ($pos as $po) {
             $key = Carbon::parse($po->tanggal_po)->toDateString();
@@ -175,7 +231,26 @@ class BarangMasukHarian extends Component
             $out[$key]['klaim']   = ($out[$key]['klaim'] ?? 0) + $fin['klaim'];
             $out[$key]['laba']    = ($out[$key]['laba'] ?? 0) + $fin['laba'];
             $out[$key]['count']   = ($out[$key]['count'] ?? 0) + 1;
+
+            // Rollup status bayar hari (dari tagihan tiap PO)
+            $pr = $out[$key]['pay'] ?? ['bills' => 0, 'lunas' => 0, 'sebagian' => 0, 'overdue' => 0, 'terutang' => 0.0];
+            foreach ($po->tagihan as $t) {
+                $pr['bills']++;
+                if ($t->status === 'lunas')          $pr['lunas']++;
+                elseif ($t->status === 'sebagian')   $pr['sebagian']++;
+                if ($t->status !== 'lunas' && $t->tanggal_jatuh_tempo && $t->tanggal_jatuh_tempo->toDateString() < $today) $pr['overdue']++;
+                $pr['terutang'] += max(0, (float) $t->total_tagihan - (float) $t->jumlah_dibayar);
+            }
+            $out[$key]['pay'] = $pr;
         }
+
+        // Turunkan label status per hari
+        foreach ($out as $k => $v) {
+            $pr = $v['pay'] ?? ['bills' => 0, 'lunas' => 0, 'sebagian' => 0, 'overdue' => 0, 'terutang' => 0];
+            $pr['status'] = self::rollupStatus((int) $pr['bills'], (int) $pr['lunas'], (int) $pr['sebagian'], (int) $pr['overdue']);
+            $out[$k]['pay'] = $pr;
+        }
+
         krsort($out);   // hari desc
         return $out;
     }

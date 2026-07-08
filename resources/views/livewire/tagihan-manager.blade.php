@@ -1,4 +1,19 @@
 <div>
+    {{-- ══ BANNER FOKUS TANGGAL (deep-link dari kalender Barang Masuk Harian) ══ --}}
+    @if($tanggal !== '')
+    @php $tglC = \Carbon\Carbon::parse($tanggal); @endphp
+    <div class="glass-card" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.6rem;padding:.7rem 1.1rem;margin-bottom:1rem;border-color:rgba(217,164,65,.4);background:linear-gradient(90deg,rgba(217,164,65,.1),transparent);">
+        <div style="display:flex;align-items:center;gap:.6rem;">
+            <svg width="16" height="16" fill="none" stroke="var(--gold2)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span style="font-size:.82rem;color:var(--ink);">Menampilkan tagihan barang masuk <strong style="color:var(--gold2);">{{ $tglC->translatedFormat('l, d M Y') }}</strong></span>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;">
+            <a href="{{ route('pengadaan.harian') }}" wire:navigate style="font-size:.72rem;color:var(--mut);text-decoration:none;display:inline-flex;align-items:center;gap:.3rem;" title="Kembali ke kalender">← kalender</a>
+            <button wire:click="clearTanggal" style="font-size:.72rem;padding:.3rem .75rem;border-radius:999px;background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.28);color:var(--red2);cursor:pointer;">Tampilkan semua ✕</button>
+        </div>
+    </div>
+    @endif
+
     {{-- ══ KPI CARDS ══════════════════════════════════════════════════ --}}
     @php $k = $this->kpiCards; @endphp
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem;margin-bottom:1.5rem;">

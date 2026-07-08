@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Models\Distributor;
 use App\Models\Tagihan;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -18,6 +19,10 @@ class TagihanManager extends Component
     public int    $filterDist = 0;
     public string $filterPeriode = '';
 
+    // Fokus 1 tanggal barang masuk (deep-link dari kalender Barang Masuk Harian → /tagihan?tanggal=Y-m-d)
+    #[Url(as: 'tanggal', history: true)]
+    public string $tanggal = '';
+
     // Bayar modal
     public bool   $showBayar  = false;
     public ?int   $bayarId    = null;
@@ -29,6 +34,18 @@ class TagihanManager extends Component
     {
         $this->filterPeriode = now()->format('Y-m');
         $this->bayarTanggal  = now()->format('Y-m-d');
+
+        // Datang dari kalender harian: tampilkan SEMUA status (lunas & belum) untuk hari itu.
+        if ($this->tanggal !== '') {
+            $this->filterStatus = 'semua';
+            $this->viewMode     = 'semua';
+        }
+    }
+
+    public function clearTanggal(): void
+    {
+        $this->tanggal = '';
+        $this->resetPage();
     }
 
     #[Computed]
@@ -70,7 +87,10 @@ class TagihanManager extends Component
 
         if ($this->filterDist > 0) $q->where('distributor_id', $this->filterDist);
 
-        if ($this->viewMode === 'mingguan') {
+        // Fokus tanggal barang masuk (dari kalender) — via PO.tanggal_po. Mengabaikan window minggu/bulan.
+        if ($this->tanggal !== '') {
+            $q->whereHas('purchaseOrder', fn ($p) => $p->whereDate('tanggal_po', $this->tanggal));
+        } elseif ($this->viewMode === 'mingguan') {
             $q->whereBetween('tanggal_jatuh_tempo', [
                 now()->startOfWeek()->toDateString(),
                 now()->endOfWeek()->addDays(7)->toDateString(),
