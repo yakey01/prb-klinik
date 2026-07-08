@@ -134,6 +134,7 @@
                     <option value="0">— pilih —</option>
                     @foreach($this->distributors as $d)<option value="{{ $d->id }}">{{ $d->name }}</option>@endforeach
                 </select>
+                @error('distributor_id')<div style="color:var(--red2);font-size:.68rem;margin-top:.2rem;">{{ $message }}</div>@enderror
             </div>
             <div>
                 <label style="font-size:.64rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;">Prioritas</label>

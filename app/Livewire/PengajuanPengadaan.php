@@ -207,22 +207,37 @@ class PengajuanPengadaan extends Component
     /** Simpan sebagai draft (atau update draft). */
     public function simpan(bool $ajukan = false): void
     {
-        $this->validate([
-            'tanggal'            => 'required|date',
-            'rows'               => 'required|array|min:1',
-            'rows.*.obat_id'     => 'required|integer|min:1',
-            'rows.*.jumlah_box'  => 'required|integer|min:1',
-            'rows.*.isi_per_box' => 'required|integer|min:1',
-            'rows.*.harga_per_box' => 'required|numeric|min:1',
-        ], [], [
-            'rows.*.obat_id' => 'obat', 'rows.*.jumlah_box' => 'jumlah box',
-            'rows.*.harga_per_box' => 'harga beli/box',
-        ]);
-        if ($ajukan) {
+        try {
             $this->validate([
-                'justifikasi'    => 'required|string|min:5',
-                'distributor_id' => 'required|integer|min:1',
-            ], [], ['justifikasi' => 'justifikasi/alasan', 'distributor_id' => 'distributor']);
+                'tanggal'            => 'required|date',
+                'rows'               => 'required|array|min:1',
+                'rows.*.obat_id'     => 'required|integer|min:1',
+                'rows.*.jumlah_box'  => 'required|integer|min:1',
+                'rows.*.isi_per_box' => 'required|integer|min:1',
+                'rows.*.harga_per_box' => 'required|numeric|min:1',
+            ], [
+                'rows.*.obat_id.required' => 'Pilih obat pada setiap baris.',
+                'rows.*.obat_id.min'      => 'Pilih obat pada setiap baris.',
+                'rows.*.harga_per_box.min'=> 'Isi harga beli/box (> 0).',
+            ], [
+                'rows.*.obat_id' => 'obat', 'rows.*.jumlah_box' => 'jumlah box',
+                'rows.*.harga_per_box' => 'harga beli/box',
+            ]);
+            if ($ajukan) {
+                $this->validate([
+                    'distributor_id' => 'required|integer|min:1',
+                    'justifikasi'    => 'required|string|min:5',
+                ], [
+                    'distributor_id.required' => 'Pilih distributor sebelum mengajukan.',
+                    'distributor_id.min'      => 'Pilih distributor sebelum mengajukan.',
+                    'justifikasi.required'    => 'Isi justifikasi/alasan belanja.',
+                    'justifikasi.min'         => 'Justifikasi minimal 5 karakter.',
+                ], ['justifikasi' => 'justifikasi/alasan', 'distributor_id' => 'distributor']);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Feedback jelas & dekat aksi — cegah kesan "tombol tidak bisa diklik".
+            $this->dispatch('toast', type: 'error', message: 'Belum bisa ' . ($ajukan ? 'diajukan' : 'disimpan') . ': ' . collect($e->errors())->flatten()->first());
+            throw $e;
         }
 
         DB::transaction(function () use ($ajukan) {
