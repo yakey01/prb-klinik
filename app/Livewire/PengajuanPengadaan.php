@@ -40,13 +40,6 @@ class PengajuanPengadaan extends Component
     // Detail drawer
     public ?int $detailId = null;
 
-    // Approval
-    public bool $showApprove = false;
-    public bool $showTolak = false;
-    public ?int $approveId = null;
-    public string $catatanApprover = '';
-    public string $alasanTolak = '';
-
     public function mount(): void
     {
         $this->tanggal = now()->format('Y-m-d');
@@ -87,16 +80,6 @@ class PengajuanPengadaan extends Component
             ->when($this->filterStatus !== 'semua', fn ($q) => $q->where('status', $this->filterStatus))
             ->orderByDesc('id')
             ->paginate(12);
-    }
-
-    public function isManajer(): bool
-    {
-        $u = Auth::user();
-        if (! $u) return false;
-        $role = strtolower((string) ($u->role ?? ''));
-        $jab  = strtolower((string) ($u->jabatan ?? ''));
-        return in_array($role, ['admin', 'manajer', 'manager', 'owner', 'pemilik'], true)
-            || str_contains($jab, 'manajer') || str_contains($jab, 'manager');
     }
 
     // ── Form draft ──────────────────────────────────────────────
@@ -355,56 +338,7 @@ class PengajuanPengadaan extends Component
             : null;
     }
 
-    // ── Approval (manajer) ──────────────────────────────────────
-    public function openApprove(int $id): void
-    {
-        if (! $this->isManajer()) { $this->dispatch('toast', type: 'error', message: 'Hanya manajer yang bisa menyetujui.'); return; }
-        $this->approveId = $id; $this->catatanApprover = ''; $this->showApprove = true;
-    }
-
-    public function setujui(): void
-    {
-        if (! $this->isManajer()) { abort(403); }
-        $p = PR::findOrFail($this->approveId);
-        if (! $p->bisaApprove()) { $this->dispatch('toast', type: 'error', message: 'Status bukan menunggu persetujuan.'); return; }
-        $u = Auth::user();
-        $p->update([
-            'status' => 'disetujui', 'approver_id' => $u?->id, 'approver_nama' => $u?->name,
-            'approver_sumber' => 'APOTIK', 'approved_at' => now(), 'catatan_approver' => $this->catatanApprover ?: null,
-        ]);
-        $this->showApprove = false;
-        $this->dispatch('toast', message: "{$p->no_pengajuan} DISETUJUI — siap direalisasikan jadi PO.", type: 'success');
-    }
-
-    public function openTolak(int $id): void
-    {
-        if (! $this->isManajer()) { $this->dispatch('toast', type: 'error', message: 'Hanya manajer yang bisa menolak.'); return; }
-        $this->approveId = $id; $this->alasanTolak = ''; $this->showTolak = true;
-    }
-
-    public function tolak(): void
-    {
-        if (! $this->isManajer()) { abort(403); }
-        $this->validate(['alasanTolak' => 'required|string|min:3'], [], ['alasanTolak' => 'alasan penolakan']);
-        $p = PR::findOrFail($this->approveId);
-        if (! $p->bisaApprove()) return;
-        $u = Auth::user();
-        $p->update([
-            'status' => 'ditolak', 'approver_id' => $u?->id, 'approver_nama' => $u?->name,
-            'approver_sumber' => 'APOTIK', 'approved_at' => now(), 'alasan_tolak' => $this->alasanTolak,
-        ]);
-        $this->showTolak = false;
-        $this->dispatch('toast', message: "{$p->no_pengajuan} ditolak.", type: 'success');
-    }
-
-    public function mintaRevisi(int $id): void
-    {
-        if (! $this->isManajer()) { abort(403); }
-        $p = PR::findOrFail($id);
-        if (! $p->bisaApprove()) return;
-        $p->update(['status' => 'revisi', 'approver_id' => Auth::id(), 'approver_nama' => Auth::user()?->name, 'approver_sumber' => 'APOTIK', 'approved_at' => now()]);
-        $this->dispatch('toast', message: "{$p->no_pengajuan} dikembalikan untuk revisi.", type: 'success');
-    }
+    // Persetujuan (setujui/tolak/revisi) HANYA di manajer SIM — apotek tidak menyetujui sendiri.
 
     // ── Realisasi → Purchase Order (gerbang belanja) ────────────
     public function realisasi(int $id): void

@@ -2,7 +2,6 @@
     @php
         $rp = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.');
         $k  = $this->kpi;
-        $isMgr = $this->isManajer();
         $prioBadge = fn ($p) => match ($p) {
             'urgent' => ['Urgent', 'var(--red2)', 'rgba(232,100,90,.12)', 'rgba(232,100,90,.3)'],
             'segera' => ['Segera', 'var(--gold2)', 'rgba(217,164,65,.12)', 'rgba(217,164,65,.3)'],
@@ -41,10 +40,9 @@
             <div style="font-size:.6rem;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;">Draft</div>
             <div class="font-mono" style="font-size:1.35rem;font-weight:800;color:var(--mut);">{{ $k['draft'] }}</div>
         </div>
-        <div class="glass-card" style="padding:.9rem 1.1rem;display:flex;flex-direction:column;justify-content:center;">
-            <div style="font-size:.62rem;color:var(--mut);line-height:1.4;">
-                @if($isMgr)<span style="color:var(--emer2);font-weight:700;">✓ Anda manajer</span> — bisa menyetujui/menolak.@else Persetujuan oleh manajer.@endif
-            </div>
+        <div class="glass-card" style="padding:.9rem 1.1rem;display:flex;align-items:center;gap:.55rem;">
+            <svg width="18" height="18" fill="none" stroke="#5b9bd5" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
+            <div style="font-size:.62rem;color:var(--mut);line-height:1.4;">Persetujuan dilakukan <strong style="color:#5b9bd5;">manajer di SIM</strong>. Apotek: ajukan → tunggu → realisasi PO.</div>
         </div>
     </div>
 
@@ -95,9 +93,8 @@
                             <button wire:click="openEdit({{ $p->id }})" title="Edit" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:.2rem;">✎</button>
                             <button wire:click="ajukan({{ $p->id }})" title="Ajukan" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.35);color:#5b9bd5;cursor:pointer;font-weight:700;">Ajukan →</button>
                         @endif
-                        @if($p->bisaApprove() && $isMgr)
-                            <button wire:click="openApprove({{ $p->id }})" title="Setujui" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:rgba(63,207,142,.14);border:1px solid rgba(63,207,142,.4);color:var(--emer2);cursor:pointer;font-weight:700;">✓ Setujui</button>
-                            <button wire:click="openTolak({{ $p->id }})" title="Tolak" style="font-size:.66rem;padding:.25rem .55rem;border-radius:.5rem;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.3);color:var(--red2);cursor:pointer;">Tolak</button>
+                        @if($p->status === 'diajukan')
+                            <span title="Menunggu keputusan manajer di SIM" style="font-size:.64rem;color:#5b9bd5;padding:.25rem .5rem;">⏳ di manajer SIM</span>
                         @endif
                         @if($p->bisaRealisasi())
                             <button wire:click="realisasi({{ $p->id }})" wire:confirm="Realisasikan {{ $p->no_pengajuan }} menjadi Purchase Order? Stok & tagihan akan diperbarui." title="Realisasi ke PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
@@ -281,10 +278,8 @@
                     <button wire:click="openEdit({{ $d->id }})" style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.76rem;">Edit</button>
                     <button wire:click="ajukan({{ $d->id }})" style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(91,155,213,.14);border:1px solid rgba(91,155,213,.4);color:#5b9bd5;cursor:pointer;font-size:.76rem;font-weight:700;">Ajukan →</button>
                 @endif
-                @if($d->bisaApprove() && $isMgr)
-                    <button wire:click="openApprove({{ $d->id }})" style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(63,207,142,.14);border:1px solid rgba(63,207,142,.4);color:var(--emer2);cursor:pointer;font-size:.76rem;font-weight:700;">✓ Setujui</button>
-                    <button wire:click="mintaRevisi({{ $d->id }})" style="padding:.55rem .8rem;border-radius:.55rem;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.3);color:var(--gold2);cursor:pointer;font-size:.76rem;">Revisi</button>
-                    <button wire:click="openTolak({{ $d->id }})" style="padding:.55rem .8rem;border-radius:.55rem;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.3);color:var(--red2);cursor:pointer;font-size:.76rem;">Tolak</button>
+                @if($d->status === 'diajukan')
+                    <div style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(91,155,213,.1);border:1px solid rgba(91,155,213,.3);color:#5b9bd5;font-size:.72rem;text-align:center;">⏳ Menunggu keputusan <strong>manajer di SIM</strong></div>
                 @endif
                 @if($d->bisaRealisasi())
                     <button wire:click="realisasi({{ $d->id }})" wire:confirm="Realisasikan {{ $d->no_pengajuan }} menjadi PO?" style="flex:1;padding:.55rem;border-radius:.55rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.76rem;font-weight:800;">🛒 Belanja → Buat PO</button>
@@ -292,40 +287,6 @@
                 @if($d->bisaDihapus())
                     <button wire:click="hapus({{ $d->id }})" wire:confirm="Hapus {{ $d->no_pengajuan }}?" style="padding:.55rem .8rem;border-radius:.55rem;background:transparent;border:1px solid rgba(232,100,90,.3);color:var(--red2);cursor:pointer;font-size:.76rem;">Hapus</button>
                 @endif
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- ══ MODAL SETUJUI ══ --}}
-    @if($showApprove)
-    <div style="position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:1rem;">
-        <div wire:click="$set('showApprove',false)" style="position:absolute;inset:0;background:rgba(0,0,0,.55);"></div>
-        <div class="glass-card" style="position:relative;width:min(420px,94vw);padding:1.3rem;">
-            <h3 class="font-heading" style="font-size:1rem;color:var(--ink);margin:0 0 .3rem;">Setujui Pengajuan</h3>
-            <p style="font-size:.76rem;color:var(--mut);margin:0 0 .8rem;">Setelah disetujui, pengajuan siap direalisasikan menjadi Purchase Order.</p>
-            <label style="font-size:.64rem;color:var(--mut);text-transform:uppercase;">Catatan (opsional)</label>
-            <textarea wire:model="catatanApprover" rows="2" style="width:100%;margin-top:.3rem;padding:.5rem;border-radius:.5rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.78rem;"></textarea>
-            <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-                <button wire:click="$set('showApprove',false)" style="padding:.5rem 1rem;border-radius:.5rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.78rem;">Batal</button>
-                <button wire:click="setujui" style="padding:.5rem 1.2rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.78rem;font-weight:800;">✓ Setujui</button>
-            </div>
-        </div>
-    </div>
-    @endif
-
-    {{-- ══ MODAL TOLAK ══ --}}
-    @if($showTolak)
-    <div style="position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:1rem;">
-        <div wire:click="$set('showTolak',false)" style="position:absolute;inset:0;background:rgba(0,0,0,.55);"></div>
-        <div class="glass-card" style="position:relative;width:min(420px,94vw);padding:1.3rem;">
-            <h3 class="font-heading" style="font-size:1rem;color:var(--ink);margin:0 0 .3rem;">Tolak Pengajuan</h3>
-            <label style="font-size:.64rem;color:var(--mut);text-transform:uppercase;">Alasan penolakan *</label>
-            <textarea wire:model="alasanTolak" rows="2" style="width:100%;margin-top:.3rem;padding:.5rem;border-radius:.5rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.78rem;"></textarea>
-            @error('alasanTolak')<div style="color:var(--red2);font-size:.68rem;margin-top:.2rem;">{{ $message }}</div>@enderror
-            <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1rem;">
-                <button wire:click="$set('showTolak',false)" style="padding:.5rem 1rem;border-radius:.5rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.78rem;">Batal</button>
-                <button wire:click="tolak" style="padding:.5rem 1.2rem;border-radius:.5rem;background:rgba(232,100,90,.15);border:1px solid rgba(232,100,90,.4);color:var(--red2);cursor:pointer;font-size:.78rem;font-weight:800;">Tolak</button>
             </div>
         </div>
     </div>
