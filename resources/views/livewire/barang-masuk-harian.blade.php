@@ -56,25 +56,38 @@
                         $pm      = $hasPO ? \App\Livewire\BarangMasukHarian::payMeta($info['pay'] ?? null) : null;
                         $terut   = $hasPO ? ($info['pay']['terutang'] ?? 0) : 0;
                         $approved = $hasPO && ! empty($info['approved']);
+                        $sb       = $this->siapBelanja[$dateStr] ?? null;
+                        $hasSB    = (bool) $sb;
                     @endphp
-                    <div class="bmh-cell {{ $hasPO && $pm ? 'paycell paycell-'.$pm['s'] : '' }}" wire:key="cal-{{ $dateStr }}"
+                    <div class="bmh-cell {{ $hasPO && $pm ? 'paycell paycell-'.$pm['s'] : '' }} {{ $hasSB && !$hasPO ? 'sb-cell' : '' }}" wire:key="cal-{{ $dateStr }}"
                          style="position:relative;{{ $hasPO && $pm ? '--pc:'.$pm['color'].';--pr:'.$pm['ring'].';' : '' }}">
                         <button type="button" wire:click="toggleDate('{{ $dateStr }}', $event.shiftKey)"
-                            @if($hasPO) title="{{ $info['count'] }} PO · Beli {{ $rp($info['beli']) }} · Klaim {{ $rp($info['klaim']) }} · {{ $info['laba']>=0?'Untung':'Rugi' }} {{ $rp(abs($info['laba'])) }} · Bayar: {{ $pm['label'] }}" @endif
+                            @if($hasPO) title="{{ $info['count'] }} PO · Beli {{ $rp($info['beli']) }} · Klaim {{ $rp($info['klaim']) }} · {{ $info['laba']>=0?'Untung':'Rugi' }} {{ $rp(abs($info['laba'])) }} · Bayar: {{ $pm['label'] }}" @elseif($hasSB) title="{{ $sb['count'] }} pengajuan disetujui · {{ $rp($sb['nilai']) }} — siap dibelanjakan" @endif
                             style="position:relative;width:100%;aspect-ratio:1;border-radius:.5rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .12s;font-size:.78rem;
                                 {{ $isSel
                                     ? 'background:rgba(217,164,65,.9);border:1px solid var(--gold);color:#1a0e00;font-weight:800;'
                                     : ($hasPO
                                         ? ($labaPos ? 'background:rgba(63,207,142,.08);border:1px solid rgba(63,207,142,.3);color:var(--ink);' : 'background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.3);color:var(--ink);')
-                                        : 'background:rgba(255,255,255,.015);border:1px solid var(--line);color:var(--mut2);') }}
+                                        : ($hasSB
+                                            ? 'background:rgba(217,164,65,.07);border:1px dashed rgba(217,164,65,.55);color:var(--gold2);'
+                                            : 'background:rgba(255,255,255,.015);border:1px solid var(--line);color:var(--mut2);')) }}
                                 {{ $isToday && !$isSel ? 'box-shadow:0 0 0 2px rgba(111,177,224,.4);' : '' }}">
                             <span style="line-height:1;">{{ $d }}</span>
                             @if($hasPO)
                             <span style="font-size:.5rem;font-weight:800;line-height:1;{{ $isSel ? 'color:#3d2600;' : ($labaPos ? 'color:var(--emer);' : 'color:var(--red2);') }}">{{ ($info['laba']>=0?'+':'−').$rpShort(abs($info['laba'])) }}</span>
+                            @elseif($hasSB)
+                            <span style="font-size:.5rem;font-weight:800;line-height:1;color:var(--gold2);">🛒{{ $sb['count'] }}</span>
                             @else
                             <span style="height:.5rem;"></span>
                             @endif
                         </button>
+                        @if($hasSB)
+                        {{-- Badge "siap belanja" (emas · glow · pulse) → link ke Pengajuan (filter disetujui) --}}
+                        <a href="{{ route('pengadaan.pengajuan') }}" wire:navigate
+                           onclick="event.stopPropagation()"
+                           title="{{ $sb['count'] }} pengajuan DISETUJUI · {{ $rp($sb['nilai']) }} — klik untuk Belanja (PO)"
+                           class="sb-badge">🛒</a>
+                        @endif
                         @if($hasPO && $pm)
                         {{-- Titik status bayar (glass · glowing · blinking) → link ke Tagihan hari ini --}}
                         <a href="{{ route('tagihan.index', ['tanggal' => $dateStr]) }}" wire:navigate
@@ -111,6 +124,10 @@
             <div style="display:flex;align-items:center;gap:.4rem;margin-top:.45rem;font-size:.58rem;color:var(--mut2);">
                 <span class="sim-verified" style="position:static;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#04150d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
                 <span>badge kiri-atas = pengadaan <strong style="color:#8ff0c0;">disetujui manajer (SIM)</strong></span>
+            </div>
+            <div style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem;font-size:.58rem;color:var(--mut2);">
+                <span class="sb-badge" style="position:static;">🛒</span>
+                <span>kotak emas dashed = pengajuan <strong style="color:var(--gold2);">disetujui, siap dibelanjakan</strong> (klik 🛒 → buat PO)</span>
             </div>
 
             {{-- Preset cepat --}}
@@ -329,8 +346,30 @@
         }
         .sim-chip .sv{width:13px;height:13px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:radial-gradient(circle at 32% 27%,#a7f3cf,#3fcf8e 55%,#1e9e68);}
 
+        /* ═══ Badge "siap belanja" — pengajuan disetujui belum jadi PO (emas · glow · pulse) ═══ */
+        .sb-badge{
+            position:absolute; bottom:3px; right:3px; z-index:4;
+            min-width:15px; height:15px; padding:0 2px; border-radius:8px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:8px; line-height:1; text-decoration:none;
+            background:radial-gradient(circle at 32% 27%, #f6d98a, #d9a441 62%, #a9791f);
+            border:1px solid rgba(242,198,104,.75);
+            box-shadow:0 0 8px 1px rgba(217,164,65,.7);
+            animation:sbPulse 1.8s ease-in-out infinite;
+        }
+        .sb-badge:hover{ transform:scale(1.25); }
+        @keyframes sbPulse{
+            0%,100%{ box-shadow:0 0 6px 1px rgba(217,164,65,.55); }
+            50%    { box-shadow:0 0 13px 3px rgba(217,164,65,.95); }
+        }
+        .sb-cell{ animation:sbCell 2s ease-in-out infinite; border-radius:.6rem; }
+        @keyframes sbCell{
+            0%,100%{ box-shadow:0 0 0 1px rgba(217,164,65,.3); }
+            50%    { box-shadow:0 0 0 1.5px rgba(217,164,65,.6), 0 0 9px 0 rgba(217,164,65,.45); }
+        }
+
         @media (prefers-reduced-motion: reduce){
-            .pay-overdue,.pay-belum,.pay-sebagian,.paycell-overdue,.paycell-belum,.sim-verified{ animation:none !important; }
+            .pay-overdue,.pay-belum,.pay-sebagian,.paycell-overdue,.paycell-belum,.sim-verified,.sb-badge,.sb-cell{ animation:none !important; }
         }
     </style>
 </div>

@@ -118,6 +118,27 @@ class BarangMasukHarian extends Component
         return $out;
     }
 
+    /**
+     * Hari dgn pengajuan DISETUJUI tapi BELUM direalisasi (belum jadi PO) — "siap belanja".
+     * Dikelompokkan by tanggal PENGAJUAN (bukan PO, karena PO belum ada). Map: 'Y-m-d' => [count, nilai].
+     */
+    #[Computed]
+    public function siapBelanja(): array
+    {
+        $start = Carbon::create($this->year, $this->month, 1)->startOfMonth();
+        $end   = (clone $start)->endOfMonth();
+        $rows = DB::table('pengajuan_pengadaan')
+            ->where('status', 'disetujui')
+            ->whereNull('purchase_order_id')
+            ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
+            ->selectRaw('DATE(tanggal) as d, COUNT(*) as n, COALESCE(SUM(total_beli),0) as nilai')
+            ->groupBy('d')
+            ->get();
+        $out = [];
+        foreach ($rows as $r) $out[$r->d] = ['count' => (int) $r->n, 'nilai' => (float) $r->nilai];
+        return $out;
+    }
+
     /** Status bayar 1 hari dari agregat tagihan. Prioritas: overdue > lunas-penuh > ada-progres > belum. */
     public static function rollupStatus(int $bills, int $lunas, int $sebagian, int $overdue): string
     {

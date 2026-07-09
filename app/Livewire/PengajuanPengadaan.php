@@ -352,28 +352,45 @@ class PengajuanPengadaan extends Component
             $this->dispatch('toast', type: 'error', message: 'Pengajuan belum punya distributor — tak bisa jadi PO.');
             return;
         }
+        // K7: item kosong → jangan buat PO kosong.
+        if ($p->items->isEmpty()) {
+            $this->dispatch('toast', type: 'error', message: 'Pengajuan tidak punya item — tak bisa direalisasikan.');
+            return;
+        }
+        // K2: item obat baru (belum di katalog) → PO item wajib obat_id. Beri pesan JELAS (bukan gagal senyap).
+        if ($p->items->contains(fn ($it) => empty($it->obat_id))) {
+            $this->dispatch('toast', type: 'error', message: 'Ada item obat yang belum ada di katalog. Tambahkan obatnya ke Katalog dulu, lalu edit & ajukan ulang.');
+            return;
+        }
 
-        DB::transaction(function () use ($p) {
-            $po = PurchaseOrder::create([
-                'distributor_id' => $p->distributor_id,
-                'nomor_invoice'  => null,
-                'tanggal_po'     => now()->toDateString(),
-                'total_nilai'    => $p->total_beli,
-                'catatan'        => 'Realisasi pengajuan ' . $p->no_pengajuan,
-                'status_bayar'   => 'belum',
-            ]);
+        $no = $p->no_pengajuan;
+        try {
+            DB::transaction(function () use ($id) {
+                // K1: kunci baris + re-check DI DALAM transaksi → idempoten, anti double-PO/stok/tagihan.
+                $p = PR::with('items')->whereKey($id)->lockForUpdate()->first();
+                if (! $p || $p->status !== 'disetujui' || $p->purchase_order_id) {
+                    throw new \RuntimeException('SUDAH_DIREALISASI');
+                }
 
-            foreach ($p->items as $it) {
-                PurchaseOrderItem::create([
-                    'purchase_order_id' => $po->id,
-                    'obat_id'           => $it->obat_id,
-                    'tipe_obat'         => $it->tipe_obat,
-                    'jumlah_box'        => $it->jumlah_box,
-                    'isi_per_box'       => $it->isi_per_box,
-                    'harga_per_box'     => $it->harga_per_box,
-                    'subtotal'          => $it->subtotal_beli,
+                $po = PurchaseOrder::create([
+                    'distributor_id' => $p->distributor_id,
+                    'nomor_invoice'  => null,
+                    'tanggal_po'     => now()->toDateString(),
+                    'total_nilai'    => (float) $p->items->sum('subtotal_beli'),   // K6: sumber sama dgn tagihan
+                    'catatan'        => 'Realisasi pengajuan ' . $p->no_pengajuan,
+                    'status_bayar'   => 'belum',
                 ]);
-                if ($it->obat_id) {
+
+                foreach ($p->items as $it) {
+                    PurchaseOrderItem::create([
+                        'purchase_order_id' => $po->id,
+                        'obat_id'           => $it->obat_id,
+                        'tipe_obat'         => $it->tipe_obat,   // enum PO item kini termasuk 'bmhp' (migrasi K3)
+                        'jumlah_box'        => $it->jumlah_box,
+                        'isi_per_box'       => $it->isi_per_box,
+                        'harga_per_box'     => $it->harga_per_box,
+                        'subtotal'          => $it->subtotal_beli,
+                    ]);
                     $upd = [
                         'harga_beli_per_unit' => $it->harga_per_unit,
                         'sumber_harga'        => 'PO',
@@ -382,30 +399,33 @@ class PengajuanPengadaan extends Component
                     if ($it->tanggal_kadaluarsa) $upd['tanggal_kadaluarsa'] = $it->tanggal_kadaluarsa->format('Y-m-d');
                     Obat::where('id', $it->obat_id)->update($upd);
                 }
-            }
 
-            // Auto-split tagihan per tipe (identik alur Pengadaan Baru)
-            $subtotalPerTipe = $p->items->groupBy('tipe_obat')->map(fn ($g) => $g->sum('subtotal_beli'));
-            foreach ($subtotalPerTipe as $tipe => $total) {
-                if ($total <= 0) continue;
-                $tipeTag = $tipe === 'kronis' ? 'kronis' : 'non_kronis';
-                Tagihan::create([
-                    'purchase_order_id'   => $po->id,
-                    'distributor_id'      => $p->distributor_id,
-                    'nomor_tagihan'       => Tagihan::generateNomor($tipeTag),
-                    'tipe_obat'           => $tipeTag,
-                    'periode_bulan'       => now()->format('Y-m'),
-                    'tanggal_tagihan'     => now()->toDateString(),
-                    'tanggal_jatuh_tempo' => now()->addDays(30)->toDateString(),
-                    'total_tagihan'       => (int) $total,
-                    'status'              => 'belum_bayar',
-                ]);
-            }
+                // Auto-split tagihan per tipe (bmhp → non_kronis; identik alur Pengadaan Baru)
+                $subtotalPerTipe = $p->items->groupBy('tipe_obat')->map(fn ($g) => $g->sum('subtotal_beli'));
+                foreach ($subtotalPerTipe as $tipe => $total) {
+                    if ($total <= 0) continue;
+                    $tipeTag = $tipe === 'kronis' ? 'kronis' : 'non_kronis';
+                    Tagihan::create([
+                        'purchase_order_id'   => $po->id,
+                        'distributor_id'      => $p->distributor_id,
+                        'nomor_tagihan'       => Tagihan::generateNomor($tipeTag),
+                        'tipe_obat'           => $tipeTag,
+                        'periode_bulan'       => now()->format('Y-m'),
+                        'tanggal_tagihan'     => now()->toDateString(),
+                        'tanggal_jatuh_tempo' => now()->addDays(30)->toDateString(),
+                        'total_tagihan'       => (int) $total,
+                        'status'              => 'belum_bayar',
+                    ]);
+                }
 
-            $p->update(['status' => 'direalisasi', 'purchase_order_id' => $po->id]);
-        });
+                $p->update(['status' => 'direalisasi', 'purchase_order_id' => $po->id]);
+            });
+        } catch (\RuntimeException $e) {
+            $this->dispatch('toast', type: 'error', message: 'Pengajuan sudah direalisasikan sebelumnya (dicegah dobel).');
+            return;
+        }
 
-        $this->dispatch('toast', message: "{$p->no_pengajuan} direalisasikan → PO dibuat, stok & tagihan diperbarui.", type: 'success');
+        $this->dispatch('toast', message: "{$no} direalisasikan → PO dibuat, stok & tagihan diperbarui.", type: 'success');
     }
 
     public function render()

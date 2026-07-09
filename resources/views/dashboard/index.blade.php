@@ -168,6 +168,18 @@
 
     </div>
 
+    {{-- ══ PENGADAAN DISETUJUI — SIAP DIBELANJAKAN (call-to-action) ══ --}}
+    @if(($siap_belanja['count'] ?? 0) > 0)
+    <a href="{{ route('pengadaan.pengajuan') }}" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;text-decoration:none;padding:.9rem 1.3rem;margin-bottom:1.5rem;border-radius:1rem;background:linear-gradient(100deg,rgba(217,164,65,.16),rgba(217,164,65,.04));border:1px solid rgba(217,164,65,.45);box-shadow:0 0 22px rgba(217,164,65,.14);">
+        <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(180deg,#f2c668,#d9a441);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;box-shadow:0 0 12px rgba(217,164,65,.5);">🛒</div>
+        <div style="flex:1;min-width:200px;">
+            <div class="font-heading" style="font-size:1rem;color:var(--gold2);font-weight:800;">{{ $siap_belanja['count'] }} pengadaan disetujui — menunggu dibelanjakan</div>
+            <div style="font-size:.78rem;color:var(--mut);margin-top:.15rem;">Total <strong class="font-mono" style="color:var(--ink);">Rp {{ number_format($siap_belanja['nilai'],0,',','.') }}</strong> · sudah di-ACC manajer SIM, klik <strong style="color:var(--gold2);">🛒 Belanja (PO)</strong> untuk realisasikan jadi barang masuk.</div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;border-radius:.7rem;background:linear-gradient(180deg,#f2c668,#d9a441);color:#1a0e00;font-weight:800;font-size:.82rem;white-space:nowrap;">Belanja sekarang →</span>
+    </a>
+    @endif
+
     {{-- ══════════════ RINCIAN LABA PER OBAT (pembukti kartu) ══════════════ --}}
     <style>
         .ob-wrap { margin-bottom:1.5rem; }

@@ -284,6 +284,11 @@ class DashboardController extends Controller
             'tren_labels'           => $trenLabels,
             'tren_pendapatan'       => $trenPendapatan,
             'tren_pengeluaran'      => $trenPengeluaran,
+            // Pengadaan disetujui menunggu direalisasikan jadi PO (siap belanja)
+            'siap_belanja'          => \Schema::hasTable('pengajuan_pengadaan') ? [
+                'count' => \App\Models\PengajuanPengadaan::where('status', 'disetujui')->count(),
+                'nilai' => (float) \App\Models\PengajuanPengadaan::where('status', 'disetujui')->sum('total_beli'),
+            ] : ['count' => 0, 'nilai' => 0],
         ]));
     }
 }

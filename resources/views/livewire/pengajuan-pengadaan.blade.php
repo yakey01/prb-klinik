@@ -32,9 +32,10 @@
             <div class="font-mono" style="font-size:1.35rem;font-weight:800;color:#5b9bd5;">{{ $k['menunggu'] }}</div>
             <div style="font-size:.66rem;color:var(--mut);margin-top:.15rem;">{{ $rp($k['nilai_menunggu']) }} nilai</div>
         </div>
-        <div class="glass-card" style="padding:.9rem 1.1rem;border-color:rgba(63,207,142,.25);">
-            <div style="font-size:.6rem;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;">Disetujui (siap PO)</div>
-            <div class="font-mono" style="font-size:1.35rem;font-weight:800;color:var(--emer2);">{{ $k['disetujui'] }}</div>
+        <div wire:click="$set('filterStatus','disetujui')" class="glass-card" style="padding:.9rem 1.1rem;cursor:pointer;{{ $k['disetujui']>0 ? 'border-color:rgba(217,164,65,.5);box-shadow:0 0 16px rgba(217,164,65,.16);' : 'border-color:rgba(63,207,142,.25);' }}" title="Klik untuk saring — lalu 🛒 Belanja (PO)">
+            <div style="font-size:.6rem;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;">Disetujui — siap belanja</div>
+            <div class="font-mono" style="font-size:1.35rem;font-weight:800;color:{{ $k['disetujui']>0 ? 'var(--gold2)' : 'var(--emer2)' }};">{{ $k['disetujui'] }}</div>
+            @if($k['disetujui']>0)<div style="font-size:.6rem;color:var(--gold2);margin-top:.1rem;">🛒 klik → belanjakan jadi PO</div>@endif
         </div>
         <div class="glass-card" style="padding:.9rem 1.1rem;">
             <div style="font-size:.6rem;color:var(--mut);text-transform:uppercase;letter-spacing:.06em;">Draft</div>
@@ -76,7 +77,7 @@
             <tbody>
                 @forelse($this->daftar as $p)
                 @php [$plbl,$pcol,$pbg,$pbd] = $prioBadge($p->prioritas); @endphp
-                <tr wire:key="pr-{{ $p->id }}" style="border-top:1px solid var(--line);">
+                <tr wire:key="pr-{{ $p->id }}" style="border-top:1px solid var(--line);{{ $p->status==='disetujui' ? 'background:linear-gradient(90deg,rgba(217,164,65,.09),transparent);box-shadow:inset 3px 0 0 var(--gold);' : '' }}">
                     <td style="padding:.6rem .9rem;">
                         <button wire:click="openDetail({{ $p->id }})" class="font-mono" style="background:none;border:none;color:var(--gold2);font-weight:700;cursor:pointer;padding:0;font-size:.8rem;">{{ $p->no_pengajuan }}</button>
                         <div style="font-size:.64rem;color:var(--mut2);">{{ $p->tanggal->translatedFormat('d M Y') }} · {{ $p->pemohon_nama ?? '—' }}</div>
