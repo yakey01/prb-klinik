@@ -90,12 +90,14 @@
                         <span style="font-size:.64rem;font-weight:700;padding:.16rem .6rem;border-radius:999px;color:{{ $p->statusColor() }};background:color-mix(in srgb,{{ $p->statusColor() }} 14%, transparent);border:1px solid {{ $p->statusColor() }};white-space:nowrap;">{{ $p->statusLabel() }}</span>
                     </td>
                     <td style="padding:.6rem .9rem;text-align:right;white-space:nowrap;">
+                        @if($p->bisaDiedit())
+                            <button wire:click="openEdit({{ $p->id }})" title="Edit pengajuan" style="font-size:.66rem;padding:.25rem .55rem;border-radius:.5rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;">✎ Edit</button>
+                        @endif
                         @if($p->bisaDiajukan())
-                            <button wire:click="openEdit({{ $p->id }})" title="Edit" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:.2rem;">✎</button>
                             <button wire:click="ajukan({{ $p->id }})" title="Ajukan" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.35);color:#5b9bd5;cursor:pointer;font-weight:700;">Ajukan →</button>
                         @endif
                         @if($p->status === 'diajukan')
-                            <span title="Menunggu keputusan manajer di SIM" style="font-size:.64rem;color:#5b9bd5;padding:.25rem .5rem;">⏳ di manajer SIM</span>
+                            <span title="Menunggu keputusan manajer di SIM · masih bisa diedit" style="font-size:.64rem;color:#5b9bd5;padding:.25rem .5rem;">⏳ di manajer SIM</span>
                         @endif
                         @if($p->bisaRealisasi())
                             <button wire:click="realisasi({{ $p->id }})" wire:confirm="Realisasikan {{ $p->no_pengajuan }} menjadi Purchase Order? Stok & tagihan akan diperbarui." title="Realisasi ke PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
@@ -205,10 +207,17 @@
         </div>
 
         {{-- Actions --}}
-        <div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.1rem;">
+        <div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.1rem;align-items:center;">
+            @if($editStatus === 'diajukan')
+            <span style="font-size:.66rem;color:#5b9bd5;margin-right:auto;">✎ Mengedit pengajuan yang sudah diajukan — perubahan langsung terlihat manajer SIM.</span>
+            @endif
             <button wire:click="cancel" style="padding:.6rem 1.1rem;border-radius:.6rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.8rem;">Batal</button>
+            @if($editStatus === 'diajukan')
+            <button wire:click="simpan(false)" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">Simpan Perubahan</button>
+            @else
             <button wire:click="simpan(false)" style="padding:.6rem 1.1rem;border-radius:.6rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.8rem;font-weight:700;">Simpan Draft</button>
             <button wire:click="ajukanLangsung" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">Ajukan untuk Persetujuan →</button>
+            @endif
         </div>
     </div>
     @endunless
@@ -275,12 +284,14 @@
 
             {{-- Aksi drawer --}}
             <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;">
+                @if($d->bisaDiedit())
+                    <button wire:click="openEdit({{ $d->id }})" style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.76rem;">✎ Edit</button>
+                @endif
                 @if($d->bisaDiajukan())
-                    <button wire:click="openEdit({{ $d->id }})" style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.76rem;">Edit</button>
                     <button wire:click="ajukan({{ $d->id }})" style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(91,155,213,.14);border:1px solid rgba(91,155,213,.4);color:#5b9bd5;cursor:pointer;font-size:.76rem;font-weight:700;">Ajukan →</button>
                 @endif
                 @if($d->status === 'diajukan')
-                    <div style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(91,155,213,.1);border:1px solid rgba(91,155,213,.3);color:#5b9bd5;font-size:.72rem;text-align:center;">⏳ Menunggu keputusan <strong>manajer di SIM</strong></div>
+                    <div style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(91,155,213,.1);border:1px solid rgba(91,155,213,.3);color:#5b9bd5;font-size:.72rem;text-align:center;">⏳ Menunggu <strong>manajer SIM</strong> · masih bisa diedit</div>
                 @endif
                 @if($d->bisaRealisasi())
                     <button wire:click="realisasi({{ $d->id }})" wire:confirm="Realisasikan {{ $d->no_pengajuan }} menjadi PO?" style="flex:1;padding:.55rem;border-radius:.55rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.76rem;font-weight:800;">🛒 Belanja → Buat PO</button>

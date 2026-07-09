@@ -30,6 +30,7 @@ class PengajuanPengadaan extends Component
     // Form (draft)
     public bool $showForm = false;
     public ?int $editId = null;
+    public string $editStatus = '';   // status pengajuan yg sedang diedit (utk label tombol)
     public string $tanggal = '';
     public int $distributor_id = 0;
     public string $prioritas = 'rutin';
@@ -85,7 +86,7 @@ class PengajuanPengadaan extends Component
     // ── Form draft ──────────────────────────────────────────────
     public function openAdd(): void
     {
-        $this->reset(['editId', 'distributor_id', 'prioritas', 'justifikasi', 'catatan', 'rows']);
+        $this->reset(['editId', 'editStatus', 'distributor_id', 'prioritas', 'justifikasi', 'catatan', 'rows']);
         $this->tanggal   = now()->format('Y-m-d');
         $this->prioritas = 'rutin';
         $this->rows      = [];
@@ -101,6 +102,7 @@ class PengajuanPengadaan extends Component
             return;
         }
         $this->editId         = $p->id;
+        $this->editStatus     = $p->status;
         $this->tanggal        = $p->tanggal->format('Y-m-d');
         $this->distributor_id = (int) $p->distributor_id;
         $this->prioritas      = $p->prioritas;
@@ -277,7 +279,12 @@ class PengajuanPengadaan extends Component
         });
 
         $this->showForm = false;
-        $this->dispatch('toast', message: $ajukan ? 'Pengajuan diajukan — menunggu persetujuan manajer.' : 'Draft pengajuan disimpan.', type: 'success');
+        $msg = $ajukan
+            ? 'Pengajuan diajukan — menunggu persetujuan manajer.'
+            : ($this->editStatus === 'diajukan'
+                ? 'Perubahan tersimpan — pengajuan tetap menunggu persetujuan manajer.'
+                : 'Draft pengajuan disimpan.');
+        $this->dispatch('toast', message: $msg, type: 'success');
     }
 
     /** recalc dari array lepas (dipakai saat simpan agar konsisten walau updatedRows tak terpicu). */

@@ -45,7 +45,8 @@ class PengajuanPengadaan extends Model
 
     // ── State machine helpers ────────────────────────────────────
     public function bisaDiajukan(): bool   { return in_array($this->status, ['draft', 'revisi'], true); }
-    public function bisaDiedit(): bool     { return in_array($this->status, ['draft', 'revisi'], true); }
+    // Bisa diedit selama BELUM disetujui — draft/revisi (belum diajukan) + diajukan (menunggu ACC manajer).
+    public function bisaDiedit(): bool     { return in_array($this->status, ['draft', 'revisi', 'diajukan'], true); }
     public function bisaDihapus(): bool    { return in_array($this->status, ['draft', 'revisi', 'ditolak', 'dibatalkan'], true); }
     public function bisaApprove(): bool    { return $this->status === 'diajukan'; }
     public function bisaRealisasi(): bool  { return $this->status === 'disetujui'; }
