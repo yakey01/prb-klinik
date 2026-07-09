@@ -68,16 +68,13 @@
         @media(max-width:680px){.audit-fields{gap:.4rem;}.audit-input{width:76px;}.audit-op{display:none;}.audit-result{margin-left:0;width:100%;align-items:flex-start;margin-top:.4rem;}}
 
         /* ═══════════ GLASS 3D SKIN (scoped) ═══════════ */
-        /* Ambient glow (feel "ruang kaca") di atas konten katalog */
-        .katalog-glass{ position:relative; }
-        .katalog-glass::before{
-            content:''; position:absolute; left:-3rem; right:-3rem; top:-3rem; height:420px;
-            z-index:0; pointer-events:none;
+        /* Ambient glow via background (TANPA ::before/z-index — agar tak merusak modal overlay) */
+        .katalog-glass{
             background:
-                radial-gradient(1100px 380px at 50% 0%, rgba(63,207,142,.10), transparent 62%),
-                radial-gradient(760px 320px at 100% 0%, rgba(217,164,65,.06), transparent 58%);
+                radial-gradient(1100px 360px at 50% -60px, rgba(63,207,142,.08), transparent 60%),
+                radial-gradient(760px 300px at 100% -40px, rgba(217,164,65,.05), transparent 58%);
+            background-repeat:no-repeat;
         }
-        .katalog-glass > *{ position:relative; z-index:1; }
         /* Kartu kaca berlapis: blur + highlight atas + shadow dalam */
         .katalog-glass .glass-card{
             background:
@@ -111,13 +108,15 @@
         .katalog-glass .data-table tr[data-laba="-1"] td{ background:linear-gradient(90deg, rgba(232,100,90,.05), transparent 55%); }
         .katalog-glass .data-table tr[data-laba="-2"] td{ background:linear-gradient(90deg, rgba(232,100,90,.09), transparent 62%); }
 
-        /* Input angka → PILL kaca + chevron spinner selalu tampil */
+        /* Input angka → PILL kaca BERSIH (tanpa spinner native yang jelek) */
+        .katalog-glass input[type="number"]::-webkit-inner-spin-button,
+        .katalog-glass input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+        .katalog-glass input[type="number"]{ -moz-appearance:textfield; appearance:textfield; }
         .katalog-glass .data-table td input[type="number"]{
-            border-radius:.65rem !important;
-            padding:.34rem .5rem !important;
+            border-radius:.6rem !important;
+            padding:.36rem .6rem !important;
             box-shadow: inset 0 1px 2px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.03);
             transition:border-color .15s, box-shadow .15s, transform .1s;
-            -moz-appearance:auto;
         }
         .katalog-glass .data-table td input[type="number"]:focus{
             outline:none; transform:translateY(-1px);
@@ -150,6 +149,17 @@
             border-radius:.7rem;
             background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(0,0,0,.06));
             box-shadow: inset 0 1px 2px rgba(0,0,0,.22);
+        }
+        /* Select bersih: chevron custom, tanpa appearance native jelek */
+        .katalog-glass select.form-input, .katalog-glass select{
+            -webkit-appearance:none; -moz-appearance:none; appearance:none;
+            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238fae9f' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+            background-repeat:no-repeat; background-position:right .7rem center;
+            padding-right:2rem !important; cursor:pointer;
+        }
+        .katalog-glass select.form-input:focus, .katalog-glass select:focus{
+            outline:none; border-color:var(--gold);
+            box-shadow:0 0 0 3px rgba(217,164,65,.16);
         }
     </style>
     {{-- ─────────────── JUDUL HALAMAN ─────────────── --}}
