@@ -71,7 +71,19 @@ class BarangMasukHarian extends Component
         $out = [];
         foreach ($rows as $r) {
             $beli = (float) $r->beli; $klaim = (float) $r->klaim;
-            $out[$r->d] = ['count' => (int) $r->c, 'beli' => $beli, 'klaim' => $klaim, 'laba' => $klaim - $beli, 'pay' => null];
+            $out[$r->d] = ['count' => (int) $r->c, 'beli' => $beli, 'klaim' => $klaim, 'laba' => $klaim - $beli, 'pay' => null, 'approved' => false, 'approved_n' => 0];
+        }
+
+        // ── Hari dgn PO hasil realisasi pengajuan yang DISETUJUI MANAJER (di SIM) ──
+        $appr = DB::table('pengajuan_pengadaan as pr')
+            ->join('purchase_orders as po', 'po.id', '=', 'pr.purchase_order_id')
+            ->whereBetween('po.tanggal_po', [$start->toDateString(), $end->toDateString()])
+            ->where('pr.approver_sumber', 'SIM')
+            ->selectRaw('DATE(po.tanggal_po) as d, COUNT(DISTINCT pr.id) as n')
+            ->groupBy('d')
+            ->get();
+        foreach ($appr as $a) {
+            if (isset($out[$a->d])) { $out[$a->d]['approved'] = true; $out[$a->d]['approved_n'] = (int) $a->n; }
         }
 
         // ── Rollup STATUS BAYAR per hari (dari tabel tagihan, via PO.tanggal_po) ──
@@ -221,12 +233,23 @@ class BarangMasukHarian extends Component
             ->orderByDesc('id')
             ->get();
 
+        // Peta PO → pengajuan yang DISETUJUI MANAJER (di SIM) — untuk badge "verified".
+        $poIds   = $pos->pluck('id')->all();
+        $apprMap = $poIds
+            ? DB::table('pengajuan_pengadaan')->whereIn('purchase_order_id', $poIds)
+                ->where('approver_sumber', 'SIM')
+                ->get(['purchase_order_id', 'no_pengajuan', 'approver_nama', 'approved_at'])
+                ->keyBy('purchase_order_id')
+            : collect();
+
         $today = now()->toDateString();
         $out = [];
         foreach ($pos as $po) {
             $key = Carbon::parse($po->tanggal_po)->toDateString();
             $fin = $this->financePO($po);
-            $out[$key]['rows'][]  = ['po' => $po, 'fin' => $fin];
+            $appr = $apprMap->get($po->id);
+            $out[$key]['rows'][]  = ['po' => $po, 'fin' => $fin, 'approved' => $appr];
+            if ($appr) $out[$key]['approved'] = true;
             $out[$key]['beli']    = ($out[$key]['beli'] ?? 0) + $fin['beli'];
             $out[$key]['klaim']   = ($out[$key]['klaim'] ?? 0) + $fin['klaim'];
             $out[$key]['laba']    = ($out[$key]['laba'] ?? 0) + $fin['laba'];
@@ -249,6 +272,7 @@ class BarangMasukHarian extends Component
             $pr = $v['pay'] ?? ['bills' => 0, 'lunas' => 0, 'sebagian' => 0, 'overdue' => 0, 'terutang' => 0];
             $pr['status'] = self::rollupStatus((int) $pr['bills'], (int) $pr['lunas'], (int) $pr['sebagian'], (int) $pr['overdue']);
             $out[$k]['pay'] = $pr;
+            $out[$k]['approved'] = $out[$k]['approved'] ?? false;
         }
 
         krsort($out);   // hari desc

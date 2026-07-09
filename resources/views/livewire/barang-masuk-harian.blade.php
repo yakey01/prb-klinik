@@ -55,6 +55,7 @@
                         $labaPos = $hasPO && $info['laba'] >= 0;
                         $pm      = $hasPO ? \App\Livewire\BarangMasukHarian::payMeta($info['pay'] ?? null) : null;
                         $terut   = $hasPO ? ($info['pay']['terutang'] ?? 0) : 0;
+                        $approved = $hasPO && ! empty($info['approved']);
                     @endphp
                     <div class="bmh-cell {{ $hasPO && $pm ? 'paycell paycell-'.$pm['s'] : '' }}" wire:key="cal-{{ $dateStr }}"
                          style="position:relative;{{ $hasPO && $pm ? '--pc:'.$pm['color'].';--pr:'.$pm['ring'].';' : '' }}">
@@ -81,6 +82,12 @@
                            title="Status bayar: {{ $pm['label'] }}{{ $terut > 0 ? ' · terutang '.$rp($terut) : '' }} — klik untuk lihat tagihan"
                            class="pay-dot pay-{{ $pm['s'] }} {{ $pm['hollow'] ? 'pay-hollow' : '' }}"></a>
                         @endif
+                        @if($approved)
+                        {{-- Badge "Disetujui Manajer (SIM)" — glass emerald, glowing, shine --}}
+                        <span class="sim-verified" title="Disetujui manajer di SIM{{ ($info['approved_n'] ?? 0) > 1 ? ' ('.$info['approved_n'].' pengajuan)' : '' }}">
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#04150d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        </span>
+                        @endif
                     </div>
                 @endfor
             </div>
@@ -99,6 +106,11 @@
                 <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-belum" style="position:static;display:inline-block;"></span>belum</span>
                 <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-overdue" style="position:static;display:inline-block;"></span>jatuh tempo</span>
                 <span style="display:inline-flex;align-items:center;gap:.3rem;"><span class="pay-dot pay-none pay-hollow" style="position:static;display:inline-block;"></span>belum ada</span>
+            </div>
+            {{-- Legend disetujui manajer SIM --}}
+            <div style="display:flex;align-items:center;gap:.4rem;margin-top:.45rem;font-size:.58rem;color:var(--mut2);">
+                <span class="sim-verified" style="position:static;"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#04150d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                <span>badge kiri-atas = pengadaan <strong style="color:#8ff0c0;">disetujui manajer (SIM)</strong></span>
             </div>
 
             {{-- Preset cepat --}}
@@ -181,7 +193,15 @@
                         <div @click="open=!open" style="display:flex;align-items:center;gap:.8rem;padding:.65rem 1rem;cursor:pointer;" onmouseover="this.style.background='rgba(255,255,255,.015)'" onmouseout="this.style.background='transparent'">
                             <svg width="14" height="14" fill="none" stroke="var(--mut)" stroke-width="1.8" viewBox="0 0 24 24" style="flex-shrink:0;"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
                             <div style="flex:1;min-width:0;">
-                                <div style="font-size:.84rem;font-weight:600;color:var(--ink);">{{ $po->distributor->name ?? '—' }}</div>
+                                <div style="font-size:.84rem;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;">
+                                    <span>{{ $po->distributor->name ?? '—' }}</span>
+                                    @if($r['approved'] ?? false)
+                                    <span class="sim-chip" title="Disetujui {{ $r['approved']->approver_nama ?? 'manajer' }} (SIM) · {{ $r['approved']->no_pengajuan ?? '' }}">
+                                        <span class="sv"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#04150d" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                                        Disetujui SIM
+                                    </span>
+                                    @endif
+                                </div>
                                 <div style="font-size:.66rem;color:var(--mut2);">
                                     @if($po->nomor_invoice)<span class="font-mono">#{{ $po->nomor_invoice }}</span> · @endif{{ $po->items->count() }} item
                                     @if(isset($po->status_bayar))<span style="margin-left:.3rem;color:{{ $po->status_bayar==='lunas'?'var(--emer)':'var(--gold2)' }};">{{ ucfirst($po->status_bayar) }}</span>@endif
@@ -286,8 +306,31 @@
             0%,100%{ box-shadow:0 0 0 1px var(--pr,#d9a441); }
             50%    { box-shadow:0 0 0 1.5px var(--pr,#d9a441), 0 0 9px 0 var(--pr,#d9a441); }
         }
+        /* ═══ Badge "Disetujui Manajer (SIM)" — glass emerald · glow · shine ═══ */
+        .sim-verified{
+            position:absolute; top:3px; left:3px; z-index:4;
+            width:14px; height:14px; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            background:radial-gradient(circle at 32% 27%, #a7f3cf, #3fcf8e 55%, #1e9e68);
+            border:1px solid rgba(124,240,184,.75);
+            box-shadow:0 0 8px 1px rgba(63,207,142,.7), inset 0 0 3px rgba(255,255,255,.6);
+            animation:simShine 2.4s ease-in-out infinite;
+        }
+        .sim-verified svg{ filter:drop-shadow(0 0 .5px rgba(255,255,255,.6)); }
+        @keyframes simShine{
+            0%,100%{ box-shadow:0 0 6px 1px rgba(63,207,142,.55), inset 0 0 3px rgba(255,255,255,.5); }
+            50%    { box-shadow:0 0 14px 3px rgba(63,207,142,.95), inset 0 0 3px rgba(255,255,255,.75); }
+        }
+        .sim-chip{
+            display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:800;
+            padding:.14rem .5rem .14rem .34rem;border-radius:999px;
+            color:#8ff0c0;background:linear-gradient(180deg,rgba(63,207,142,.18),rgba(63,207,142,.06));
+            border:1px solid rgba(63,207,142,.45);box-shadow:0 0 10px rgba(63,207,142,.25);
+        }
+        .sim-chip .sv{width:13px;height:13px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:radial-gradient(circle at 32% 27%,#a7f3cf,#3fcf8e 55%,#1e9e68);}
+
         @media (prefers-reduced-motion: reduce){
-            .pay-overdue,.pay-belum,.pay-sebagian,.paycell-overdue,.paycell-belum{ animation:none !important; }
+            .pay-overdue,.pay-belum,.pay-sebagian,.paycell-overdue,.paycell-belum,.sim-verified{ animation:none !important; }
         }
     </style>
 </div>
