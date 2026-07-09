@@ -110,7 +110,7 @@
 
         /* Input angka → PILL kaca BERSIH (tanpa spinner native yang jelek) */
         .katalog-glass input[type="number"]::-webkit-inner-spin-button,
-        .katalog-glass input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+        .katalog-glass input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; display:none; }
         .katalog-glass input[type="number"]{ -moz-appearance:textfield; appearance:textfield; }
         .katalog-glass .data-table td input[type="number"]{
             border-radius:.6rem !important;
@@ -161,6 +161,85 @@
             outline:none; border-color:var(--gold);
             box-shadow:0 0 0 3px rgba(217,164,65,.16);
         }
+        .katalog-glass select.form-input, .katalog-glass select{
+            background-color:var(--panel); color:var(--ink); font-size:.85rem;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.22);
+        }
+        .katalog-glass select.form-input:hover, .katalog-glass select:hover{ border-color:var(--line3); }
+        .katalog-glass select option{ background:#0e1e17; color:var(--ink); }
+        .katalog-glass select:disabled{ opacity:.5; cursor:not-allowed; }
+
+        /* ═══════════ MODAL 3D GLASS (Audit Data & Margin Keuntungan) ═══════════ */
+        .katalog-glass .audit-overlay{ z-index:400; isolation:isolate; }
+        .katalog-glass .audit-bg{
+            background:
+                radial-gradient(1200px 640px at 50% -10%, rgba(4,10,7,.55), rgba(3,8,6,.93) 68%),
+                rgba(3,8,6,.88);
+            backdrop-filter: blur(10px) saturate(1.1);
+            -webkit-backdrop-filter: blur(10px) saturate(1.1);
+        }
+        .katalog-glass .audit-panel{
+            position:relative; isolation:isolate; overflow:hidden;
+            border-radius:1.25rem;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01) 35%, rgba(0,0,0,.14)),
+                linear-gradient(160deg, rgba(21,43,33,.94) 0%, rgba(13,30,23,.98) 55%, var(--bg) 100%);
+            border:1px solid rgba(255,255,255,.12);
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.14),
+                inset 0 0 0 1px rgba(255,255,255,.03),
+                0 2px 0 rgba(217,164,65,.10),
+                0 40px 100px -20px rgba(0,0,0,.75),
+                0 0 0 1px rgba(0,0,0,.4);
+        }
+        .katalog-glass .audit-panel::before{
+            content:''; position:absolute; inset:0 0 auto 0; height:1px;
+            background:linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+            pointer-events:none;
+        }
+        .katalog-glass .audit-head{
+            background:linear-gradient(180deg, rgba(255,255,255,.035), transparent);
+            border-bottom:1px solid rgba(255,255,255,.08);
+        }
+        .katalog-glass .audit-title{ font-size:1.2rem; font-weight:800; letter-spacing:-.01em; color:var(--ink); }
+        .katalog-glass .audit-close{
+            border-radius:.55rem; background:rgba(255,255,255,.05);
+            border:1px solid rgba(255,255,255,.1);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+        }
+        .katalog-glass .audit-close:hover{ background:rgba(232,100,90,.14); border-color:rgba(232,100,90,.4); color:var(--red2); }
+        .katalog-glass .audit-stats{
+            background:linear-gradient(180deg, rgba(255,255,255,.025), transparent);
+            border-bottom:1px solid rgba(255,255,255,.06);
+        }
+        .katalog-glass .audit-body{ background:rgba(0,0,0,.14); }
+        .katalog-glass .audit-row{
+            border-radius:.9rem;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.005)),
+                rgba(21,43,33,.55);
+            border:1px solid rgba(255,255,255,.07);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 4px 14px -6px rgba(0,0,0,.5);
+            transition: border-color .15s, box-shadow .15s, transform .15s;
+        }
+        .katalog-glass .audit-row:hover{
+            border-color: rgba(217,164,65,.32);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 28px -10px rgba(0,0,0,.6);
+            transform: translateY(-1px);
+        }
+        .katalog-glass .audit-foot{
+            background:linear-gradient(0deg, rgba(255,255,255,.03), transparent);
+            border-top:1px solid rgba(255,255,255,.08);
+        }
+        /* Input modal netral saat idle (disiplin warna) + field kaca */
+        .katalog-glass .audit-input{
+            color:var(--ink) !important;
+            border-radius:.55rem;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.25);
+        }
+        .katalog-glass .audit-input:focus{ border-color:var(--gold); box-shadow: inset 0 1px 2px rgba(0,0,0,.25), 0 0 0 3px rgba(217,164,65,.14); }
+        /* Angka tabular — align vertikal rapi */
+        .katalog-glass .font-mono, .katalog-glass .lc-main, .katalog-glass .audit-rval{ font-feature-settings:'tnum' 1, 'lnum' 1; }
     </style>
     {{-- ─────────────── JUDUL HALAMAN ─────────────── --}}
     <div class="kg-title" style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.1rem;">
@@ -321,15 +400,15 @@
 
                 {{-- Global margin + pencarian instan --}}
                 <div class="audit-stats" style="gap:.7rem;flex-wrap:wrap;align-items:center;">
-                    <span style="font-size:.78rem;color:var(--muted);font-weight:700;">Margin default global:</span>
+                    <span style="font-size:.78rem;color:var(--mut);font-weight:700;">Margin default global:</span>
                     <div style="display:flex;align-items:center;gap:.25rem;">
                         <input type="number" step="0.5" min="0" max="500" x-model.number="g" class="audit-input" style="width:74px;text-align:right;color:var(--gold2);">
-                        <span style="color:var(--muted);font-weight:800;">%</span>
+                        <span style="color:var(--mut);font-weight:800;">%</span>
                     </div>
                     <button class="btn-outline" style="font-size:.72rem;" @click="$wire.call('setMarginGlobal', g)">Simpan default</button>
                     <button class="btn-gold" style="font-size:.72rem;" @click="applyAll()">Terapkan ke semua obat</button>
                     <input type="text" x-model.debounce.150ms="q" @input="limit=50" placeholder="Cari obat / kode…" class="audit-input" style="width:200px;text-align:left;padding-left:.6rem;">
-                    <div style="margin-left:auto;font-size:.73rem;color:var(--muted);">Menampilkan <strong x-text="visible.length"></strong> / <strong x-text="filtered.length"></strong> · <strong style="color:var(--red2);" x-text="noPrice"></strong> belum ada harga beli</div>
+                    <div style="margin-left:auto;font-size:.73rem;color:var(--mut);">Menampilkan <strong x-text="visible.length"></strong> / <strong x-text="filtered.length"></strong> · <strong style="color:var(--red2);" x-text="noPrice"></strong> belum ada harga beli</div>
                 </div>
 
                 <div class="audit-body cb-scroll">
