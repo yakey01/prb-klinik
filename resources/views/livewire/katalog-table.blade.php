@@ -1,4 +1,4 @@
-<div>
+<div class="katalog-glass">
     <style>
         .cb-scroll::-webkit-scrollbar{width:6px;}
         .cb-scroll::-webkit-scrollbar-track{background:transparent;}
@@ -66,7 +66,91 @@
         .audit-foot{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.5rem;border-top:1px solid var(--line);flex-wrap:wrap;}
         .audit-hint{font-size:.7rem;color:var(--mut2);max-width:34rem;line-height:1.45;}
         @media(max-width:680px){.audit-fields{gap:.4rem;}.audit-input{width:76px;}.audit-op{display:none;}.audit-result{margin-left:0;width:100%;align-items:flex-start;margin-top:.4rem;}}
+
+        /* ═══════════ GLASS 3D SKIN (scoped) ═══════════ */
+        /* Kartu kaca berlapis: blur + highlight atas + shadow dalam */
+        .katalog-glass .glass-card{
+            background:
+                linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.008) 40%, rgba(0,0,0,.06)) ,
+                color-mix(in srgb, var(--card) 82%, transparent);
+            backdrop-filter: blur(14px) saturate(1.15);
+            -webkit-backdrop-filter: blur(14px) saturate(1.15);
+            border:1px solid rgba(255,255,255,.10);
+            border-radius:1.1rem;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,.10),
+                inset 0 0 0 1px rgba(255,255,255,.02),
+                0 18px 40px -12px rgba(0,0,0,.55);
+        }
+        /* Container tabel: sudut membulat + header gelap sticky */
+        .katalog-glass .glass-card:has(.data-table){ padding:0; }
+        .katalog-glass .data-table thead th{
+            background:linear-gradient(180deg, rgba(20,43,33,.96), rgba(14,30,23,.96));
+            backdrop-filter:blur(6px);
+            position:sticky; top:0; z-index:2;
+            border-bottom:1px solid rgba(255,255,255,.08);
+            box-shadow:0 1px 0 rgba(0,0,0,.4);
+        }
+        .katalog-glass .data-table td{ border-bottom:1px solid rgba(255,255,255,.045); }
+        .katalog-glass .data-table tbody tr{ transition:background .13s ease, box-shadow .13s ease; }
+        .katalog-glass .data-table tbody tr:hover td{ background:rgba(255,255,255,.035)!important; }
+        /* Tint baris menurut untung/rugi (data-laba bucket) */
+        .katalog-glass .data-table tr[data-laba="2"]  td{ background:linear-gradient(90deg, rgba(63,207,142,.07), transparent 60%); }
+        .katalog-glass .data-table tr[data-laba="1"]  td{ background:linear-gradient(90deg, rgba(63,207,142,.045), transparent 55%); }
+        .katalog-glass .data-table tr[data-laba="0"]  td{ background:linear-gradient(90deg, rgba(217,164,65,.045), transparent 55%); }
+        .katalog-glass .data-table tr[data-laba="-1"] td{ background:linear-gradient(90deg, rgba(232,100,90,.05), transparent 55%); }
+        .katalog-glass .data-table tr[data-laba="-2"] td{ background:linear-gradient(90deg, rgba(232,100,90,.09), transparent 62%); }
+
+        /* Input angka → PILL kaca + chevron spinner selalu tampil */
+        .katalog-glass .data-table td input[type="number"]{
+            border-radius:.65rem !important;
+            padding:.34rem .5rem !important;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.03);
+            transition:border-color .15s, box-shadow .15s, transform .1s;
+            -moz-appearance:auto;
+        }
+        .katalog-glass .data-table td input[type="number"]:focus{
+            outline:none; transform:translateY(-1px);
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.28), 0 0 0 3px rgba(217,164,65,.16);
+        }
+        .katalog-glass .data-table td input[type="number"]::-webkit-inner-spin-button{
+            opacity:1; height:1.5rem; margin-left:.15rem;
+        }
+
+        /* Badge (sumber & status) → efek timbul halus */
+        .katalog-glass .badge, .katalog-glass .lc-pill{
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 1px 3px rgba(0,0,0,.25);
+            font-weight:700; letter-spacing:.02em;
+        }
+
+        /* Tombol emas → glossy 3D */
+        .katalog-glass .btn-gold{
+            border-radius:.7rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -4px rgba(217,164,65,.5);
+        }
+        .katalog-glass .btn-gold:hover{ transform:translateY(-1px); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 10px 22px -4px rgba(217,164,65,.6); }
+        .katalog-glass .btn-outline{
+            border-radius:.7rem;
+            background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+        }
+        .katalog-glass .btn-outline:hover{ background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); }
+        /* Kotak cari kaca */
+        .katalog-glass .form-input{
+            border-radius:.7rem;
+            background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(0,0,0,.06));
+            box-shadow: inset 0 1px 2px rgba(0,0,0,.22);
+        }
     </style>
+    {{-- ─────────────── JUDUL HALAMAN ─────────────── --}}
+    <div class="kg-title" style="display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.1rem;">
+        <div>
+            <div style="font-size:.66rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mut2);margin-bottom:.15rem;">Manajemen</div>
+            <h1 class="font-heading" style="font-size:1.9rem;font-weight:800;line-height:1;color:var(--ink);margin:0;">Katalog Obat <span style="color:var(--gold2);">PRB</span></h1>
+        </div>
+        <div style="font-size:.72rem;color:var(--mut);text-align:right;">Referensi: <strong style="color:var(--gold2);">KMK 730/2025</strong> · <strong style="color:var(--gold2);">PMK 3/2023</strong></div>
+    </div>
+
     {{-- ─────────────── HEADER ─────────────── --}}
     <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.2rem; flex-wrap:wrap; gap:.75rem;">
         <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
