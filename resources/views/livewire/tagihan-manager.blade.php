@@ -347,8 +347,8 @@
     {{-- ══ MODAL BAYAR ══════════════════════════════════════════════════ --}}
     @if($showBayar)
     @php $t = $bayarId ? \App\Models\Tagihan::find($bayarId) : null; @endphp
-    <div style="position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:5000;display:flex;align-items:center;justify-content:center;padding:1rem;" wire:click.self="$set('showBayar',false)">
-        <div class="glass-card" style="width:100%;max-width:440px;padding:1.75rem;border-color:var(--emer);box-shadow:0 24px 64px rgba(0,0,0,.7);">
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5000;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;" wire:click.self="$set('showBayar',false)">
+        <div class="glass-card" style="width:100%;max-width:600px;padding:1.6rem;border-color:var(--emer);box-shadow:0 24px 64px rgba(0,0,0,.7);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
                 <div class="font-heading" style="font-size:1rem;color:var(--emer2);">Catat Pembayaran</div>
                 <button wire:click="$set('showBayar',false)" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
@@ -372,25 +372,110 @@
                     <span class="font-mono" style="font-weight:700;color:var(--red2);">Rp {{ number_format($t->sisa_tagihan,0,',','.') }}</span>
                 </div>
             </div>
+            @php $errS = 'color:var(--red2);font-size:.68rem;margin-top:.2rem;'; @endphp
             <form wire:submit="bayar">
+                {{-- Metode pembayaran --}}
                 <div style="margin-bottom:.85rem;">
-                    <label class="form-label">Jumlah Dibayar (Rp) *</label>
-                    <input wire:model="bayarJumlah" type="number" min="1" step="1" class="form-input font-mono" style="font-size:1rem;">
-                    @error('bayarJumlah')<div style="color:var(--red2);font-size:.7rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+                    <label class="form-label">Metode Pembayaran *</label>
+                    <div style="display:flex;gap:.4rem;flex-wrap:wrap;">
+                        @foreach(['transfer_bank'=>'🏦 Transfer','tunai'=>'💵 Tunai','qris'=>'📱 QRIS','giro'=>'📄 Giro','cek'=>'🧾 Cek','lainnya'=>'⋯ Lainnya'] as $mv=>$ml)
+                        <button type="button" wire:click="$set('bayarMetode','{{ $mv }}')"
+                            style="font-size:.72rem;font-weight:700;padding:.42rem .75rem;border-radius:.5rem;cursor:pointer;border:1px solid {{ $bayarMetode===$mv?'var(--emer)':'var(--line2)' }};background:{{ $bayarMetode===$mv?'rgba(63,207,142,.14)':'transparent' }};color:{{ $bayarMetode===$mv?'var(--emer2)':'var(--mut)' }};">{{ $ml }}</button>
+                        @endforeach
+                    </div>
                 </div>
+
+                {{-- Detail bank (non-tunai) --}}
+                @if($bayarMetode !== 'tunai')
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.85rem;">
+                    <div>
+                        <label class="form-label">Bank {!! $bayarMetode==='transfer_bank' ? '<span style="color:var(--red2)">*</span>' : '' !!}</label>
+                        <input wire:model="bayarBank" list="bank-list" type="text" placeholder="mis. BCA" class="form-input">
+                        <datalist id="bank-list">@foreach($bankList as $b)<option value="{{ $b }}"></option>@endforeach</datalist>
+                        @error('bayarBank')<div style="{{ $errS }}">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="form-label">No. Referensi/Transaksi {!! $bayarMetode==='transfer_bank' ? '<span style="color:var(--red2)">*</span>' : '' !!}</label>
+                        <input wire:model="bayarNoRef" type="text" placeholder="mis. TRX0012345" class="form-input font-mono">
+                        @error('bayarNoRef')<div style="{{ $errS }}">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="form-label">Rekening Tujuan (PBF)</label>
+                        <input wire:model="bayarRekening" type="text" placeholder="no. rekening" class="form-input font-mono">
+                    </div>
+                    <div>
+                        <label class="form-label">Atas Nama</label>
+                        <input wire:model="bayarAtasNama" type="text" class="form-input">
+                    </div>
+                </div>
+                @endif
+
+                {{-- Jumlah + tanggal + jam --}}
+                <div style="display:grid;grid-template-columns:1.5fr 1fr .85fr;gap:.65rem;margin-bottom:.85rem;">
+                    <div>
+                        <label class="form-label">Jumlah (Rp) *</label>
+                        <input wire:model="bayarJumlah" type="number" min="1" step="1" class="form-input font-mono" style="font-size:1rem;">
+                        @error('bayarJumlah')<div style="{{ $errS }}">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="form-label">Tanggal *</label>
+                        <input wire:model="bayarTanggal" type="date" class="form-input">
+                        @error('bayarTanggal')<div style="{{ $errS }}">{{ $message }}</div>@enderror
+                    </div>
+                    <div>
+                        <label class="form-label">Jam</label>
+                        <input wire:model="bayarJam" type="time" class="form-input">
+                    </div>
+                </div>
+
+                {{-- Link bukti transfer — WAJIB non-tunai --}}
+                @if($bayarMetode !== 'tunai')
                 <div style="margin-bottom:.85rem;">
-                    <label class="form-label">Tanggal Bayar *</label>
-                    <input wire:model="bayarTanggal" type="date" class="form-input">
-                    @error('bayarTanggal')<div style="color:var(--red2);font-size:.7rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+                    <label class="form-label">🔗 Link Bukti Transfer <span style="color:var(--red2)">*</span> <span style="color:var(--mut);font-weight:400;font-size:.66rem;">— upload dulu ke Google Drive, tempel link</span></label>
+                    <input wire:model="bayarLinkBukti" type="url" placeholder="https://drive.google.com/…" class="form-input">
+                    @error('bayarLinkBukti')<div style="{{ $errS }}">{{ $message }}</div>@enderror
                 </div>
-                <div style="margin-bottom:1.25rem;">
+                @endif
+
+                {{-- Link faktur pembelian — WAJIB kecuali pemutihan --}}
+                <div style="margin-bottom:.85rem;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-bottom:.25rem;">
+                        <label class="form-label" style="margin:0;">🧾 Link Faktur Pembelian {!! $bayarPemutihan ? '' : '<span style="color:var(--red2)">*</span>' !!} <span style="color:var(--mut);font-weight:400;font-size:.66rem;">— scan & upload</span></label>
+                        <label style="display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;color:var(--gold2);cursor:pointer;font-weight:700;">
+                            <input type="checkbox" wire:model.live="bayarPemutihan"> Pemutihan (tanpa faktur)
+                        </label>
+                    </div>
+                    <input wire:model="bayarLinkFaktur" type="url" placeholder="https://drive.google.com/…" class="form-input" {{ $bayarPemutihan?'disabled':'' }} style="{{ $bayarPemutihan?'opacity:.45;':'' }}">
+                    @error('bayarLinkFaktur')<div style="{{ $errS }}">{{ $message }}</div>@enderror
+                </div>
+
+                {{-- Catatan --}}
+                <div style="margin-bottom:1rem;">
                     <label class="form-label">Catatan (opsional)</label>
-                    <input wire:model="bayarCatatan" type="text" placeholder="mis. Transfer BCA ref. 123" class="form-input">
+                    <input wire:model="bayarCatatan" type="text" placeholder="keterangan tambahan" class="form-input">
                 </div>
+
+                {{-- Riwayat pembayaran (arsip) --}}
+                @php $riw = $this->riwayatBayar; @endphp
+                @if($riw->count())
+                <div style="margin-bottom:1rem;border-top:1px solid var(--line);padding-top:.7rem;">
+                    <div class="form-label" style="margin-bottom:.35rem;">Riwayat Pembayaran ({{ $riw->count() }})</div>
+                    @foreach($riw as $r)
+                    <div style="display:flex;align-items:center;gap:.55rem;font-size:.7rem;padding:.35rem 0;border-top:1px solid rgba(31,61,48,.35);flex-wrap:wrap;">
+                        <span class="font-mono" style="color:var(--emer2);font-weight:800;">Rp {{ number_format($r->jumlah,0,',','.') }}</span>
+                        <span style="color:var(--mut2);">{{ $r->metodeLabel() }}{{ $r->bank_nama?' · '.$r->bank_nama:'' }}{{ $r->nomor_referensi?' · #'.$r->nomor_referensi:'' }}</span>
+                        <span style="color:var(--mut2);margin-left:auto;">{{ $r->tanggal->format('d/m/y') }}{{ $r->waktu?' '.substr($r->waktu,0,5):'' }}</span>
+                        @if($r->link_bukti)<a href="{{ $r->link_bukti }}" target="_blank" style="color:var(--blue);text-decoration:none;">🔗bukti</a>@endif
+                        @if($r->link_faktur)<a href="{{ $r->link_faktur }}" target="_blank" style="color:var(--gold2);text-decoration:none;">🧾faktur</a>@elseif($r->pemutihan)<span style="color:var(--gold2);">putih</span>@endif
+                    </div>
+                    @endforeach
+                </div>
+                @endif
+
                 <div style="display:flex;gap:.6rem;">
                     <button type="submit" class="btn-gold" style="flex:1;">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                        Catat Pembayaran
+                        Catat &amp; Arsipkan Pembayaran
                     </button>
                     <button type="button" wire:click="$set('showBayar',false)" class="btn-outline">Batal</button>
                 </div>

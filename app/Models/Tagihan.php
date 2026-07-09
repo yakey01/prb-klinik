@@ -32,6 +32,11 @@ class Tagihan extends Model
         return $this->belongsTo(Distributor::class);
     }
 
+    public function pembayaran(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PembayaranTagihan::class, 'tagihan_id')->orderByDesc('id');
+    }
+
     // ── Computed attributes ───────────────────────────────────────────
 
     public function getSisaTagihanAttribute(): int

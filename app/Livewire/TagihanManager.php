@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Models\Distributor;
+use App\Models\PembayaranTagihan;
 use App\Models\Tagihan;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -23,12 +25,24 @@ class TagihanManager extends Component
     #[Url(as: 'tanggal', history: true)]
     public string $tanggal = '';
 
-    // Bayar modal
-    public bool   $showBayar  = false;
-    public ?int   $bayarId    = null;
-    public int    $bayarJumlah = 0;
+    // Bayar modal (arsip pembayaran kelas enterprise)
+    public bool   $showBayar    = false;
+    public ?int   $bayarId      = null;
+    public int    $bayarJumlah  = 0;
     public string $bayarTanggal = '';
+    public string $bayarJam     = '';
+    public string $bayarMetode  = 'transfer_bank';   // transfer_bank|tunai|qris|giro|cek|lainnya
+    public string $bayarBank    = '';
+    public string $bayarNoRef   = '';
+    public string $bayarRekening = '';
+    public string $bayarAtasNama = '';
+    public string $bayarLinkBukti  = '';             // WAJIB non-tunai
+    public string $bayarLinkFaktur = '';             // WAJIB kecuali pemutihan
+    public bool   $bayarPemutihan  = false;
     public string $bayarCatatan = '';
+
+    /** Daftar bank umum Indonesia untuk datalist. */
+    public array $bankList = ['BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'CIMB Niaga', 'Permata', 'Danamon', 'BTN', 'Panin', 'Maybank', 'OCBC NISP', 'Bank Jatim', 'Muamalat', 'Mega'];
 
     public function mount(): void
     {
@@ -134,36 +148,98 @@ class TagihanManager extends Component
 
     public function openBayar(int $id): void
     {
-        $tagihan = Tagihan::findOrFail($id);
-        $this->bayarId      = $id;
-        $this->bayarJumlah  = $tagihan->sisa_tagihan;
-        $this->bayarTanggal = now()->format('Y-m-d');
-        $this->bayarCatatan = '';
-        $this->showBayar    = true;
+        $tagihan = Tagihan::with('distributor')->findOrFail($id);
+        $this->bayarId       = $id;
+        $this->bayarJumlah   = $tagihan->sisa_tagihan;
+        $this->bayarTanggal  = now()->format('Y-m-d');
+        $this->bayarJam      = now()->format('H:i');
+        $this->bayarMetode   = 'transfer_bank';
+        $this->bayarCatatan  = '';
+        $this->bayarLinkBukti = '';
+        $this->bayarLinkFaktur = '';
+        $this->bayarPemutihan  = false;
+        // Prefetch (fetching dulu): prefill bank/rekening/atas nama dari pembayaran terakhir ke PBF yang sama.
+        $last = PembayaranTagihan::whereHas('tagihan', fn ($q) => $q->where('distributor_id', $tagihan->distributor_id))
+            ->where('metode', 'transfer_bank')->latest('id')->first();
+        $this->bayarBank     = $last->bank_nama ?? '';
+        $this->bayarRekening = $last->rekening_tujuan ?? '';
+        $this->bayarAtasNama = $last->atas_nama ?? ($tagihan->distributor->name ?? '');
+        $this->bayarNoRef    = '';
+        $this->resetValidation();
+        $this->showBayar     = true;
+    }
+
+    /** Riwayat pembayaran tagihan yang sedang dibuka (arsip). */
+    #[Computed]
+    public function riwayatBayar()
+    {
+        return $this->bayarId ? PembayaranTagihan::where('tagihan_id', $this->bayarId)->orderByDesc('id')->get() : collect();
     }
 
     public function bayar(): void
     {
-        $this->validate([
+        $nonTunai = $this->bayarMetode !== 'tunai';
+        $rules = [
             'bayarJumlah'  => 'required|integer|min:1',
             'bayarTanggal' => 'required|date',
+            'bayarJam'     => 'nullable',
+            'bayarMetode'  => 'required|in:transfer_bank,tunai,qris,giro,cek,lainnya',
+            // Bukti transfer WAJIB untuk non-tunai (URL, mis. Google Drive).
+            'bayarLinkBukti' => [$nonTunai ? 'required' : 'nullable', 'nullable', 'url', 'max:600'],
+            // Faktur pembelian WAJIB kecuali dicentang "pemutihan".
+            'bayarLinkFaktur' => [$this->bayarPemutihan ? 'nullable' : 'required', 'nullable', 'url', 'max:600'],
+        ];
+        if ($this->bayarMetode === 'transfer_bank') {
+            $rules['bayarBank']  = 'required|string|max:60';
+            $rules['bayarNoRef'] = 'required|string|max:100';
+        }
+        $this->validate($rules, [
+            'bayarLinkBukti.required'  => 'Link bukti transfer wajib (upload dulu ke Google Drive, tempel link-nya).',
+            'bayarLinkBukti.url'       => 'Link bukti harus URL valid (https://…).',
+            'bayarLinkFaktur.required' => 'Link faktur pembelian wajib (scan & upload), kecuali dicentang pemutihan.',
+            'bayarLinkFaktur.url'      => 'Link faktur harus URL valid (https://…).',
+            'bayarBank.required'       => 'Pilih/isi bank untuk transfer.',
+            'bayarNoRef.required'      => 'Isi nomor referensi/transaksi transfer.',
+        ], [
+            'bayarJumlah' => 'jumlah', 'bayarBank' => 'bank', 'bayarNoRef' => 'nomor referensi',
         ]);
 
         $tagihan = Tagihan::findOrFail($this->bayarId);
-        $totalDibayar = $tagihan->jumlah_dibayar + $this->bayarJumlah;
 
-        $status = $totalDibayar >= $tagihan->total_tagihan ? 'lunas' : 'sebagian';
+        \DB::transaction(function () use ($tagihan) {
+            // Arsipkan pembayaran (1 baris = 1 transaksi bayar).
+            PembayaranTagihan::create([
+                'tagihan_id'      => $tagihan->id,
+                'tanggal'         => $this->bayarTanggal,
+                'waktu'           => $this->bayarJam ?: null,
+                'metode'          => $this->bayarMetode,
+                'bank_nama'       => $this->bayarBank ?: null,
+                'nomor_referensi' => $this->bayarNoRef ?: null,
+                'rekening_tujuan' => $this->bayarRekening ?: null,
+                'atas_nama'       => $this->bayarAtasNama ?: null,
+                'jumlah'          => $this->bayarJumlah,
+                'link_bukti'      => $this->bayarLinkBukti ?: null,
+                'link_faktur'     => $this->bayarLinkFaktur ?: null,
+                'pemutihan'       => $this->bayarPemutihan,
+                'catatan'         => $this->bayarCatatan ?: null,
+                'dicatat_oleh'    => Auth::user()?->name,
+            ]);
 
-        $tagihan->update([
-            'jumlah_dibayar' => min($totalDibayar, $tagihan->total_tagihan),
-            'status'         => $status,
-            'tanggal_bayar'  => $this->bayarTanggal,
-            'catatan_bayar'  => $this->bayarCatatan ?: null,
-        ]);
+            // Rekap: jumlah_dibayar = Σ pembayaran (sumber kebenaran). Cap di total.
+            $totalDibayar = (float) $tagihan->pembayaran()->sum('jumlah');
+            $status = $totalDibayar >= (float) $tagihan->total_tagihan ? 'lunas' : 'sebagian';
+            $tagihan->update([
+                'jumlah_dibayar' => min($totalDibayar, (float) $tagihan->total_tagihan),
+                'status'         => $status,
+                'tanggal_bayar'  => $this->bayarTanggal,
+                'catatan_bayar'  => $this->bayarCatatan ?: null,
+            ]);
+        });
 
         $this->showBayar = false;
-        $this->bayarId   = null;
-        $this->dispatch('toast', message: "Tagihan {$tagihan->nomor_tagihan} berhasil dicatat sebagai {$status}.", type: 'success');
+        $no = $tagihan->nomor_tagihan;
+        $this->bayarId = null;
+        $this->dispatch('toast', message: "Pembayaran {$no} tercatat & diarsipkan.", type: 'success');
     }
 
     public function konfirm(int $id): void

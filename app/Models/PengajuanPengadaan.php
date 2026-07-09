@@ -46,9 +46,10 @@ class PengajuanPengadaan extends Model
     // ── State machine helpers ────────────────────────────────────
     public function bisaDiajukan(): bool   { return in_array($this->status, ['draft', 'revisi'], true); }
     public function bisaDiedit(): bool     { return in_array($this->status, ['draft', 'revisi'], true); }
-    public function bisaDihapus(): bool    { return in_array($this->status, ['draft', 'revisi', 'ditolak'], true); }
+    public function bisaDihapus(): bool    { return in_array($this->status, ['draft', 'revisi', 'ditolak', 'dibatalkan'], true); }
     public function bisaApprove(): bool    { return $this->status === 'diajukan'; }
     public function bisaRealisasi(): bool  { return $this->status === 'disetujui'; }
+    public function bisaDibatalkan(): bool { return in_array($this->status, ['diajukan', 'disetujui'], true); }
 
     /** Nomor PR unik: PR-YYYYMM-#### (reset per bulan). */
     public static function generateNomor(): string
@@ -81,6 +82,7 @@ class PengajuanPengadaan extends Model
             'ditolak'     => 'Ditolak',
             'revisi'      => 'Perlu Revisi',
             'direalisasi' => 'Direalisasi (PO)',
+            'dibatalkan'  => 'Dibatalkan',
             default       => ucfirst($this->status),
         };
     }
@@ -94,6 +96,7 @@ class PengajuanPengadaan extends Model
             'diajukan'    => '#5b9bd5',   // biru (menunggu)
             'revisi'      => '#e0a53a',   // emas
             'ditolak'     => '#e8645a',   // merah
+            'dibatalkan'  => '#8a9a92',   // abu (dibatalkan)
             default       => '#8a9a92',   // abu (draft)
         };
     }
