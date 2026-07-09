@@ -20,7 +20,7 @@
         $sm = $this->summary;
     @endphp
 
-    <div style="display:grid;grid-template-columns:minmax(300px,360px) 1fr;gap:1.25rem;align-items:start;" class="bmh-grid">
+    <div style="display:grid;grid-template-columns:minmax(310px,370px) 1fr;gap:1.25rem;align-items:start;" class="bmh-grid">
 
         {{-- ═══════════ KALENDER ═══════════ --}}
         <div class="glass-card" style="padding:1rem 1.1rem;">
