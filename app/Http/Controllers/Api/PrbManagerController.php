@@ -309,35 +309,31 @@ class PrbManagerController extends Controller
             ->where('is_aktif', true)->whereNull('deleted_at')->count();
 
         $pengambilanBulanIni = DB::table('pengambilan_obat')
-            ->whereYear('tanggal_pengambilan', $year)
-            ->whereMonth('tanggal_pengambilan', $month)
+            ->whereBetween('tanggal_pengambilan', \App\Support\Periode::bulan($year, $month))
             ->whereNull('deleted_at')->count();
 
+        $lm = $now->copy()->subMonth();
         $pengambilanBulanLalu = DB::table('pengambilan_obat')
-            ->whereYear('tanggal_pengambilan', $now->copy()->subMonth()->year)
-            ->whereMonth('tanggal_pengambilan', $now->copy()->subMonth()->month)
+            ->whereBetween('tanggal_pengambilan', \App\Support\Periode::bulan($lm->year, $lm->month))
             ->whereNull('deleted_at')->count();
 
         $proyeksiKlaim = DB::table('item_pengambilan')
             ->join('pengambilan_obat', 'pengambilan_obat.id', '=', 'item_pengambilan.pengambilan_obat_id')
-            ->whereYear('pengambilan_obat.tanggal_pengambilan', $year)
-            ->whereMonth('pengambilan_obat.tanggal_pengambilan', $month)
+            ->whereBetween('pengambilan_obat.tanggal_pengambilan', \App\Support\Periode::bulan($year, $month))
             ->whereNull('pengambilan_obat.deleted_at')
             ->selectRaw('SUM(item_pengambilan.jumlah_unit * item_pengambilan.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('item_pengambilan.faktor_jasa_farmasi_snapshot') . ') as total')
             ->value('total') ?? 0;
 
         $proyeksiKlaimLalu = DB::table('item_pengambilan')
             ->join('pengambilan_obat', 'pengambilan_obat.id', '=', 'item_pengambilan.pengambilan_obat_id')
-            ->whereYear('pengambilan_obat.tanggal_pengambilan', $now->copy()->subMonth()->year)
-            ->whereMonth('pengambilan_obat.tanggal_pengambilan', $now->copy()->subMonth()->month)
+            ->whereBetween('pengambilan_obat.tanggal_pengambilan', \App\Support\Periode::bulan($lm->year, $lm->month))
             ->whereNull('pengambilan_obat.deleted_at')
             ->selectRaw('SUM(item_pengambilan.jumlah_unit * item_pengambilan.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('item_pengambilan.faktor_jasa_farmasi_snapshot') . ') as total')
             ->value('total') ?? 0;
 
         $hppBulanIni = DB::table('item_pengambilan')
             ->join('pengambilan_obat', 'pengambilan_obat.id', '=', 'item_pengambilan.pengambilan_obat_id')
-            ->whereYear('pengambilan_obat.tanggal_pengambilan', $year)
-            ->whereMonth('pengambilan_obat.tanggal_pengambilan', $month)
+            ->whereBetween('pengambilan_obat.tanggal_pengambilan', \App\Support\Periode::bulan($year, $month))
             ->whereNull('pengambilan_obat.deleted_at')
             ->selectRaw('SUM(item_pengambilan.jumlah_unit * item_pengambilan.harga_beli_snapshot) as total')
             ->value('total') ?? 0;
@@ -385,7 +381,7 @@ class PrbManagerController extends Controller
             ->where('tanggal_jatuh_tempo', '<', $now->toDateString())->count();
 
         $nilaiPoBulanIni = DB::table('purchase_orders')
-            ->whereYear('tanggal_po', $year)->whereMonth('tanggal_po', $month)
+            ->whereBetween('tanggal_po', \App\Support\Periode::bulan($year, $month))
             ->sum('total_nilai');
 
         $trendPengambilan = $pengambilanBulanLalu > 0

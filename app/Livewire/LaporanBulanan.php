@@ -6,6 +6,7 @@ use App\Models\PurchaseOrder;
 use App\Models\BiayaOperasional;
 use App\Models\StokKeluar;
 use App\Models\RekonsiliasiiBpjs;
+use App\Support\Periode;
 use Livewire\Component;
 use Livewire\Attributes\Computed;
 use Carbon\Carbon;
@@ -47,8 +48,7 @@ class LaporanBulanan extends Component
         $hppBpjs = (float) \DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->whereYear('po.tanggal_pengambilan', $this->tahun)
-            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($this->tahun, $this->bulan))
             ->where('po.status', 'selesai')
             ->where('o.tipe_obat', 'kronis')
             ->sum(\DB::raw('ip.jumlah_unit * ip.harga_beli_snapshot'));
@@ -57,8 +57,7 @@ class LaporanBulanan extends Component
         $proyeksiBpjs = (float) \DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->whereYear('po.tanggal_pengambilan', $this->tahun)
-            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($this->tahun, $this->bulan))
             ->where('po.status', 'selesai')
             ->where('o.tipe_obat', 'kronis')
             ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ''));
@@ -83,12 +82,13 @@ class LaporanBulanan extends Component
         // ── Segmen B: Obat Non-Kronis — Revenue TUNAI dari Pasien Umum (stok keluar aktual) ──
         // Hanya kanal tunai (manual + sim_resep). Baris sumber='pengambilan' (kronis BPJS)
         // sudah dihitung di Segmen A via item_pengambilan → dikecualikan agar tak double-count.
-        $skBulan   = StokKeluar::tunai()
-                                ->whereYear('tanggal_keluar', $this->tahun)
-                                ->whereMonth('tanggal_keluar', $this->bulan)->get();
-        $pendTunai  = (float) $skBulan->sum(fn ($sk) => $sk->total_pendapatan);
-        $hppTunai   = (float) $skBulan->sum(fn ($sk) => $sk->total_biaya);
-        $labaTunai  = (float) $skBulan->sum(fn ($sk) => $sk->laba);
+        $skAgg = StokKeluar::tunai()
+            ->whereBetween('tanggal_keluar', Periode::bulan($this->tahun, $this->bulan))
+            ->selectRaw('COALESCE(SUM(jumlah_unit * harga_jual_per_unit),0) AS pend, COALESCE(SUM(jumlah_unit * harga_beli_snapshot),0) AS hpp')
+            ->first();
+        $pendTunai  = (float) ($skAgg->pend ?? 0);
+        $hppTunai   = (float) ($skAgg->hpp ?? 0);
+        $labaTunai  = $pendTunai - $hppTunai;
         $marginTunai = $pendTunai > 0 ? round($labaTunai / $pendTunai * 100, 1) : 0;
 
         // ── Konsolidasi Laba Rugi ──────────────────────────────────────────────────────────
@@ -106,16 +106,14 @@ class LaporanBulanan extends Component
         $labaBersih = $labaKotor - $totalBiayaOps;
 
         // ── Pengadaan (Realisasi PO bulan ini) ────────────────────────────────────────────
-        $pengeluaran = PurchaseOrder::whereYear('tanggal_po', $this->tahun)
-                                    ->whereMonth('tanggal_po', $this->bulan)
+        $pengeluaran = PurchaseOrder::whereBetween('tanggal_po', Periode::bulan($this->tahun, $this->bulan))
                                     ->sum('total_nilai');
 
-        $pengeluaranBpjs = PurchaseOrder::whereHas('items', fn ($q) => $q->where('tipe_obat', 'kronis'))
-                                        ->whereYear('tanggal_po', $this->tahun)
-                                        ->whereMonth('tanggal_po', $this->bulan)
-                                        ->with('items')
-                                        ->get()
-                                        ->sum(fn ($po) => $po->items->where('tipe_obat', 'kronis')->sum('subtotal'));
+        $pengeluaranBpjs = (float) \DB::table('purchase_order_items as poi')
+            ->join('purchase_orders as po', 'poi.purchase_order_id', '=', 'po.id')
+            ->whereBetween('po.tanggal_po', Periode::bulan($this->tahun, $this->bulan))
+            ->where('poi.tipe_obat', 'kronis')
+            ->sum('poi.subtotal');
 
         $pengeluaranUmum = (float) ($pengeluaran - $pengeluaranBpjs);
 
@@ -141,8 +139,7 @@ class LaporanBulanan extends Component
         $rows = \DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->whereYear('po.tanggal_pengambilan', $this->tahun)
-            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($this->tahun, $this->bulan))
             ->where('po.status', 'selesai')
             ->where('o.tipe_obat', 'kronis')
             ->select(
@@ -181,8 +178,7 @@ class LaporanBulanan extends Component
     {
         return StokKeluar::tunai()
             ->with('obat')
-            ->whereYear('tanggal_keluar', $this->tahun)
-            ->whereMonth('tanggal_keluar', $this->bulan)
+            ->whereBetween('tanggal_keluar', Periode::bulan($this->tahun, $this->bulan))
             ->orderByDesc('tanggal_keluar')
             ->get()
             ->map(fn ($sk) => [
@@ -206,8 +202,7 @@ class LaporanBulanan extends Component
         return \DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->whereYear('po.tanggal_pengambilan', $this->tahun)
-            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($this->tahun, $this->bulan))
             ->where('po.status', 'selesai')
             ->where('o.tipe_obat', 'kronis')
             ->select(
@@ -230,8 +225,7 @@ class LaporanBulanan extends Component
         return \DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->whereYear('po.tanggal_pengambilan', $this->tahun)
-            ->whereMonth('po.tanggal_pengambilan', $this->bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($this->tahun, $this->bulan))
             ->where('po.status', 'selesai')
             ->where('o.tipe_obat', 'kronis')
             ->select(
@@ -256,28 +250,39 @@ class LaporanBulanan extends Component
         $pendTunaiData   = [];
         $pengeluaranData = [];
 
+        // Window 6 bulan (sargable) → 3 query GROUP BY per bulan (bukan 18 query dalam loop).
+        $awal  = Carbon::create($this->tahun, $this->bulan, 1)->subMonths(5)->startOfMonth();
+        $akhir = Carbon::create($this->tahun, $this->bulan, 1)->endOfMonth();
+        $range = [$awal->toDateTimeString(), $akhir->toDateTimeString()];
+
+        $keys = [];
         for ($i = 5; $i >= 0; $i--) {
             $d = Carbon::create($this->tahun, $this->bulan, 1)->subMonths($i);
             $labels[] = $d->locale('id')->translatedFormat('M Y');
+            $keys[]   = $d->format('Y-m');
+        }
 
-            $pengeluaranData[] = (float) PurchaseOrder::whereYear('tanggal_po', $d->year)
-                ->whereMonth('tanggal_po', $d->month)->sum('total_nilai');
+        $peng = PurchaseOrder::whereBetween('tanggal_po', $range)
+            ->selectRaw("DATE_FORMAT(tanggal_po, '%Y-%m') AS ym, SUM(total_nilai) AS v")
+            ->groupBy('ym')->pluck('v', 'ym');
 
-            // Proyeksi BPJS kronis: dari item_pengambilan aktual per bulan
-            $pendKronisData[] = (float) \DB::table('item_pengambilan as ip')
-                ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
-                ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-                ->whereYear('po.tanggal_pengambilan', $d->year)
-                ->whereMonth('po.tanggal_pengambilan', $d->month)
-                ->where('po.status', 'selesai')
-                ->where('o.tipe_obat', 'kronis')
-                ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ''));
+        $kron = \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('obat as o', 'ip.obat_id', '=', 'o.id')
+            ->whereBetween('po.tanggal_pengambilan', $range)
+            ->where('po.status', 'selesai')
+            ->where('o.tipe_obat', 'kronis')
+            ->selectRaw("DATE_FORMAT(po.tanggal_pengambilan, '%Y-%m') AS ym, SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * " . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ") AS v")
+            ->groupBy('ym')->pluck('v', 'ym');
 
-            // Tunai non-kronis: aktual dari stok keluar per bulan (kanal tunai saja, tanpa pengambilan)
-            $pendTunaiData[] = (float) StokKeluar::tunai()
-                ->whereYear('tanggal_keluar', $d->year)
-                ->whereMonth('tanggal_keluar', $d->month)
-                ->get()->sum(fn ($sk) => $sk->total_pendapatan);
+        $tun = StokKeluar::tunai()->whereBetween('tanggal_keluar', $range)
+            ->selectRaw("DATE_FORMAT(tanggal_keluar, '%Y-%m') AS ym, SUM(jumlah_unit * harga_jual_per_unit) AS v")
+            ->groupBy('ym')->pluck('v', 'ym');
+
+        foreach ($keys as $k) {
+            $pengeluaranData[] = (float) ($peng[$k] ?? 0);
+            $pendKronisData[]  = (float) ($kron[$k] ?? 0);
+            $pendTunaiData[]   = (float) ($tun[$k] ?? 0);
         }
 
         return compact('labels', 'pendKronisData', 'pendTunaiData', 'pengeluaranData');

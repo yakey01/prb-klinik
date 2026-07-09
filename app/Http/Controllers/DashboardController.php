@@ -7,6 +7,7 @@ use App\Models\Obat;
 use App\Models\Pasien;
 use App\Models\PurchaseOrder;
 use App\Models\RekonsiliasiiBpjs;
+use App\Support\Periode;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -33,8 +34,7 @@ class DashboardController extends Controller
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
             ->whereNull('po.deleted_at')
             ->whereIn('po.status', $statuses)
-            ->whereYear('po.tanggal_pengambilan', $tahun)
-            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($tahun, $bulan))
             ->groupBy('o.id', 'o.nama_obat', 'o.tipe_obat', 'po.status')
             ->selectRaw('
                 o.id AS obat_id, o.nama_obat AS nama, o.tipe_obat AS tipe, po.status AS status,
@@ -55,8 +55,7 @@ class DashboardController extends Controller
             ->join('obat as o', 'o.id', '=', 'rp.obat_id')
             ->whereNull('po.deleted_at')
             ->whereIn('po.status', $statuses)
-            ->whereYear('po.tanggal_pengambilan', $tahun)
-            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($tahun, $bulan))
             ->whereNotExists(function ($q) {
                 $q->select(DB::raw(1))->from('item_pengambilan as ip')
                   ->whereColumn('ip.pengambilan_obat_id', 'po.id');
@@ -172,8 +171,7 @@ class DashboardController extends Controller
         $pasienBulanIni = DB::table('pengambilan_obat')
             ->whereNull('deleted_at')
             ->where('status', 'selesai')
-            ->whereYear('tanggal_pengambilan', $tahun)
-            ->whereMonth('tanggal_pengambilan', $bulan)
+            ->whereBetween('tanggal_pengambilan', Periode::bulan($tahun, $bulan))
             ->distinct('pasien_id')
             ->count('pasien_id');
 
@@ -185,8 +183,7 @@ class DashboardController extends Controller
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
             ->whereNull('po.deleted_at')
             ->where('po.status', 'selesai')
-            ->whereYear('po.tanggal_pengambilan', $tahun)
-            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($tahun, $bulan))
             ->whereNotNull('o.kategori_diagnosis')
             ->where('o.kategori_diagnosis', '!=', '')
             ->groupBy('o.kategori_diagnosis')
@@ -204,8 +201,7 @@ class DashboardController extends Controller
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
             ->whereNull('po.deleted_at')
             ->where('po.status', 'selesai')
-            ->whereYear('po.tanggal_pengambilan', $tahun)
-            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($tahun, $bulan))
             ->groupBy('ip.obat_id', 'o.nama_obat')
             ->select(
                 'ip.obat_id as id',
@@ -233,12 +229,10 @@ class DashboardController extends Controller
             $data['ranking_obat'] = $rankingObatReal;
         }
 
-        $pengeluaranBulanIni = PurchaseOrder::whereMonth('tanggal_po', $bulan)
-            ->whereYear('tanggal_po', $tahun)
+        $pengeluaranBulanIni = PurchaseOrder::whereBetween('tanggal_po', Periode::bulan($tahun, $bulan))
             ->sum('total_nilai');
 
-        $jumlahPoBulanIni = PurchaseOrder::whereMonth('tanggal_po', $bulan)
-            ->whereYear('tanggal_po', $tahun)
+        $jumlahPoBulanIni = PurchaseOrder::whereBetween('tanggal_po', Periode::bulan($tahun, $bulan))
             ->count();
 
         // Alert counts
@@ -261,8 +255,7 @@ class DashboardController extends Controller
                 $pendapatan[] = round($this->financialsForStatuses(['selesai', 'dijadwalkan'], $dt->month, $dt->year)['klaim']);
 
                 $pengeluaran[] = round(
-                    PurchaseOrder::whereMonth('tanggal_po', $dt->month)
-                        ->whereYear('tanggal_po', $dt->year)
+                    PurchaseOrder::whereBetween('tanggal_po', Periode::bulan($dt->year, $dt->month))
                         ->sum('total_nilai')
                 );
             }
