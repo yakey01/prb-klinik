@@ -68,6 +68,16 @@
         @media(max-width:680px){.audit-fields{gap:.4rem;}.audit-input{width:76px;}.audit-op{display:none;}.audit-result{margin-left:0;width:100%;align-items:flex-start;margin-top:.4rem;}}
 
         /* ═══════════ GLASS 3D SKIN (scoped) ═══════════ */
+        /* Ambient glow (feel "ruang kaca") di atas konten katalog */
+        .katalog-glass{ position:relative; }
+        .katalog-glass::before{
+            content:''; position:absolute; left:-3rem; right:-3rem; top:-3rem; height:420px;
+            z-index:0; pointer-events:none;
+            background:
+                radial-gradient(1100px 380px at 50% 0%, rgba(63,207,142,.10), transparent 62%),
+                radial-gradient(760px 320px at 100% 0%, rgba(217,164,65,.06), transparent 58%);
+        }
+        .katalog-glass > *{ position:relative; z-index:1; }
         /* Kartu kaca berlapis: blur + highlight atas + shadow dalam */
         .katalog-glass .glass-card{
             background:
