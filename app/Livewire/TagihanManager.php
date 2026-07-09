@@ -41,6 +41,11 @@ class TagihanManager extends Component
     public bool   $bayarPemutihan  = false;
     public string $bayarCatatan = '';
 
+    // Koreksi pembayaran (edit / void) — jejak audit enterprise
+    public ?int   $editPembayaranId = null;          // >0 → modal dalam mode edit pembayaran arsip
+    public ?int   $voidId    = null;                 // pembayaran yg sedang diminta pembatalan
+    public string $voidAlasan = '';                  // alasan pembatalan (wajib)
+
     /** Daftar bank umum Indonesia untuk datalist. */
     public array $bankList = ['BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'CIMB Niaga', 'Permata', 'Danamon', 'BTN', 'Panin', 'Maybank', 'OCBC NISP', 'Bank Jatim', 'Muamalat', 'Mega'];
 
@@ -158,6 +163,8 @@ class TagihanManager extends Component
         $this->bayarLinkBukti = '';
         $this->bayarLinkFaktur = '';
         $this->bayarPemutihan  = false;
+        $this->editPembayaranId = null;   // mode: tambah pembayaran baru
+        $this->voidId = null; $this->voidAlasan = '';
         // Prefetch (fetching dulu): prefill bank/rekening/atas nama dari pembayaran terakhir ke PBF yang sama.
         $last = PembayaranTagihan::whereHas('tagihan', fn ($q) => $q->where('distributor_id', $tagihan->distributor_id))
             ->where('metode', 'transfer_bank')->latest('id')->first();
@@ -169,11 +176,57 @@ class TagihanManager extends Component
         $this->showBayar     = true;
     }
 
-    /** Riwayat pembayaran tagihan yang sedang dibuka (arsip). */
+    /** Riwayat pembayaran tagihan yang sedang dibuka (arsip lengkap — termasuk yg dibatalkan). */
     #[Computed]
     public function riwayatBayar()
     {
         return $this->bayarId ? PembayaranTagihan::where('tagihan_id', $this->bayarId)->orderByDesc('id')->get() : collect();
+    }
+
+    /**
+     * Muat 1 pembayaran arsip ke form untuk DIKOREKSI (mis. menambahkan link
+     * faktur pada pembayaran lama yang belum punya faktur). Tidak menghapus
+     * arsip — hanya mengubah baris terpilih dengan jejak "diubah_oleh".
+     */
+    public function editBayar(int $id): void
+    {
+        $p = PembayaranTagihan::findOrFail($id);
+        if ($p->tagihan_id !== $this->bayarId || $p->dibatalkan) {
+            $this->dispatch('toast', type: 'error', message: 'Pembayaran ini tidak bisa diedit.');
+            return;
+        }
+        $this->editPembayaranId = $p->id;
+        $this->bayarJumlah    = (int) $p->jumlah;
+        $this->bayarTanggal   = optional($p->tanggal)->format('Y-m-d') ?: now()->format('Y-m-d');
+        $this->bayarJam       = $p->waktu ? substr($p->waktu, 0, 5) : '';
+        $this->bayarMetode    = $p->metode;
+        $this->bayarBank      = (string) $p->bank_nama;
+        $this->bayarNoRef     = (string) $p->nomor_referensi;
+        $this->bayarRekening  = (string) $p->rekening_tujuan;
+        $this->bayarAtasNama  = (string) $p->atas_nama;
+        $this->bayarLinkBukti = (string) $p->link_bukti;
+        $this->bayarLinkFaktur = (string) $p->link_faktur;
+        $this->bayarPemutihan = (bool) $p->pemutihan;
+        $this->bayarCatatan   = (string) $p->catatan;
+        $this->voidId = null; $this->voidAlasan = '';
+        $this->resetValidation();
+    }
+
+    /** Batalkan mode edit → kembali ke form "tambah pembayaran baru". */
+    public function batalEditBayar(): void
+    {
+        $this->editPembayaranId = null;
+        $this->resetValidation();
+        $t = $this->bayarId ? Tagihan::find($this->bayarId) : null;
+        $this->bayarJumlah   = $t?->sisa_tagihan ?? 0;
+        $this->bayarTanggal  = now()->format('Y-m-d');
+        $this->bayarJam      = now()->format('H:i');
+        $this->bayarMetode   = 'transfer_bank';
+        $this->bayarNoRef    = '';
+        $this->bayarLinkBukti = '';
+        $this->bayarLinkFaktur = '';
+        $this->bayarPemutihan = false;
+        $this->bayarCatatan  = '';
     }
 
     public function bayar(): void
@@ -205,11 +258,10 @@ class TagihanManager extends Component
         ]);
 
         $tagihan = Tagihan::findOrFail($this->bayarId);
+        $edit    = $this->editPembayaranId;
 
-        \DB::transaction(function () use ($tagihan) {
-            // Arsipkan pembayaran (1 baris = 1 transaksi bayar).
-            PembayaranTagihan::create([
-                'tagihan_id'      => $tagihan->id,
+        \DB::transaction(function () use ($tagihan, $edit) {
+            $data = [
                 'tanggal'         => $this->bayarTanggal,
                 'waktu'           => $this->bayarJam ?: null,
                 'metode'          => $this->bayarMetode,
@@ -222,24 +274,88 @@ class TagihanManager extends Component
                 'link_faktur'     => $this->bayarLinkFaktur ?: null,
                 'pemutihan'       => $this->bayarPemutihan,
                 'catatan'         => $this->bayarCatatan ?: null,
-                'dicatat_oleh'    => Auth::user()?->name,
-            ]);
+            ];
 
-            // Rekap: jumlah_dibayar = Σ pembayaran (sumber kebenaran). Cap di total.
-            $totalDibayar = (float) $tagihan->pembayaran()->sum('jumlah');
-            $status = $totalDibayar >= (float) $tagihan->total_tagihan ? 'lunas' : 'sebagian';
-            $tagihan->update([
-                'jumlah_dibayar' => min($totalDibayar, (float) $tagihan->total_tagihan),
-                'status'         => $status,
-                'tanggal_bayar'  => $this->bayarTanggal,
-                'catatan_bayar'  => $this->bayarCatatan ?: null,
-            ]);
+            if ($edit) {
+                // Koreksi baris arsip — pertahankan pencatat asli, tambah jejak pengubah.
+                $p = PembayaranTagihan::where('id', $edit)->where('tagihan_id', $tagihan->id)->firstOrFail();
+                abort_if($p->dibatalkan, 403);
+                $p->update($data + [
+                    'diubah_at'   => now(),
+                    'diubah_oleh' => Auth::user()?->name,
+                ]);
+            } else {
+                // Pembayaran baru (1 baris = 1 transaksi).
+                PembayaranTagihan::create($data + [
+                    'tagihan_id'   => $tagihan->id,
+                    'dicatat_oleh' => Auth::user()?->name,
+                ]);
+            }
+
+            $this->recomputeTagihan($tagihan);
         });
 
         $this->showBayar = false;
         $no = $tagihan->nomor_tagihan;
+        $wasEdit = (bool) $edit;
         $this->bayarId = null;
-        $this->dispatch('toast', message: "Pembayaran {$no} tercatat & diarsipkan.", type: 'success');
+        $this->editPembayaranId = null;
+        $this->dispatch('toast', message: $wasEdit ? "Pembayaran {$no} diperbarui & terarsip." : "Pembayaran {$no} tercatat & diarsipkan.", type: 'success');
+    }
+
+    /** Buka konfirmasi pembatalan (void) pada 1 baris arsip. */
+    public function mintaBatal(int $id): void
+    {
+        $this->voidId = $id;
+        $this->voidAlasan = '';
+        $this->editPembayaranId = null;
+        $this->resetValidation();
+    }
+
+    public function tutupBatal(): void { $this->voidId = null; $this->voidAlasan = ''; }
+
+    /**
+     * Batalkan (void) 1 pembayaran — arsip TIDAK dihapus, hanya ditandai
+     * dibatalkan + alasan + pelaku. Σ dihitung ulang dari pembayaran aktif.
+     */
+    public function batalkanBayar(): void
+    {
+        $this->validate(
+            ['voidAlasan' => 'required|string|min:3|max:300'],
+            ['voidAlasan.required' => 'Isi alasan pembatalan (jejak audit wajib).', 'voidAlasan.min' => 'Alasan minimal 3 karakter.'],
+            ['voidAlasan' => 'alasan pembatalan']
+        );
+        $p = PembayaranTagihan::findOrFail($this->voidId);
+        if ($p->tagihan_id !== $this->bayarId || $p->dibatalkan) {
+            $this->dispatch('toast', type: 'error', message: 'Pembayaran ini sudah dibatalkan / tidak valid.');
+            $this->voidId = null;
+            return;
+        }
+        \DB::transaction(function () use ($p) {
+            $p->update([
+                'dibatalkan'      => true,
+                'dibatalkan_at'   => now(),
+                'dibatalkan_oleh' => Auth::user()?->name,
+                'alasan_batal'    => $this->voidAlasan,
+            ]);
+            $this->recomputeTagihan($p->tagihan);
+        });
+        $this->voidId = null; $this->voidAlasan = '';
+        $this->dispatch('toast', message: 'Pembayaran dibatalkan — arsip tetap tersimpan.', type: 'success');
+    }
+
+    /** Rekap ulang tagihan dari pembayaran AKTIF (belum dibatalkan). */
+    private function recomputeTagihan(Tagihan $tagihan): void
+    {
+        $totalDibayar = (float) $tagihan->pembayaran()->aktif()->sum('jumlah');
+        $total = (float) $tagihan->total_tagihan;
+        $status = $totalDibayar <= 0 ? 'belum_bayar' : ($totalDibayar >= $total ? 'lunas' : 'sebagian');
+        $last = $tagihan->pembayaran()->aktif()->orderByDesc('tanggal')->orderByDesc('id')->first();
+        $tagihan->update([
+            'jumlah_dibayar' => min($totalDibayar, $total),
+            'status'         => $status,
+            'tanggal_bayar'  => $last?->tanggal?->format('Y-m-d'),
+        ]);
     }
 
     public function konfirm(int $id): void

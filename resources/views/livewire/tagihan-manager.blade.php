@@ -350,7 +350,7 @@
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5000;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;" wire:click.self="$set('showBayar',false)">
         <div class="glass-card" style="width:100%;max-width:600px;padding:1.6rem;border-color:var(--emer);box-shadow:0 24px 64px rgba(0,0,0,.7);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-                <div class="font-heading" style="font-size:1rem;color:var(--emer2);">Catat Pembayaran</div>
+                <div class="font-heading" style="font-size:1rem;color:{{ $editPembayaranId ? 'var(--gold2)' : 'var(--emer2)' }};">{{ $editPembayaranId ? '✎ Koreksi Pembayaran' : 'Catat Pembayaran' }}</div>
                 <button wire:click="$set('showBayar',false)" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             @if($t)
@@ -455,18 +455,49 @@
                     <input wire:model="bayarCatatan" type="text" placeholder="keterangan tambahan" class="form-input">
                 </div>
 
-                {{-- Riwayat pembayaran (arsip) --}}
-                @php $riw = $this->riwayatBayar; @endphp
+                {{-- Riwayat pembayaran (arsip audit — tak pernah dihapus) --}}
+                @php $riw = $this->riwayatBayar; $riwAktif = $riw->where('dibatalkan', false); @endphp
                 @if($riw->count())
                 <div style="margin-bottom:1rem;border-top:1px solid var(--line);padding-top:.7rem;">
-                    <div class="form-label" style="margin-bottom:.35rem;">Riwayat Pembayaran ({{ $riw->count() }})</div>
+                    <div class="form-label" style="margin-bottom:.35rem;display:flex;align-items:center;gap:.4rem;">
+                        <span>Riwayat Pembayaran ({{ $riwAktif->count() }} aktif{{ $riw->count()>$riwAktif->count() ? ' · '.($riw->count()-$riwAktif->count()).' dibatalkan' : '' }})</span>
+                    </div>
                     @foreach($riw as $r)
-                    <div style="display:flex;align-items:center;gap:.55rem;font-size:.7rem;padding:.35rem 0;border-top:1px solid rgba(31,61,48,.35);flex-wrap:wrap;">
-                        <span class="font-mono" style="color:var(--emer2);font-weight:800;">Rp {{ number_format($r->jumlah,0,',','.') }}</span>
-                        <span style="color:var(--mut2);">{{ $r->metodeLabel() }}{{ $r->bank_nama?' · '.$r->bank_nama:'' }}{{ $r->nomor_referensi?' · #'.$r->nomor_referensi:'' }}</span>
-                        <span style="color:var(--mut2);margin-left:auto;">{{ $r->tanggal->format('d/m/y') }}{{ $r->waktu?' '.substr($r->waktu,0,5):'' }}</span>
-                        @if($r->link_bukti)<a href="{{ $r->link_bukti }}" target="_blank" style="color:var(--blue);text-decoration:none;">🔗bukti</a>@endif
-                        @if($r->link_faktur)<a href="{{ $r->link_faktur }}" target="_blank" style="color:var(--gold2);text-decoration:none;">🧾faktur</a>@elseif($r->pemutihan)<span style="color:var(--gold2);">putih</span>@endif
+                    @php $miss = ! $r->dibatalkan && ! $r->link_faktur && ! $r->pemutihan; @endphp
+                    <div style="border-top:1px solid rgba(31,61,48,.35);padding:.4rem 0;{{ $r->dibatalkan ? 'opacity:.5;' : '' }}{{ $miss ? 'background:rgba(217,164,65,.06);border-left:2px solid var(--gold);padding-left:.4rem;' : '' }}">
+                        <div style="display:flex;align-items:center;gap:.5rem;font-size:.7rem;flex-wrap:wrap;">
+                            <span class="font-mono" style="font-weight:800;color:{{ $r->dibatalkan ? 'var(--mut2)' : 'var(--emer2)' }};{{ $r->dibatalkan ? 'text-decoration:line-through;' : '' }}">Rp {{ number_format($r->jumlah,0,',','.') }}</span>
+                            <span style="color:var(--mut2);">{{ $r->metodeLabel() }}{{ $r->bank_nama?' · '.$r->bank_nama:'' }}{{ $r->nomor_referensi?' · #'.$r->nomor_referensi:'' }}</span>
+                            @if($r->dibatalkan)<span style="font-size:.58rem;font-weight:800;color:var(--red2);background:rgba(232,100,90,.14);border:1px solid rgba(232,100,90,.35);border-radius:999px;padding:.05rem .4rem;">DIBATALKAN</span>@endif
+                            <span style="color:var(--mut2);margin-left:auto;">{{ $r->tanggal->format('d/m/y') }}{{ $r->waktu?' '.substr($r->waktu,0,5):'' }}</span>
+                            @if($r->link_bukti)<a href="{{ $r->link_bukti }}" target="_blank" style="color:var(--blue);text-decoration:none;">🔗bukti</a>@endif
+                            @if($r->link_faktur)<a href="{{ $r->link_faktur }}" target="_blank" style="color:var(--gold2);text-decoration:none;">🧾faktur</a>@elseif($r->pemutihan)<span style="color:var(--gold2);" title="Pemutihan — faktur tidak wajib">putih</span>@elseif($miss)<span style="color:var(--gold);font-weight:700;" title="Belum ada faktur — klik Edit untuk menambahkan">⚠ tanpa faktur</span>@endif
+                        </div>
+                        {{-- meta audit --}}
+                        <div style="font-size:.58rem;color:var(--mut2);margin-top:.15rem;display:flex;gap:.5rem;flex-wrap:wrap;">
+                            @if($r->dicatat_oleh)<span>dicatat: {{ $r->dicatat_oleh }}</span>@endif
+                            @if($r->diubah_at)<span style="color:var(--gold2);">diedit: {{ $r->diubah_oleh }} · {{ $r->diubah_at->format('d/m/y H:i') }}</span>@endif
+                            @if($r->dibatalkan)<span style="color:var(--red2);">dibatalkan: {{ $r->dibatalkan_oleh }} — {{ $r->alasan_batal }}</span>@endif
+                        </div>
+                        {{-- aksi koreksi --}}
+                        @if(! $r->dibatalkan && $voidId !== $r->id)
+                        <div style="display:flex;gap:.4rem;margin-top:.3rem;">
+                            <button type="button" wire:click="editBayar({{ $r->id }})" style="font-size:.6rem;font-weight:700;padding:.15rem .5rem;border-radius:.4rem;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.35);color:var(--gold2);cursor:pointer;">✎ Edit{{ $miss ? ' / +faktur' : '' }}</button>
+                            <button type="button" wire:click="mintaBatal({{ $r->id }})" style="font-size:.6rem;font-weight:700;padding:.15rem .5rem;border-radius:.4rem;background:transparent;border:1px solid rgba(232,100,90,.3);color:var(--red2);cursor:pointer;">✕ Batalkan</button>
+                        </div>
+                        @endif
+                        {{-- panel konfirmasi pembatalan --}}
+                        @if($voidId === $r->id)
+                        <div style="margin-top:.4rem;padding:.5rem;border:1px solid rgba(232,100,90,.35);border-radius:.5rem;background:rgba(232,100,90,.06);">
+                            <div style="font-size:.62rem;color:var(--red2);font-weight:700;margin-bottom:.3rem;">Alasan pembatalan (wajib — jejak audit):</div>
+                            <input wire:model="voidAlasan" type="text" placeholder="mis. salah input jumlah / transaksi gagal / dobel" class="form-input" style="font-size:.7rem;margin-bottom:.35rem;">
+                            @error('voidAlasan')<div style="{{ $errS }}">{{ $message }}</div>@enderror
+                            <div style="display:flex;gap:.4rem;">
+                                <button type="button" wire:click="batalkanBayar" style="font-size:.62rem;font-weight:800;padding:.28rem .6rem;border-radius:.4rem;background:rgba(232,100,90,.18);border:1px solid rgba(232,100,90,.45);color:var(--red2);cursor:pointer;">Ya, Batalkan Pembayaran</button>
+                                <button type="button" wire:click="tutupBatal" style="font-size:.62rem;padding:.28rem .6rem;border-radius:.4rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;">Kembali</button>
+                            </div>
+                        </div>
+                        @endif
                     </div>
                     @endforeach
                 </div>
@@ -475,9 +506,13 @@
                 <div style="display:flex;gap:.6rem;">
                     <button type="submit" class="btn-gold" style="flex:1;">
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                        Catat &amp; Arsipkan Pembayaran
+                        {{ $editPembayaranId ? 'Simpan Koreksi Pembayaran' : 'Catat & Arsipkan Pembayaran' }}
                     </button>
+                    @if($editPembayaranId)
+                    <button type="button" wire:click="batalEditBayar" class="btn-outline">Batal Edit</button>
+                    @else
                     <button type="button" wire:click="$set('showBayar',false)" class="btn-outline">Batal</button>
+                    @endif
                 </div>
             </form>
             @endif
