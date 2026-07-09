@@ -1,4 +1,7 @@
 <div class="katalog-glass">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    {{-- Ambient desain: grid + blob mengambang --}}
+    <div class="kg-amb" aria-hidden="true"><div class="grid"></div><div class="b1"></div><div class="b2"></div><div class="b3"></div></div>
     <style>
         .cb-scroll::-webkit-scrollbar{width:6px;}
         .cb-scroll::-webkit-scrollbar-track{background:transparent;}
@@ -67,88 +70,132 @@
         .audit-hint{font-size:.7rem;color:var(--mut2);max-width:34rem;line-height:1.45;}
         @media(max-width:680px){.audit-fields{gap:.4rem;}.audit-input{width:76px;}.audit-op{display:none;}.audit-result{margin-left:0;width:100%;align-items:flex-start;margin-top:.4rem;}}
 
-        /* ═══════════ GLASS 3D SKIN (scoped) ═══════════ */
-        /* Ambient glow via background (TANPA ::before/z-index — agar tak merusak modal overlay) */
+        /* ═══════════ DESIGN IMPORT: Katalog Obat PRB (frosted 3D glass) ═══════════ */
+        /* Palet resmi desain — override token tema HANYA di halaman katalog */
         .katalog-glass{
+            --ink:#e7f0ea; --mut:#86a094; --mut2:#9db3a8;
+            --gold:#e0a832; --gold2:#f2c14e; --gold3:#f7d375;
+            --emer:#5fd39a; --emer2:#7fe3ac;
+            --blue:#8fbdf5; --red:#e5484d; --red2:#ff9a9a;
+            --panel:#0e1e17; --card:#152b21;
+            --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.14); --line3:rgba(255,255,255,.22);
+            font-family:'IBM Plex Sans', system-ui, sans-serif;
+            color:var(--ink);
+            position:relative;
             background:
-                radial-gradient(1100px 360px at 50% -60px, rgba(63,207,142,.08), transparent 60%),
-                radial-gradient(760px 300px at 100% -40px, rgba(217,164,65,.05), transparent 58%);
-            background-repeat:no-repeat;
+                radial-gradient(1200px 720px at 80% -10%, #163224 0%, rgba(22,50,36,0) 58%),
+                radial-gradient(1000px 640px at 2% 110%, #12261f 0%, rgba(18,38,31,0) 60%),
+                linear-gradient(160deg, #071611 0%, #05100b 52%, #040b08 100%);
         }
-        /* Kartu kaca berlapis: blur + highlight atas + shadow dalam */
+        .katalog-glass .font-mono, .katalog-glass .font-heading{ font-family:'IBM Plex Mono', ui-monospace, monospace; }
+        .katalog-glass h1, .katalog-glass .kg-title h1{ font-family:'IBM Plex Sans', system-ui, sans-serif; }
+        /* Ambient: grid halus + blob mengambang (dekoratif, di belakang konten via z-index:-1 — tak menyentuh modal) */
+        .kg-amb{ position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:-1; }
+        .kg-amb .grid{ position:absolute; inset:0; background-image:linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px); background-size:46px 46px; animation:gridDrift 32s linear infinite; }
+        .kg-amb .b1{ position:absolute; top:-280px; right:-160px; width:780px; height:780px; border-radius:50%; background:radial-gradient(circle,rgba(74,200,132,.28),rgba(74,200,132,0) 66%); filter:blur(6px); animation:floaty 22s ease-in-out infinite; }
+        .kg-amb .b2{ position:absolute; bottom:-320px; left:-190px; width:820px; height:820px; border-radius:50%; background:radial-gradient(circle,rgba(240,195,78,.16),rgba(240,195,78,0) 64%); filter:blur(10px); animation:floaty 28s ease-in-out infinite reverse; }
+        .kg-amb .b3{ position:absolute; top:30%; left:40%; width:460px; height:460px; border-radius:50%; background:radial-gradient(circle,rgba(80,170,255,.10),rgba(80,170,255,0)); filter:blur(8px); }
+        @keyframes floaty{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(30px,-22px) scale(1.08)}}
+        @keyframes gridDrift{0%{background-position:0 0}100%{background-position:46px 46px}}
+
+        /* Kartu kaca frosted 3D (recipe resmi desain) */
         .katalog-glass .glass-card{
-            background:
-                linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.008) 40%, rgba(0,0,0,.06)) ,
-                color-mix(in srgb, var(--card) 82%, transparent);
-            backdrop-filter: blur(14px) saturate(1.15);
-            -webkit-backdrop-filter: blur(14px) saturate(1.15);
-            border:1px solid rgba(255,255,255,.10);
-            border-radius:1.1rem;
+            background:linear-gradient(180deg, rgba(44,72,58,.44), rgba(9,20,15,.28));
+            backdrop-filter:blur(44px) saturate(190%);
+            -webkit-backdrop-filter:blur(44px) saturate(190%);
+            border:1px solid rgba(255,255,255,.14);
+            border-radius:24px;
             box-shadow:
-                inset 0 1px 0 rgba(255,255,255,.10),
-                inset 0 0 0 1px rgba(255,255,255,.02),
-                0 18px 40px -12px rgba(0,0,0,.55);
+                inset 0 2.5px 1.5px rgba(255,255,255,.38),
+                inset 0 1px 0 rgba(255,255,255,.55),
+                inset 2px 0 3px rgba(255,255,255,.12),
+                inset -2px 0 3px rgba(255,255,255,.08),
+                inset 0 -30px 56px -34px rgba(0,0,0,.72),
+                inset 0 -3px 4px rgba(0,0,0,.4),
+                0 44px 84px -42px rgba(0,0,0,.9),
+                0 2px 0 rgba(255,255,255,.04);
         }
-        /* Container tabel: sudut membulat + header gelap sticky */
-        .katalog-glass .glass-card:has(.data-table){ padding:0; }
+        /* Container tabel + garis highlight atas */
+        .katalog-glass .glass-card:has(.data-table){ padding:0; position:relative; }
+        .katalog-glass .glass-card:has(.data-table)::before{
+            content:''; position:absolute; top:0; left:30px; right:30px; height:1px; z-index:3;
+            background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.5), rgba(255,255,255,0)); pointer-events:none;
+        }
         .katalog-glass .data-table thead th{
-            background:linear-gradient(180deg, rgba(20,43,33,.96), rgba(14,30,23,.96));
+            background:rgba(255,255,255,.05);
             backdrop-filter:blur(6px);
             position:sticky; top:0; z-index:2;
-            border-bottom:1px solid rgba(255,255,255,.08);
-            box-shadow:0 1px 0 rgba(0,0,0,.4);
+            color:#96afa2; font-size:.68rem; letter-spacing:.1em; font-weight:600;
+            border-bottom:1px solid rgba(255,255,255,.12);
         }
-        .katalog-glass .data-table td{ border-bottom:1px solid rgba(255,255,255,.045); }
-        .katalog-glass .data-table tbody tr{ transition:background .13s ease, box-shadow .13s ease; }
-        .katalog-glass .data-table tbody tr:hover td{ background:rgba(255,255,255,.035)!important; }
-        /* Tint baris menurut untung/rugi (data-laba bucket) */
-        .katalog-glass .data-table tr[data-laba="2"]  td{ background:linear-gradient(90deg, rgba(63,207,142,.07), transparent 60%); }
-        .katalog-glass .data-table tr[data-laba="1"]  td{ background:linear-gradient(90deg, rgba(63,207,142,.045), transparent 55%); }
-        .katalog-glass .data-table tr[data-laba="0"]  td{ background:linear-gradient(90deg, rgba(217,164,65,.045), transparent 55%); }
-        .katalog-glass .data-table tr[data-laba="-1"] td{ background:linear-gradient(90deg, rgba(232,100,90,.05), transparent 55%); }
-        .katalog-glass .data-table tr[data-laba="-2"] td{ background:linear-gradient(90deg, rgba(232,100,90,.09), transparent 62%); }
+        .katalog-glass .data-table td{ border-bottom:1px solid rgba(255,255,255,.07); }
+        .katalog-glass .data-table tbody tr{ transition:background .13s ease; }
+        .katalog-glass .data-table tbody tr:hover td{ background:rgba(255,255,255,.04)!important; }
+        /* Heatmap tint per untung/rugi (warna desain) */
+        .katalog-glass .data-table tr[data-laba="2"]  td{ background:linear-gradient(90deg, rgba(60,180,120,.13), rgba(60,180,120,.03) 70%); }
+        .katalog-glass .data-table tr[data-laba="1"]  td{ background:linear-gradient(90deg, rgba(60,180,120,.09), rgba(60,180,120,.02) 65%); }
+        .katalog-glass .data-table tr[data-laba="0"]  td{ background:linear-gradient(90deg, rgba(240,195,78,.09), rgba(240,195,78,.02) 60%); }
+        .katalog-glass .data-table tr[data-laba="-1"] td{ background:linear-gradient(90deg, rgba(210,60,60,.12), rgba(210,60,60,.03) 62%); }
+        .katalog-glass .data-table tr[data-laba="-2"] td{ background:linear-gradient(90deg, rgba(210,60,60,.20), rgba(210,60,60,.05) 68%); }
 
-        /* Input angka → PILL kaca BERSIH (tanpa spinner native yang jelek) */
+        /* Input angka → PILL kaca (netral) + chevron up/down halus, tanpa spinner native */
         .katalog-glass input[type="number"]::-webkit-inner-spin-button,
         .katalog-glass input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; display:none; }
         .katalog-glass input[type="number"]{ -moz-appearance:textfield; appearance:textfield; }
         .katalog-glass .data-table td input[type="number"]{
-            border-radius:.6rem !important;
-            padding:.36rem .6rem !important;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.03);
+            background:rgba(255,255,255,.055) !important;
+            border:1px solid rgba(255,255,255,.12) !important;
+            border-radius:10px !important;
+            padding:.4rem 1.3rem .4rem .6rem !important;
+            font-family:'IBM Plex Mono', monospace; font-variant-numeric:tabular-nums;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+            background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14' fill='none' stroke='%2386a094' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'><path d='M2 5l3-3 3 3'/><path d='M2 9l3 3 3-3'/></svg>") !important;
+            background-repeat:no-repeat !important; background-position:right .5rem center !important;
             transition:border-color .15s, box-shadow .15s, transform .1s;
         }
         .katalog-glass .data-table td input[type="number"]:focus{
             outline:none; transform:translateY(-1px);
-            box-shadow: inset 0 1px 2px rgba(0,0,0,.28), 0 0 0 3px rgba(217,164,65,.16);
+            border-color:rgba(240,195,78,.5) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 0 0 3px rgba(240,195,78,.16);
         }
-        .katalog-glass .data-table td input[type="number"]::-webkit-inner-spin-button{
-            opacity:1; height:1.5rem; margin-left:.15rem;
-        }
+        /* Warna angka per kolom (sesuai desain) */
+        .katalog-glass .data-table td[data-col="item"] input{ color:#f2c14e !important; }
+        .katalog-glass .data-table td[data-col="beli"] input{ color:#eaa06b !important; }
+        .katalog-glass .data-table td[data-col="klaim"] input{ color:#7cd0c8 !important; }
+        .katalog-glass .data-table td[data-col="pasien"] input{ color:#cfe0d8 !important; }
 
         /* Badge (sumber & status) → efek timbul halus */
         .katalog-glass .badge, .katalog-glass .lc-pill{
             box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 1px 3px rgba(0,0,0,.25);
             font-weight:700; letter-spacing:.02em;
         }
+        .katalog-glass .badge-po{ background:rgba(132,187,245,.14); color:#8fbdf5; border-color:rgba(132,187,245,.32); }
+        .katalog-glass .badge-real{ background:rgba(95,211,154,.14); color:#7fe3ac; border-color:rgba(95,211,154,.32); }
 
-        /* Tombol emas → glossy 3D */
+        /* Tombol emas → gradient glossy desain */
         .katalog-glass .btn-gold{
-            border-radius:.7rem;
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 16px -4px rgba(217,164,65,.5);
+            background:linear-gradient(180deg, #f5cc63 0%, #e0a832 100%);
+            color:#2a1e05; border:1px solid rgba(255,255,255,.28);
+            border-radius:14px;
+            box-shadow: 0 14px 28px -12px rgba(224,168,50,.75), inset 0 1.5px 0 rgba(255,255,255,.6);
         }
-        .katalog-glass .btn-gold:hover{ transform:translateY(-1px); box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 10px 22px -4px rgba(217,164,65,.6); }
+        .katalog-glass .btn-gold:hover{ transform:translateY(-1px); opacity:1; box-shadow: 0 18px 34px -12px rgba(224,168,50,.85), inset 0 1.5px 0 rgba(255,255,255,.65); }
         .katalog-glass .btn-outline{
-            border-radius:.7rem;
-            background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.01));
-            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+            border-radius:14px;
+            background:rgba(255,255,255,.06);
+            border:1px solid rgba(255,255,255,.14);
+            color:var(--ink);
+            backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
         }
-        .katalog-glass .btn-outline:hover{ background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02)); }
-        /* Kotak cari kaca */
+        .katalog-glass .btn-outline:hover{ background:rgba(255,255,255,.1); border-color:rgba(255,255,255,.2); }
+        /* Kotak cari & input teks → kaca frost */
         .katalog-glass .form-input{
-            border-radius:.7rem;
-            background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(0,0,0,.06));
-            box-shadow: inset 0 1px 2px rgba(0,0,0,.22);
+            border-radius:14px;
+            background:rgba(255,255,255,.06);
+            border:1px solid rgba(255,255,255,.12);
+            backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
         }
         /* Select bersih: chevron custom, tanpa appearance native jelek */
         .katalog-glass select.form-input, .katalog-glass select{
@@ -740,7 +787,7 @@
     @endif
 
     {{-- ─────────────── e-CATALOG: toolbar (lensa · kolom · kepadatan) ─────────────── --}}
-    @php $ecOrder = ['nama','diagnosis','pasien','item','beli','sumber','klaim','bayar','pend','laba','ket','aksi']; @endphp
+    @php $ecOrder = ['nama','komposisi','diagnosis','pasien','item','beli','sumber','klaim','bayar','pend','laba','ket','aksi']; @endphp
     <style>
         [x-cloak]{ display:none !important; }
         .ec-toolbar{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-bottom:.7rem; }
@@ -833,9 +880,9 @@
         function ecatalog(){
             const ORDER  = @json($ecOrder);
             const LOCKED = ['nama','aksi'];
-            const LABELS = { nama:'Obat', diagnosis:'Diagnosis', pasien:'Pasien', item:'Item/Bln', beli:'Beli/Unit', sumber:'Sumber', klaim:'Klaim BPJS', bayar:'Bayar BPJS', pend:'Pend/Bln', laba:'Untung/Rugi', ket:'Keterangan', aksi:'Aksi' };
+            const LABELS = { nama:'Obat', komposisi:'Komposisi', diagnosis:'Diagnosis', pasien:'Pasien', item:'Item/Bln', beli:'Beli/Unit', sumber:'Sumber', klaim:'Klaim BPJS', bayar:'Bayar BPJS', pend:'Pend/Bln', laba:'Untung/Rugi', ket:'Keterangan', aksi:'Aksi' };
             const LENSES = [
-                { id:'keuangan', label:'Keuangan', cols:['nama','pasien','item','beli','klaim','bayar','pend','laba','ket','aksi'] },
+                { id:'keuangan', label:'Keuangan', cols:['nama','komposisi','pasien','item','beli','klaim','bayar','pend','laba','ket','aksi'] },
                 { id:'ringkas',  label:'Ringkas',  cols:['nama','beli','bayar','laba','aksi'] },
                 { id:'lengkap',  label:'Lengkap',  cols:ORDER.slice() },
             ];
@@ -926,6 +973,7 @@
                     <th data-col="nama" class="ec-pin" wire:click="sortBy('nama_obat')" style="min-width:160px;">
                         Obat @if($sortBy==='nama_obat')<x-i :name="$sortDir==='asc'?'arrow-up':'arrow-down'" :size="11" />@endif
                     </th>
+                    <th data-col="komposisi" style="min-width:150px;">Komposisi</th>
                     <th data-col="diagnosis" wire:click="sortBy('kategori_diagnosis')" style="min-width:100px;">
                         Diagnosis @if($sortBy==='kategori_diagnosis')<x-i :name="$sortDir==='asc'?'arrow-up':'arrow-down'" :size="11" />@endif
                     </th>
@@ -966,7 +1014,7 @@
                 @if($groupMode && $curKat !== $prevKat)
                 @php $m = $gMeta[$curKat]; $prevKat = $curKat; @endphp
                 <tr class="ec-group" wire:key="grp-{{ $m['idx'] }}" @click="toggleGroup({{ $m['idx'] }})">
-                    <td colspan="12">
+                    <td colspan="13">
                         <div class="ec-group-bar">
                             <svg class="ec-group-chev" :class="{ col: isCollapsed({{ $m['idx'] }}) }" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
                             <span class="ec-group-name">{{ $curKat }}</span>
@@ -994,13 +1042,18 @@
                                 <span style="width:4px;height:4px;border-radius:50%;background:var(--blue);"></span>{{ $obat->bentuk_sediaan }}
                             </span>
                             @endif
-                            @if($obat->komposisi)
-                            <span title="Komposisi / zat aktif" style="display:inline-flex;align-items:center;gap:.28rem;font-size:.63rem;font-weight:600;color:#2dd4bf;background:rgba(45,212,191,.1);border:1px solid rgba(45,212,191,.22);border-radius:999px;padding:.05rem .5rem;line-height:1.5;">
-                                <svg width="9" height="9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M9 3h6M10 3v6.5L5.2 17a2 2 0 0 0 1.7 3h10.2a2 2 0 0 0 1.7-3L14 9.5V3"/></svg>{{ $obat->komposisi }}
-                            </span>
-                            @endif
                         </div>
                         </div></div>
+                    </td>
+                    <td data-col="komposisi" style="vertical-align:middle;">
+                        @if($obat->komposisi)
+                        <span title="Komposisi / zat aktif" style="display:inline-flex;align-items:flex-start;gap:.32rem;font-size:.68rem;font-weight:600;color:#7fe3ac;line-height:1.4;">
+                            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:.1rem;"><path d="M9 3h6M10 3v6.5L5.2 17a2 2 0 0 0 1.7 3h10.2a2 2 0 0 0 1.7-3L14 9.5V3"/></svg>
+                            <span>{{ $obat->komposisi }}</span>
+                        </span>
+                        @else
+                        <span style="color:var(--mut2);font-size:.75rem;">—</span>
+                        @endif
                     </td>
                     <td data-col="diagnosis" style="color:var(--mut);font-size:.77rem;">{{ $obat->kategori_diagnosis ?? '—' }}</td>
 
@@ -1102,7 +1155,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="12" style="text-align:center;padding:2rem;color:var(--mut);">Tidak ada data obat.</td>
+                    <td colspan="13" style="text-align:center;padding:2rem;color:var(--mut);">Tidak ada data obat.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -1115,6 +1168,7 @@
             <tfoot>
                 <tr class="ec-total">
                     <td data-col="nama" class="ec-pin">TOTAL · {{ $this->obatList->count() }} obat</td>
+                    <td data-col="komposisi"></td>
                     <td data-col="diagnosis"></td>
                     <td data-col="pasien" class="font-mono" style="text-align:right;">{{ number_format($tPasien,0,',','.') }}</td>
                     <td data-col="item" class="font-mono" style="text-align:right;">{{ number_format($tItem,0,',','.') }}</td>
