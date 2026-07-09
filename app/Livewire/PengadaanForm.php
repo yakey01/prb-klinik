@@ -50,7 +50,12 @@ class PengadaanForm extends Component
 
     public function updatedRows($value, $key): void
     {
-        [$index, $field] = explode('.', $key);
+        // $key bisa "0.obat_id" (per-field) atau kadang hanya "0" (seluruh baris) —
+        // guard agar tidak "Undefined array key 1".
+        [$index, $field] = array_pad(explode('.', $key), 2, null);
+        if ($field === null || ! isset($this->rows[(int)$index])) {
+            return;
+        }
         $row = &$this->rows[(int)$index];
 
         if (in_array($field, ['jumlah_box', 'isi_per_box', 'harga_per_box'])) {
