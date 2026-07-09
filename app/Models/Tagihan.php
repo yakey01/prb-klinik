@@ -64,6 +64,32 @@ class Tagihan extends Model
         return $this->tipe_obat === 'kronis' ? 'Kronis' : 'Non-Kronis';
     }
 
+    /**
+     * Status kepatuhan dokumen pembayaran (audit) — untuk tagihan yang sudah
+     * dibayar (lunas/sebagian):
+     *   na            → belum bayar / draft (tidak relevan)
+     *   tanpa_arsip   → sudah tercatat dibayar TAPI belum ada arsip pembayaran (legacy)
+     *   kurang_faktur → ada arsip, tapi ada pembayaran tanpa link faktur (& bukan pemutihan)
+     *   kurang_bukti  → ada arsip, tapi ada pembayaran non-tunai tanpa link bukti transfer
+     *   lengkap       → semua pembayaran aktif punya dokumen
+     */
+    public function dokumenStatus(): string
+    {
+        if (! in_array($this->status, ['lunas', 'sebagian'], true)) return 'na';
+        $pays  = $this->relationLoaded('pembayaran') ? $this->pembayaran : $this->pembayaran()->get();
+        $aktif = $pays->where('dibatalkan', false);
+        if ($aktif->isEmpty()) return 'tanpa_arsip';
+        if ($aktif->contains(fn ($p) => ! $p->link_faktur && ! $p->pemutihan)) return 'kurang_faktur';
+        if ($aktif->contains(fn ($p) => $p->metode !== 'tunai' && ! $p->link_bukti)) return 'kurang_bukti';
+        return 'lengkap';
+    }
+
+    /** true bila tagihan sudah dibayar tapi dokumennya belum lengkap. */
+    public function dokumenBermasalah(): bool
+    {
+        return ! in_array($this->dokumenStatus(), ['na', 'lengkap'], true);
+    }
+
     // ── Static helpers ────────────────────────────────────────────────
 
     public static function generateNomor(string $tipe): string

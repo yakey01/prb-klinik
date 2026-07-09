@@ -20,6 +20,7 @@ class TagihanManager extends Component
     public string $filterStatus = 'aktif'; // aktif | semua | lunas
     public int    $filterDist = 0;
     public string $filterPeriode = '';
+    public bool   $filterDokumen = false;  // hanya tampilkan tagihan dibayar yg dokumennya belum lengkap
 
     // Fokus 1 tanggal barang masuk (deep-link dari kalender Barang Masuk Harian → /tagihan?tanggal=Y-m-d)
     #[Url(as: 'tanggal', history: true)]
@@ -40,6 +41,7 @@ class TagihanManager extends Component
     public string $bayarLinkFaktur = '';             // WAJIB kecuali pemutihan
     public bool   $bayarPemutihan  = false;
     public string $bayarCatatan = '';
+    public bool   $bayarLengkapi = false;            // mode: melengkapi dokumen pembayaran legacy (retroaktif)
 
     // Koreksi pembayaran (edit / void) — jejak audit enterprise
     public ?int   $editPembayaranId = null;          // >0 → modal dalam mode edit pembayaran arsip
@@ -89,12 +91,39 @@ class TagihanManager extends Component
         ];
     }
 
+    /** ID tagihan dibayar (lunas/sebagian) yang dokumennya belum lengkap — audit. */
+    #[Computed]
+    public function docIssueIds(): array
+    {
+        return Tagihan::whereIn('status', ['lunas', 'sebagian'])
+            ->with('pembayaran')
+            ->get()
+            ->filter->dokumenBermasalah()
+            ->pluck('id')->all();
+    }
+
+    /** Rincian audit dokumen: hitungan per kategori masalah. */
+    #[Computed]
+    public function auditDokumen(): array
+    {
+        $rows = Tagihan::whereIn('status', ['lunas', 'sebagian'])->with('pembayaran')->get();
+        $c = ['tanpa_arsip' => 0, 'kurang_faktur' => 0, 'kurang_bukti' => 0, 'total' => 0, 'nilai' => 0.0];
+        foreach ($rows as $t) {
+            $s = $t->dokumenStatus();
+            if (in_array($s, ['na', 'lengkap'], true)) continue;
+            $c[$s] = ($c[$s] ?? 0) + 1;
+            $c['total']++;
+            $c['nilai'] += (float) $t->jumlah_dibayar;
+        }
+        return $c;
+    }
+
     #[Computed]
     public function tagihanList()
     {
         // Paginate by PO (faktur), showing newest PO first
         // Each PO may have 1-2 tagihan (kronis and/or non_kronis)
-        $q = Tagihan::with(['distributor', 'purchaseOrder'])
+        $q = Tagihan::with(['distributor', 'purchaseOrder', 'pembayaran'])
             ->orderByDesc('purchase_order_id')
             ->orderBy('tipe_obat');  // kronis before non_kronis within same PO
 
@@ -103,6 +132,9 @@ class TagihanManager extends Component
 
         if ($this->filterStatus === 'aktif') $q->whereIn('status', ['belum_bayar','sebagian']);
         if ($this->filterStatus === 'lunas') $q->where('status', 'lunas');
+
+        // Audit: hanya tagihan dibayar yang dokumennya belum lengkap.
+        if ($this->filterDokumen) $q->whereIn('id', $this->docIssueIds);
 
         if ($this->filterDist > 0) $q->where('distributor_id', $this->filterDist);
 
@@ -163,6 +195,7 @@ class TagihanManager extends Component
         $this->bayarLinkBukti = '';
         $this->bayarLinkFaktur = '';
         $this->bayarPemutihan  = false;
+        $this->bayarLengkapi = false;
         $this->editPembayaranId = null;   // mode: tambah pembayaran baru
         $this->voidId = null; $this->voidAlasan = '';
         // Prefetch (fetching dulu): prefill bank/rekening/atas nama dari pembayaran terakhir ke PBF yang sama.
@@ -174,6 +207,21 @@ class TagihanManager extends Component
         $this->bayarNoRef    = '';
         $this->resetValidation();
         $this->showBayar     = true;
+    }
+
+    /**
+     * Mode "Lengkapi Dokumen" — untuk tagihan yang SUDAH dibayar (lunas/sebagian)
+     * tapi belum punya arsip pembayaran (legacy). Mencatat pembayaran retroaktif
+     * senilai yang sudah dibayar, LENGKAP dengan faktur & bukti transfer. Status
+     * tagihan tidak berubah (Σ arsip = jumlah_dibayar).
+     */
+    public function openLengkapi(int $id): void
+    {
+        $this->openBayar($id);
+        $t = Tagihan::find($id);
+        $this->bayarLengkapi = true;
+        $this->bayarJumlah   = (int) ($t->jumlah_dibayar ?? 0);   // senilai yg sudah dibayar
+        $this->bayarTanggal  = optional($t->tanggal_bayar)->format('Y-m-d') ?: now()->format('Y-m-d');
     }
 
     /** Riwayat pembayaran tagihan yang sedang dibuka (arsip lengkap — termasuk yg dibatalkan). */
@@ -300,7 +348,9 @@ class TagihanManager extends Component
         $wasEdit = (bool) $edit;
         $this->bayarId = null;
         $this->editPembayaranId = null;
-        $this->dispatch('toast', message: $wasEdit ? "Pembayaran {$no} diperbarui & terarsip." : "Pembayaran {$no} tercatat & diarsipkan.", type: 'success');
+        $wasLengkapi = $this->bayarLengkapi;
+        $this->bayarLengkapi = false;
+        $this->dispatch('toast', message: $wasLengkapi ? "Dokumen pembayaran {$no} dilengkapi & diarsipkan." : ($wasEdit ? "Pembayaran {$no} diperbarui & terarsip." : "Pembayaran {$no} tercatat & diarsipkan."), type: 'success');
     }
 
     /** Buka konfirmasi pembatalan (void) pada 1 baris arsip. */

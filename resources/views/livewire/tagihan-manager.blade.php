@@ -99,6 +99,18 @@
             @endforeach
         </div>
 
+        {{-- Audit dokumen: filter tagihan dibayar yg belum lengkap faktur/bukti --}}
+        @php $audit = $this->auditDokumen; @endphp
+        @if($audit['total'] > 0 || $filterDokumen)
+        <button wire:click="$toggle('filterDokumen')" title="Tagihan sudah dibayar tapi belum lengkap faktur / bukti transfer"
+            style="display:inline-flex;align-items:center;gap:.4rem;padding:.42rem .8rem;font-size:.73rem;font-weight:800;cursor:pointer;border-radius:.5rem;transition:all .15s;
+                {{ $filterDokumen ? 'background:rgba(232,100,90,.2);border:1px solid var(--red2);color:var(--red2);' : 'background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.4);color:var(--gold2);' }}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            {{ $filterDokumen ? 'Menampilkan: Perlu Dokumen' : 'Perlu Dokumen' }}
+            <span style="font-size:.65rem;padding:.05rem .4rem;border-radius:999px;background:rgba(232,100,90,.25);color:var(--red2);">{{ $audit['total'] }}</span>
+        </button>
+        @endif
+
         {{-- ══ PBF COMBOBOX (pure JS, position:fixed) ══ --}}
         <div id="pbf-wrap" style="position:relative;">
             {{-- Hidden select — wire:model.live untuk Livewire filter --}}
@@ -264,6 +276,13 @@
                     'belum_bayar' => ['bg'=>'rgba(232,100,90,.12)', 'border'=>'rgba(232,100,90,.3)',  'color'=>'var(--red2)',  'label'=>'Belum Bayar'],
                     default       => ['bg'=>'rgba(100,100,100,.1)', 'border'=>'rgba(100,100,100,.2)', 'color'=>'var(--mut)',   'label'=>'Draft'],
                 };
+                $doc = $t->dokumenStatus();
+                $docCfg = match($doc) {
+                    'tanpa_arsip'   => ['label'=>'⚠ Tanpa Dokumen', 'title'=>'Sudah dibayar tapi belum ada arsip pembayaran (faktur & bukti). Klik Lengkapi.'],
+                    'kurang_faktur' => ['label'=>'⚠ Tanpa Faktur',  'title'=>'Ada pembayaran tanpa link faktur. Klik Lengkapi untuk menambahkan.'],
+                    'kurang_bukti'  => ['label'=>'⚠ Tanpa Bukti',   'title'=>'Ada pembayaran non-tunai tanpa link bukti transfer. Klik Lengkapi.'],
+                    default         => null,
+                };
             @endphp
             <tr style="border-left:4px solid {{ $borderColor }};border-bottom:1px solid rgba(255,255,255,.03);background:rgba(0,0,0,.12);">
                 <td style="padding:.55rem .75rem .55rem 1.25rem;min-width:145px;">
@@ -297,8 +316,11 @@
                         background:{{ $statusCfg['bg'] }};border:1px solid {{ $statusCfg['border'] }};color:{{ $statusCfg['color'] }};">
                         {{ $statusCfg['label'] }}
                     </span>
+                    @if($docCfg)
+                    <div title="{{ $docCfg['title'] }}" style="margin-top:.25rem;font-size:.58rem;font-weight:800;color:var(--red2);background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.3);border-radius:.3rem;padding:.08rem .3rem;display:inline-block;">{{ $docCfg['label'] }}</div>
+                    @endif
                 </td>
-                <td style="padding:.55rem .5rem;text-align:center;width:78px;">
+                <td style="padding:.55rem .5rem;text-align:center;width:88px;">
                     @if($t->status === 'draft')
                     <button wire:click="konfirm({{ $t->id }})"
                         style="font-size:.68rem;padding:.22rem .5rem;border-radius:.3rem;cursor:pointer;background:rgba(217,164,65,.15);border:1px solid rgba(217,164,65,.3);color:var(--gold2);">
@@ -309,8 +331,14 @@
                         style="font-size:.68rem;padding:.22rem .5rem;border-radius:.3rem;cursor:pointer;background:rgba(63,207,142,.15);border:1px solid rgba(63,207,142,.3);color:var(--emer2);">
                         Bayar
                     </button>
+                    @elseif($docCfg)
+                    {{-- Lunas tapi dokumen belum lengkap → lengkapi retroaktif / edit --}}
+                    <button wire:click="{{ $doc === 'tanpa_arsip' ? 'openLengkapi' : 'openBayar' }}({{ $t->id }})" title="{{ $docCfg['title'] }}"
+                        style="font-size:.66rem;font-weight:800;padding:.22rem .5rem;border-radius:.3rem;cursor:pointer;background:rgba(217,164,65,.18);border:1px solid rgba(217,164,65,.45);color:var(--gold2);white-space:nowrap;">
+                        📎 Lengkapi
+                    </button>
                     @else
-                    <span style="font-size:.65rem;color:var(--mut);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg></span>
+                    <span title="Lunas — dokumen lengkap" style="font-size:.65rem;color:var(--emer2);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg></span>
                     @endif
                 </td>
             </tr>
@@ -350,7 +378,7 @@
     <div style="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:5000;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;" wire:click.self="$set('showBayar',false)">
         <div class="glass-card" style="width:100%;max-width:600px;padding:1.6rem;border-color:var(--emer);box-shadow:0 24px 64px rgba(0,0,0,.7);">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
-                <div class="font-heading" style="font-size:1rem;color:{{ $editPembayaranId ? 'var(--gold2)' : 'var(--emer2)' }};">{{ $editPembayaranId ? '✎ Koreksi Pembayaran' : 'Catat Pembayaran' }}</div>
+                <div class="font-heading" style="font-size:1rem;color:{{ ($editPembayaranId || $bayarLengkapi) ? 'var(--gold2)' : 'var(--emer2)' }};">{{ $editPembayaranId ? '✎ Koreksi Pembayaran' : ($bayarLengkapi ? '📎 Lengkapi Dokumen Pembayaran' : 'Catat Pembayaran') }}</div>
                 <button wire:click="$set('showBayar',false)" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" style="display:inline-block;vertical-align:middle"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
             </div>
             @if($t)
@@ -374,6 +402,11 @@
             </div>
             @php $errS = 'color:var(--red2);font-size:.68rem;margin-top:.2rem;'; @endphp
             <form wire:submit="bayar">
+                @if($bayarLengkapi)
+                <div style="background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.35);border-radius:.5rem;padding:.6rem .8rem;margin-bottom:1rem;font-size:.72rem;color:var(--gold2);line-height:1.5;">
+                    <strong>Audit dokumen:</strong> tagihan ini sudah tercatat <strong>lunas</strong> tapi belum memiliki arsip pembayaran (faktur & bukti transfer). Lengkapi data pembayaran yang sudah terjadi — jumlah otomatis disamakan dengan yang sudah dibayar. Status tagihan tidak berubah.
+                </div>
+                @endif
                 {{-- Metode pembayaran --}}
                 <div style="margin-bottom:.85rem;">
                     <label class="form-label">Metode Pembayaran *</label>
