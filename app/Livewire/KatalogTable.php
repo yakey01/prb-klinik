@@ -23,6 +23,7 @@ class KatalogTable extends Component
 
     public string $search       = '';
     public string $filter       = 'semua';
+    public string $filterTipe   = 'semua';   // semua | kronis | non_kronis
     public string $sortBy       = 'nama_obat';
     public string $sortDir      = 'asc';
     public bool   $showInactive = false;
@@ -33,7 +34,7 @@ class KatalogTable extends Component
     /** Reset ke halaman 1 saat filter/pencarian/urut berubah → hindari halaman kosong. */
     public function updated($name): void
     {
-        if (in_array($name, ['search', 'filter', 'showInactive', 'perPage'], true)) {
+        if (in_array($name, ['search', 'filter', 'filterTipe', 'showInactive', 'perPage'], true)) {
             $this->pageNum = 1;
         }
     }
@@ -141,6 +142,18 @@ class KatalogTable extends Component
     {
         $db = Diagnosis::aktif();
         return $db->isNotEmpty() ? $db : collect(self::KATEGORIS);
+    }
+
+    /** Hitungan obat per tipe (mengikuti toggle nonaktif) untuk chip filter. */
+    #[Computed]
+    public function tipeCounts(): array
+    {
+        $q = Obat::query();
+        if (! $this->showInactive) $q->where('is_active', true);
+        return [
+            'kronis'     => (clone $q)->where('tipe_obat', 'kronis')->count(),
+            'non_kronis' => (clone $q)->where('tipe_obat', 'non_kronis')->count(),
+        ];
     }
 
     public function sortBy(string $column): void
@@ -560,6 +573,11 @@ class KatalogTable extends Component
                            ? $list->where('kategori_diagnosis', $this->filter)->values()
                            : $list,
         };
+
+        // Sumbu filter terpisah: tipe obat (kronis / non-kronis).
+        if ($this->filterTipe !== 'semua') {
+            $list = $list->where('tipe_obat', $this->filterTipe)->values();
+        }
 
         // Mode grup: paksa urut per kategori diagnosis (lalu nama) agar header grup runut.
         if ($this->groupMode) {

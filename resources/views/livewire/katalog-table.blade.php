@@ -337,7 +337,27 @@
     @endif
 
     {{-- ─────────────── FILTER PILLS ─────────────── --}}
-    <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1.2rem;">
+    <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1.2rem; align-items:center;">
+        {{-- Sumbu TIPE OBAT: Kronis / Non-Kronis (segmented) --}}
+        @php $tc = $this->tipeCounts; @endphp
+        <div style="display:inline-flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden;">
+            <button wire:click="$set('filterTipe','semua')"
+                style="padding:.3rem .8rem;font-size:.72rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;
+                    {{ $filterTipe==='semua' ? 'background:var(--gold);color:#1a0e00;' : 'background:transparent;color:var(--mut);' }}">
+                Semua Tipe
+            </button>
+            <button wire:click="$set('filterTipe','kronis')" title="Obat kronis (PRB)"
+                style="padding:.3rem .8rem;font-size:.72rem;font-weight:700;cursor:pointer;border:none;border-left:1px solid var(--line2);transition:all .15s;display:inline-flex;align-items:center;gap:.35rem;
+                    {{ $filterTipe==='kronis' ? 'background:rgba(63,207,142,.22);color:var(--emer2);' : 'background:transparent;color:var(--mut);' }}">
+                Kronis <span style="font-size:.62rem;padding:.02rem .35rem;border-radius:999px;background:rgba(63,207,142,.18);color:var(--emer2);">{{ $tc['kronis'] }}</span>
+            </button>
+            <button wire:click="$set('filterTipe','non_kronis')" title="Obat non-kronis / umum"
+                style="padding:.3rem .8rem;font-size:.72rem;font-weight:700;cursor:pointer;border:none;border-left:1px solid var(--line2);transition:all .15s;display:inline-flex;align-items:center;gap:.35rem;
+                    {{ $filterTipe==='non_kronis' ? 'background:rgba(111,177,224,.22);color:var(--blue);' : 'background:transparent;color:var(--mut);' }}">
+                Non-Kronis <span style="font-size:.62rem;padding:.02rem .35rem;border-radius:999px;background:rgba(111,177,224,.18);color:var(--blue);">{{ $tc['non_kronis'] }}</span>
+            </button>
+        </div>
+        <div style="width:1px;height:1.4rem;background:var(--line2);margin:0 .2rem;"></div>
         @foreach(['semua'=>'Semua','laba'=>'Laba','rugi'=>'Rugi','perlu_cek'=>'Perlu Cek'] as $val => $lbl)
         <button wire:click="$set('filter','{{ $val }}')"
             style="padding:.3rem .8rem;border-radius:999px;font-size:.73rem;cursor:pointer;border:1px solid;transition:all .2s;
