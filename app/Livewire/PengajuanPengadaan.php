@@ -325,12 +325,34 @@ class PengajuanPengadaan extends Component
     {
         $p = PR::findOrFail($id);
         if (! $p->bisaDihapus()) {
-            $this->dispatch('toast', type: 'error', message: 'Hanya draft/ditolak yang bisa dihapus.');
+            $this->dispatch('toast', type: 'error', message: 'Pengajuan berstatus ' . $p->statusLabel() . ' tidak bisa dihapus. Batalkan dulu jika masih menunggu/disetujui.');
             return;
         }
-        $p->delete();
+        DB::transaction(function () use ($p) {
+            $p->items()->delete();
+            $p->delete();
+        });
         if ($this->detailId === $id) $this->detailId = null;
-        $this->dispatch('toast', message: 'Pengajuan dihapus.', type: 'success');
+        $this->dispatch('toast', message: "{$p->no_pengajuan} dihapus.", type: 'success');
+    }
+
+    /** Batalkan / tarik pengajuan (diajukan/disetujui → dibatalkan). Arsip tetap ada. */
+    public function batalkan(int $id): void
+    {
+        $p = PR::findOrFail($id);
+        if (! $p->bisaDibatalkan()) {
+            $this->dispatch('toast', type: 'error', message: 'Hanya pengajuan menunggu / disetujui yang bisa dibatalkan.');
+            return;
+        }
+        if ($p->purchase_order_id) {
+            $this->dispatch('toast', type: 'error', message: 'Pengajuan sudah jadi PO — tak bisa dibatalkan.');
+            return;
+        }
+        $p->update([
+            'status'       => 'dibatalkan',
+            'alasan_tolak' => null,
+        ]);
+        $this->dispatch('toast', message: "{$p->no_pengajuan} dibatalkan — ditarik dari antrean manajer SIM.", type: 'success');
     }
 
     // ── Detail ──────────────────────────────────────────────────

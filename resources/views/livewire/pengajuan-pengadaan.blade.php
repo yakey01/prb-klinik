@@ -2,6 +2,8 @@
     <style>
         tr.pr-row{transition:background .12s ease;cursor:pointer;}
         tr.pr-row:hover{background:rgba(63,207,142,.07)!important;}
+        .pr-menu-item{display:block;width:100%;text-align:left;background:none;border:none;color:var(--ink);cursor:pointer;font-size:.76rem;padding:.5rem .6rem;border-radius:.4rem;transition:background .1s;}
+        .pr-menu-item:hover{background:rgba(255,255,255,.06);}
     </style>
     @php
         $rp = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.');
@@ -106,7 +108,30 @@
                         @if($p->bisaRealisasi())
                             <button wire:click="realisasi({{ $p->id }})" wire:confirm="Realisasikan {{ $p->no_pengajuan }} menjadi Purchase Order? Stok & tagihan akan diperbarui." title="Realisasi ke PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
                         @endif
-                        <button wire:click="openDetail({{ $p->id }})" title="Detail" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:.2rem;">⋯</button>
+                        {{-- Kebab menu CRUD (x-teleport → lolos overflow tabel) --}}
+                        <div x-data="{o:false,x:0,y:0}" @keydown.escape.window="o=false" style="display:inline-block;">
+                            <button type="button" @click.stop="const r=$el.getBoundingClientRect(); x=Math.max(8,r.right-190); y=r.bottom+4; o=!o" title="Menu aksi" style="background:none;border:none;color:var(--mut);cursor:pointer;padding:.2rem .35rem;font-size:1rem;line-height:1;">⋯</button>
+                            <template x-teleport="body">
+                                <div x-show="o" x-transition.opacity.duration.100ms @click.outside="o=false" @click="o=false" :style="`position:fixed;top:${y}px;left:${x}px;z-index:9000;width:190px;background:var(--card,#152b21);border:1px solid var(--line2,#1f3d30);border-radius:.6rem;box-shadow:0 12px 32px rgba(0,0,0,.55);padding:.3rem;`" style="display:none;">
+                                    <button type="button" wire:click="openDetail({{ $p->id }})" class="pr-menu-item">🔍 Lihat Detail</button>
+                                    @if($p->bisaDiedit())
+                                    <button type="button" wire:click="openEdit({{ $p->id }})" class="pr-menu-item">✎ Edit Pengajuan</button>
+                                    @endif
+                                    @if($p->bisaDiajukan())
+                                    <button type="button" wire:click="ajukan({{ $p->id }})" class="pr-menu-item" style="color:#5b9bd5;">📤 Ajukan untuk Persetujuan</button>
+                                    @endif
+                                    @if($p->bisaRealisasi())
+                                    <button type="button" wire:click="realisasi({{ $p->id }})" wire:confirm="Realisasikan {{ $p->no_pengajuan }} menjadi PO?" class="pr-menu-item" style="color:var(--emer2);">🛒 Belanja → Buat PO</button>
+                                    @endif
+                                    @if($p->bisaDibatalkan())
+                                    <button type="button" wire:click="batalkan({{ $p->id }})" wire:confirm="Batalkan / tarik {{ $p->no_pengajuan }} dari antrean manajer SIM?" class="pr-menu-item" style="color:var(--gold2);">✕ Batalkan / Tarik</button>
+                                    @endif
+                                    @if($p->bisaDihapus())
+                                    <button type="button" wire:click="hapus({{ $p->id }})" wire:confirm="Hapus permanen {{ $p->no_pengajuan }}? Tindakan ini tidak bisa dibatalkan." class="pr-menu-item" style="color:var(--red2);">🗑 Hapus</button>
+                                    @endif
+                                </div>
+                            </template>
+                        </div>
                     </td>
                 </tr>
                 @empty
@@ -300,8 +325,11 @@
                 @if($d->bisaRealisasi())
                     <button wire:click="realisasi({{ $d->id }})" wire:confirm="Realisasikan {{ $d->no_pengajuan }} menjadi PO?" style="flex:1;padding:.55rem;border-radius:.55rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.76rem;font-weight:800;">🛒 Belanja → Buat PO</button>
                 @endif
+                @if($d->bisaDibatalkan())
+                    <button wire:click="batalkan({{ $d->id }})" wire:confirm="Batalkan / tarik {{ $d->no_pengajuan }} dari antrean manajer SIM?" style="padding:.55rem .8rem;border-radius:.55rem;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.35);color:var(--gold2);cursor:pointer;font-size:.76rem;">✕ Batalkan</button>
+                @endif
                 @if($d->bisaDihapus())
-                    <button wire:click="hapus({{ $d->id }})" wire:confirm="Hapus {{ $d->no_pengajuan }}?" style="padding:.55rem .8rem;border-radius:.55rem;background:transparent;border:1px solid rgba(232,100,90,.3);color:var(--red2);cursor:pointer;font-size:.76rem;">Hapus</button>
+                    <button wire:click="hapus({{ $d->id }})" wire:confirm="Hapus permanen {{ $d->no_pengajuan }}? Tidak bisa dibatalkan." style="padding:.55rem .8rem;border-radius:.55rem;background:transparent;border:1px solid rgba(232,100,90,.3);color:var(--red2);cursor:pointer;font-size:.76rem;">🗑 Hapus</button>
                 @endif
             </div>
         </div>
