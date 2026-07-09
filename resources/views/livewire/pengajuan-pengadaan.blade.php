@@ -1,4 +1,8 @@
 <div>
+    <style>
+        tr.pr-row{transition:background .12s ease;cursor:pointer;}
+        tr.pr-row:hover{background:rgba(63,207,142,.07)!important;}
+    </style>
     @php
         $rp = fn ($n) => 'Rp ' . number_format((float) $n, 0, ',', '.');
         $k  = $this->kpi;
@@ -77,9 +81,9 @@
             <tbody>
                 @forelse($this->daftar as $p)
                 @php [$plbl,$pcol,$pbg,$pbd] = $prioBadge($p->prioritas); @endphp
-                <tr wire:key="pr-{{ $p->id }}" style="border-top:1px solid var(--line);{{ $p->status==='disetujui' ? 'background:linear-gradient(90deg,rgba(217,164,65,.09),transparent);box-shadow:inset 3px 0 0 var(--gold);' : '' }}">
+                <tr wire:key="pr-{{ $p->id }}" wire:click="openDetail({{ $p->id }})" class="pr-row" title="Klik untuk lihat detail obat" style="border-top:1px solid var(--line);{{ $p->status==='disetujui' ? 'background:linear-gradient(90deg,rgba(217,164,65,.09),transparent);box-shadow:inset 3px 0 0 var(--gold);' : '' }}">
                     <td style="padding:.6rem .9rem;">
-                        <button wire:click="openDetail({{ $p->id }})" class="font-mono" style="background:none;border:none;color:var(--gold2);font-weight:700;cursor:pointer;padding:0;font-size:.8rem;">{{ $p->no_pengajuan }}</button>
+                        <span class="font-mono" style="color:var(--gold2);font-weight:700;font-size:.8rem;">{{ $p->no_pengajuan }}</span>
                         <div style="font-size:.64rem;color:var(--mut2);">{{ $p->tanggal->translatedFormat('d M Y') }} · {{ $p->pemohon_nama ?? '—' }}</div>
                     </td>
                     <td style="padding:.6rem .5rem;"><span style="font-size:.62rem;font-weight:700;padding:.12rem .5rem;border-radius:999px;color:{{ $pcol }};background:{{ $pbg }};border:1px solid {{ $pbd }};">{{ $plbl }}</span></td>
@@ -89,7 +93,7 @@
                     <td style="padding:.6rem .5rem;text-align:center;">
                         <span style="font-size:.64rem;font-weight:700;padding:.16rem .6rem;border-radius:999px;color:{{ $p->statusColor() }};background:color-mix(in srgb,{{ $p->statusColor() }} 14%, transparent);border:1px solid {{ $p->statusColor() }};white-space:nowrap;">{{ $p->statusLabel() }}</span>
                     </td>
-                    <td style="padding:.6rem .9rem;text-align:right;white-space:nowrap;">
+                    <td style="padding:.6rem .9rem;text-align:right;white-space:nowrap;" wire:click.stop>
                         @if($p->bisaDiedit())
                             <button wire:click="openEdit({{ $p->id }})" title="Edit pengajuan" style="font-size:.66rem;padding:.25rem .55rem;border-radius:.5rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;">✎ Edit</button>
                         @endif
