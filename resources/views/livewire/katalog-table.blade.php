@@ -137,6 +137,14 @@
         .katalog-glass .data-table tr[data-laba="0"]  td{ background:linear-gradient(90deg, rgba(240,195,78,.09), rgba(240,195,78,.02) 60%); }
         .katalog-glass .data-table tr[data-laba="-1"] td{ background:linear-gradient(90deg, rgba(210,60,60,.12), rgba(210,60,60,.03) 62%); }
         .katalog-glass .data-table tr[data-laba="-2"] td{ background:linear-gradient(90deg, rgba(210,60,60,.20), rgba(210,60,60,.05) 68%); }
+        /* KRITIS: kolom pinned (Obat kiri & Aksi kanan) WAJIB opaque — cegah tint transparan
+           membuat konten ter-scroll menembus & tumpang-tindih dengan tombol Aksi. */
+        .katalog-glass .data-table tbody td.ec-pin,
+        .katalog-glass .data-table tbody td.ec-pin-r{ background:#0b1a13 !important; }
+        .katalog-glass .data-table thead th.ec-pin,
+        .katalog-glass .data-table thead th.ec-pin-r{ background:#0f2018 !important; }
+        .katalog-glass .data-table tfoot td.ec-pin,
+        .katalog-glass .data-table tfoot td.ec-pin-r{ background:#0f1d16 !important; }
 
         /* Input angka → PILL kaca (netral) + chevron up/down halus, tanpa spinner native */
         .katalog-glass input[type="number"]::-webkit-inner-spin-button,
