@@ -341,7 +341,7 @@ class PasienManager extends Component
             'total_aktif'      => Pasien::where('is_aktif', true)->count(),
             'jadwal_hari_ini'  => PengambilanObat::where('status', 'dijadwalkan')->where('tanggal_pengambilan', $today)->count(),
             'terlambat'        => PengambilanObat::where('status', 'dijadwalkan')->where('tanggal_pengambilan', '<', $today)->count(),
-            'baru_bulan_ini'   => Pasien::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count(),
+            'baru_bulan_ini'   => Pasien::whereBetween('created_at', \App\Support\Periode::bulan(now()->year, now()->month))->count(),
         ];
     }
 

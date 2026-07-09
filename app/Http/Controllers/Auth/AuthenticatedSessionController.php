@@ -28,8 +28,7 @@ class AuthenticatedSessionController extends Controller
             $stats['pasien'] = \Illuminate\Support\Facades\DB::table('pasien')->where('is_aktif', true)->count();
             $stats['obat']   = \Illuminate\Support\Facades\DB::table('obat')->where('is_active', true)->count();
             $stats['pengambilan'] = \Illuminate\Support\Facades\DB::table('pengambilan_obat')
-                ->whereYear('tanggal_pengambilan', now()->year)
-                ->whereMonth('tanggal_pengambilan', now()->month)
+                ->whereBetween('tanggal_pengambilan', \App\Support\Periode::bulan(now()->year, now()->month))
                 ->count();
             $stats['distributor'] = \Illuminate\Support\Facades\DB::table('distributors')->count();
         } catch (\Throwable $e) {

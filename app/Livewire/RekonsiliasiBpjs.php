@@ -74,8 +74,7 @@ class RekonsiliasiBpjs extends Component
         $total = \DB::table('item_pengambilan as ip')
             ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
             ->join('obat as o', 'ip.obat_id', '=', 'o.id')
-            ->whereYear('po.tanggal_pengambilan', $tahun)
-            ->whereMonth('po.tanggal_pengambilan', $bulan)
+            ->whereBetween('po.tanggal_pengambilan', \App\Support\Periode::bulan($tahun, $bulan))
             ->whereIn('po.status', ['selesai'])
             ->where('o.tipe_obat', 'kronis')
             ->sum(\DB::raw('ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot')));

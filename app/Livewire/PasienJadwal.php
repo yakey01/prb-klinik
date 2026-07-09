@@ -26,8 +26,7 @@ class PasienJadwal extends Component
         } elseif ($this->filterPeriode === 'minggu_depan') {
             $q->whereBetween('tanggal_pengambilan', [now()->addWeek()->startOfWeek(), now()->addWeek()->endOfWeek()]);
         } elseif ($this->filterPeriode === 'bulan_ini') {
-            $q->whereYear('tanggal_pengambilan', now()->year)
-              ->whereMonth('tanggal_pengambilan', now()->month);
+            $q->whereBetween('tanggal_pengambilan', \App\Support\Periode::bulan(now()->year, now()->month));
         } elseif ($this->filterPeriode === 'bulan_depan') {
             $q->whereBetween('tanggal_pengambilan', [now()->addMonthNoOverflow()->startOfMonth(), now()->addMonthNoOverflow()->endOfMonth()]);
         } elseif ($this->filterPeriode === 'semua_mendatang') {
@@ -51,8 +50,7 @@ class PasienJadwal extends Component
             'minggu_depan' => PengambilanObat::where('status', 'dijadwalkan')
                 ->whereBetween('tanggal_pengambilan', [now()->addWeek()->startOfWeek(), now()->addWeek()->endOfWeek()])->count(),
             'bulan_ini'  => PengambilanObat::where('status', 'dijadwalkan')
-                ->whereYear('tanggal_pengambilan', now()->year)
-                ->whereMonth('tanggal_pengambilan', now()->month)->count(),
+                ->whereBetween('tanggal_pengambilan', \App\Support\Periode::bulan(now()->year, now()->month))->count(),
             'bulan_depan' => PengambilanObat::where('status', 'dijadwalkan')
                 ->whereBetween('tanggal_pengambilan', [now()->addMonthNoOverflow()->startOfMonth(), now()->addMonthNoOverflow()->endOfMonth()])->count(),
             'terlewat'   => PengambilanObat::where('status', 'dijadwalkan')
