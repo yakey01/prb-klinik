@@ -131,18 +131,28 @@
         .katalog-glass .data-table td{ border-bottom:1px solid rgba(255,255,255,.07); }
         .katalog-glass .data-table tbody tr{ transition:background .13s ease; }
         .katalog-glass .data-table tbody tr:hover td{ background:rgba(255,255,255,.04)!important; }
-        /* Heatmap tint per untung/rugi (warna desain) */
-        .katalog-glass .data-table tr[data-laba="2"]  td{ background:linear-gradient(90deg, rgba(60,180,120,.13), rgba(60,180,120,.03) 70%); }
-        .katalog-glass .data-table tr[data-laba="1"]  td{ background:linear-gradient(90deg, rgba(60,180,120,.09), rgba(60,180,120,.02) 65%); }
-        .katalog-glass .data-table tr[data-laba="0"]  td{ background:linear-gradient(90deg, rgba(240,195,78,.09), rgba(240,195,78,.02) 60%); }
-        .katalog-glass .data-table tr[data-laba="-1"] td{ background:linear-gradient(90deg, rgba(210,60,60,.12), rgba(210,60,60,.03) 62%); }
-        .katalog-glass .data-table tr[data-laba="-2"] td{ background:linear-gradient(90deg, rgba(210,60,60,.20), rgba(210,60,60,.05) 68%); }
-        /* Kolom Aksi: TIDAK di-pin — ikut scroll bersama tabel (permintaan user) */
-        .katalog-glass .data-table .ec-pin-r{ position:static !important; box-shadow:none !important; }
-        /* Kolom Obat (kiri) tetap pinned & WAJIB opaque agar konten tak menembus saat scroll */
+        /* ═══ SIGNAL-FIRST LEDGER (kelas dunia) ═══ */
+        /* Latar baris NETRAL — sinyal profit lewat ACCENT BAR kiri, bukan wash sebaris.
+           (Heatmap penuh tetap tersedia via toggle .ec-heat.) */
         .katalog-glass .data-table tbody td.ec-pin{ background:#0b1a13 !important; }
         .katalog-glass .data-table thead th.ec-pin{ background:#0f2018 !important; }
         .katalog-glass .data-table tfoot td.ec-pin{ background:#0f1d16 !important; }
+        .katalog-glass .data-table tbody tr[data-laba="2"]  td.ec-pin{ box-shadow: inset 3px 0 0 #5fd39a, 1px 0 0 var(--line2); }
+        .katalog-glass .data-table tbody tr[data-laba="1"]  td.ec-pin{ box-shadow: inset 3px 0 0 rgba(95,211,154,.55), 1px 0 0 var(--line2); }
+        .katalog-glass .data-table tbody tr[data-laba="0"]  td.ec-pin{ box-shadow: inset 3px 0 0 #f2c14e, 1px 0 0 var(--line2); }
+        .katalog-glass .data-table tbody tr[data-laba="-1"] td.ec-pin{ box-shadow: inset 3px 0 0 rgba(255,125,125,.7), 1px 0 0 var(--line2); }
+        .katalog-glass .data-table tbody tr[data-laba="-2"] td.ec-pin{ box-shadow: inset 3px 0 0 #ff7d7d, 1px 0 0 var(--line2); }
+        /* Kolom Aksi: scrollable (tak di-pin) + HOVER-REVEAL (redup saat idle) */
+        .katalog-glass .data-table .ec-pin-r{ position:static !important; box-shadow:none !important; }
+        .katalog-glass .data-table td[data-col="aksi"] .ec-aksi{ opacity:.28; transition:opacity .13s ease; }
+        .katalog-glass .data-table tbody tr:hover td[data-col="aksi"] .ec-aksi{ opacity:1; }
+        /* Redupkan nilai NOL (data-ink ratio Tufte) */
+        .katalog-glass .data-table input.ec-zero{ opacity:.4; }
+        .katalog-glass .ec-zero-txt{ color:var(--mut2); opacity:.5; }
+        /* Anchor Untung/Rugi — angka mono besar + mini-bar margin */
+        .katalog-glass .lc-main{ font-size:1.05rem; font-family:'IBM Plex Mono',monospace; font-weight:600; letter-spacing:-.01em; }
+        .katalog-glass .lc-margin{ font-size:.62rem; opacity:.9; }
+        .katalog-glass .lc-bar{ height:3px; border-radius:2px; margin-top:.3rem; margin-left:auto; max-width:110px; }
 
         /* Input angka → PILL kaca (netral) + chevron up/down halus, tanpa spinner native */
         .katalog-glass input[type="number"]::-webkit-inner-spin-button,
@@ -1052,7 +1062,8 @@
                         </div></div>
                     </td>
                     <td data-col="komposisi" style="vertical-align:middle;">
-                        @if($obat->komposisi)
+                        @php $kompNorm = preg_replace('/\s+/', '', strtolower((string) $obat->komposisi)); $namaNorm = preg_replace('/\s+/', '', strtolower((string) $obat->nama_obat)); @endphp
+                        @if($obat->komposisi && $kompNorm !== $namaNorm)
                         <span title="Komposisi / zat aktif" style="display:inline-flex;align-items:flex-start;gap:.32rem;font-size:.68rem;font-weight:600;color:#7fe3ac;line-height:1.4;">
                             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:.1rem;"><path d="M9 3h6M10 3v6.5L5.2 17a2 2 0 0 0 1.7 3h10.2a2 2 0 0 0 1.7-3L14 9.5V3"/></svg>
                             <span>{{ $obat->komposisi }}</span>
@@ -1072,7 +1083,7 @@
                         @else
                         <input type="number" value="{{ $obat->jumlah_pasien }}" min="0"
                             wire:change="updatePasien({{ $obat->id }}, $event.target.value)"
-                            class="font-mono"
+                            class="font-mono {{ (int)$obat->jumlah_pasien==0?'ec-zero':'' }}"
                             title="Input manual — belum ada resep aktif"
                             style="width:58px;text-align:right;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.8rem;color:var(--gold2);">
                         @endif
@@ -1086,7 +1097,7 @@
                         @else
                         <input type="number" value="{{ $obat->unit_per_bulan }}" min="0" step="any"
                             wire:change="updateUnit({{ $obat->id }}, $event.target.value)"
-                            class="font-mono"
+                            class="font-mono {{ (float)$obat->unit_per_bulan==0?'ec-zero':'' }}"
                             title="Input manual — belum ada resep aktif"
                             style="width:68px;text-align:right;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.8rem;color:var(--gold2);">
                         @endif
@@ -1094,7 +1105,7 @@
                     <td data-col="beli" style="text-align:right;">
                         <input type="number" value="{{ $obat->harga_beli_per_unit }}" min="0" step="any"
                             wire:change="updateHarga({{ $obat->id }}, $event.target.value)"
-                            class="font-mono"
+                            class="font-mono {{ (float)$obat->harga_beli_per_unit==0?'ec-zero':'' }}"
                             style="width:90px;text-align:right;background:rgba(232,100,90,.07);border:1px solid rgba(232,100,90,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.8rem;color:var(--red2);">
                     </td>
                     <td data-col="sumber" style="text-align:center;">
@@ -1104,15 +1115,20 @@
                     <td data-col="klaim" style="text-align:right;">
                         <input type="number" value="{{ $obat->klaim_bpjs_per_unit }}" min="0" step="any"
                             wire:change="updateKlaim({{ $obat->id }}, $event.target.value)"
-                            class="font-mono"
+                            class="font-mono {{ (float)$obat->klaim_bpjs_per_unit==0?'ec-zero':'' }}"
                             style="width:90px;text-align:right;background:rgba(111,177,224,.08);border:1px solid rgba(111,177,224,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.8rem;color:var(--blue);">
                     </td>
-                    <td data-col="bayar" class="font-mono" style="text-align:right;font-size:.8rem;color:var(--blue);">{{ number_format($obat->bayar_bpjs,0,',','.') }}</td>
-                    <td data-col="pend" class="font-mono" style="text-align:right;font-size:.8rem;">{{ number_format($obat->pendapatan_bulan,0,',','.') }}</td>
+                    <td data-col="bayar" class="font-mono" style="text-align:right;font-size:.8rem;color:var(--blue);">@if($obat->bayar_bpjs==0)<span class="ec-zero-txt">0</span>@else{{ number_format($obat->bayar_bpjs,0,',','.') }}@endif</td>
+                    <td data-col="pend" class="font-mono" style="text-align:right;font-size:.8rem;">@if($obat->pendapatan_bulan==0)<span class="ec-zero-txt">0</span>@else{{ number_format($obat->pendapatan_bulan,0,',','.') }}@endif</td>
                     @php
                         $lpu        = $obat->laba_per_unit;
                         $noVolume   = $obat->unit_per_bulan <= 0;
                         $lpuColor   = $lpu > 0 ? 'var(--emer2)' : ($lpu < 0 ? 'var(--red2)' : 'var(--mut)');
+                        // Mini-bar margin: rasio laba/unit terhadap harga beli (dibatasi 100%).
+                        $mBar = $obat->harga_beli_per_unit > 0
+                                ? min(100, abs($lpu) / $obat->harga_beli_per_unit * 100)
+                                : (abs($lpu) > 0 ? 55 : 0);
+                        $mBar = $mBar > 0 ? max($mBar, 8) : 0;
                     @endphp
                     <td data-col="laba" class="lc">
                         <div class="lc-main" title="Untung/rugi per bulan = untung/rugi per unit × Item/Bln" style="color:{{ $obat->laba>0?'var(--emer2)':($obat->laba<0?'var(--red2)':'var(--mut)') }};">
@@ -1121,6 +1137,9 @@
                         <div class="lc-margin" title="Untung/rugi per unit (lepas dari jumlah pasien)" style="color:{{ $lpuColor }};">
                             {{ $lpu>=0?'untung +':'rugi −' }}{{ number_format(abs($lpu),0,',','.') }}<span class="u">/unit</span>
                         </div>
+                        @if($mBar > 0)
+                        <div class="lc-bar" title="Rasio margin per unit terhadap harga beli" style="width:{{ $mBar }}%;background:{{ $lpu>=0?'var(--emer)':'var(--red2)' }};"></div>
+                        @endif
                     </td>
                     {{-- Keterangan: penjelasan status laba/rugi/potensi --}}
                     <td data-col="ket" class="ket">
@@ -1141,20 +1160,24 @@
                         @endif
                     </td>
                     <td data-col="aksi" class="ec-pin-r" style="text-align:center;">
-                        <div style="display:flex;gap:.3rem;justify-content:center;">
-                            <button wire:click="openEdit({{ $obat->id }})" title="Edit"
-                                style="background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.25);color:var(--gold2);border-radius:.35rem;padding:.25rem .5rem;cursor:pointer;font-size:.75rem;">
-                                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
+                        <div class="ec-aksi" style="display:inline-flex;gap:.3rem;justify-content:center;">
+                            <button wire:click="openEdit({{ $obat->id }})" title="Edit obat"
+                                style="background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.28);color:var(--gold2);border-radius:.45rem;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
                             </button>
-                            <button wire:click="toggleActive({{ $obat->id }})"
-                                style="background:{{ $obat->is_active?'rgba(232,100,90,.1)':'rgba(63,207,142,.1)' }};border:1px solid {{ $obat->is_active?'rgba(232,100,90,.25)':'rgba(63,207,142,.25)' }};color:{{ $obat->is_active?'var(--red2)':'var(--emer2)' }};border-radius:.35rem;padding:.25rem .5rem;cursor:pointer;font-size:.7rem;"
+                            <button wire:click="toggleActive({{ $obat->id }})" title="{{ $obat->is_active ? 'Nonaktifkan obat' : 'Aktifkan obat' }}"
+                                style="background:{{ $obat->is_active?'rgba(232,100,90,.1)':'rgba(63,207,142,.1)' }};border:1px solid {{ $obat->is_active?'rgba(232,100,90,.28)':'rgba(63,207,142,.28)' }};color:{{ $obat->is_active?'var(--red2)':'var(--emer2)' }};border-radius:.45rem;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;"
                                 wire:confirm="{{ $obat->is_active?'Nonaktifkan':'Aktifkan' }} obat ini?">
-                                {{ $obat->is_active ? 'Nonaktif' : 'Aktifkan' }}
+                                @if($obat->is_active)
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+                                @else
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                @endif
                             </button>
-                            <button wire:click="delete({{ $obat->id }})" title="Hapus"
+                            <button wire:click="delete({{ $obat->id }})" title="Hapus obat"
                                 wire:confirm="Hapus permanen obat &quot;{{ $obat->nama_obat }}&quot;? Tindakan ini tidak dapat dibatalkan."
-                                style="background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.2);color:var(--red2);border-radius:.35rem;padding:.25rem .5rem;cursor:pointer;font-size:.75rem;">
-                                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                                style="background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.22);color:var(--red2);border-radius:.45rem;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+                                <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
                             </button>
                         </div>
                     </td>
