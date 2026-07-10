@@ -527,15 +527,16 @@ class KatalogTable extends Component
      */
     public function severityOf($o): string
     {
+        // Urutan = selaras kolom Keterangan: data belum lengkap dulu, baru rugi sebenarnya.
         if ((float) $o->harga_beli_per_unit <= 0)                                  return 'no_price';
-        if ((float) $o->laba_per_unit < 0)                                         return 'rugi';
         if ($o->tipe_obat === 'kronis' && (float) $o->klaim_bpjs_per_unit <= 0)    return 'perlu_cek';
+        if ((float) $o->laba_per_unit < 0)                                         return 'rugi';
         if ((float) $o->laba_per_unit > 0 && (float) $o->unit_per_bulan <= 0)      return 'potensi';
         if ((float) $o->laba > 0)                                                  return 'laba';
         return 'netral';
     }
 
-    private const SEV_RANK = ['rugi' => 0, 'no_price' => 1, 'perlu_cek' => 2, 'potensi' => 3, 'laba' => 4, 'netral' => 5];
+    private const SEV_RANK = ['rugi' => 0, 'perlu_cek' => 1, 'no_price' => 2, 'potensi' => 3, 'laba' => 4, 'netral' => 5];
 
     /** Koleksi dasar (aktif + pencarian + tipe + sinkron resep) — sebelum filter keparahan. Dipakai KPI & obatList. */
     #[Computed]
