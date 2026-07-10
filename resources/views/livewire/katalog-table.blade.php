@@ -936,7 +936,7 @@
                 { id:'ringkas',  label:'Ringkas',  cols:['nama','beli','laba','aksi'] },
                 { id:'lengkap',  label:'Lengkap',  cols:ORDER.slice() },
             ];
-            const KEY = 'ecatalog_katalog_v1';
+            const KEY = 'ecatalog_katalog_v2';   // v2: lensa Keuangan tanpa bayar/pend (Rec C)
             return {
                 order:ORDER, locked:LOCKED, labels:LABELS, lenses:LENSES,
                 visible:{}, lens:'keuangan', density:'comfortable', colOpen:false,
