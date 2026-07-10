@@ -76,7 +76,7 @@
             --ink:#e7f0ea; --mut:#86a094; --mut2:#9db3a8;
             --gold:#e0a832; --gold2:#f2c14e; --gold3:#f7d375;
             --emer:#5fd39a; --emer2:#7fe3ac;
-            --blue:#8fbdf5; --red:#e5484d; --red2:#ff9a9a;
+            --blue:#8fbdf5; --red:#e5484d; --red2:#ee5f52;
             --panel:#0e1e17; --card:#152b21;
             --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.14); --line3:rgba(255,255,255,.22);
             font-family:'IBM Plex Sans', system-ui, sans-serif;
@@ -140,8 +140,8 @@
         .katalog-glass .data-table tbody tr[data-laba="2"]  td.ec-pin{ box-shadow: inset 3px 0 0 #5fd39a, 1px 0 0 var(--line2); }
         .katalog-glass .data-table tbody tr[data-laba="1"]  td.ec-pin{ box-shadow: inset 3px 0 0 rgba(95,211,154,.55), 1px 0 0 var(--line2); }
         .katalog-glass .data-table tbody tr[data-laba="0"]  td.ec-pin{ box-shadow: inset 3px 0 0 #f2c14e, 1px 0 0 var(--line2); }
-        .katalog-glass .data-table tbody tr[data-laba="-1"] td.ec-pin{ box-shadow: inset 3px 0 0 rgba(255,125,125,.7), 1px 0 0 var(--line2); }
-        .katalog-glass .data-table tbody tr[data-laba="-2"] td.ec-pin{ box-shadow: inset 3px 0 0 #ff7d7d, 1px 0 0 var(--line2); }
+        .katalog-glass .data-table tbody tr[data-laba="-1"] td.ec-pin{ box-shadow: inset 3px 0 0 rgba(238,95,82,.7), 1px 0 0 var(--line2); }
+        .katalog-glass .data-table tbody tr[data-laba="-2"] td.ec-pin{ box-shadow: inset 3px 0 0 #ee5f52, 1px 0 0 var(--line2); }
         /* Kolom Aksi: scrollable (tak di-pin) + HOVER-REVEAL (redup saat idle) */
         .katalog-glass .data-table .ec-pin-r{ position:static !important; box-shadow:none !important; }
         .katalog-glass .data-table td[data-col="aksi"] .ec-aksi{ opacity:.28; transition:opacity .13s ease; }
@@ -591,7 +591,7 @@
         $kp = $this->kpi;
         $rpk = fn ($n) => 'Rp ' . number_format(abs($n), 0, ',', '.');
         $kpiCards = [
-            ['k'=>'rugi','label'=>'Rugi','icon'=>'⚠','val'=>$kp['rugi'],'c'=>'#ff9a9a','bg'=>'rgba(232,100,90,.14)','bd'=>'rgba(232,100,90,.4)','hint'=>'bayar BPJS < harga beli'],
+            ['k'=>'rugi','label'=>'Rugi','icon'=>'⚠','val'=>$kp['rugi'],'c'=>'#ee5f52','bg'=>'rgba(232,100,90,.14)','bd'=>'rgba(232,100,90,.4)','hint'=>'bayar BPJS < harga beli'],
             ['k'=>'perlu_cek','label'=>'Perlu Cek','icon'=>'◐','val'=>$kp['perlu_cek'],'c'=>'#f2c14e','bg'=>'rgba(217,164,65,.14)','bd'=>'rgba(217,164,65,.4)','hint'=>'klaim BPJS belum diisi'],
             ['k'=>'no_price','label'=>'Belum Ada Harga','icon'=>'▤','val'=>$kp['no_price'],'c'=>'#eaa06b','bg'=>'rgba(234,160,107,.12)','bd'=>'rgba(234,160,107,.35)','hint'=>'harga beli kosong'],
             ['k'=>'potensi','label'=>'Potensi Laba','icon'=>'◇','val'=>$kp['potensi'],'c'=>'#7fe3ac','bg'=>'rgba(95,211,154,.12)','bd'=>'rgba(95,211,154,.34)','hint'=>'margin +, belum ada volume'],
