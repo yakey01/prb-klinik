@@ -153,6 +153,9 @@
         .katalog-glass .lc-main{ font-size:1.05rem; font-family:'IBM Plex Mono',monospace; font-weight:600; letter-spacing:-.01em; }
         .katalog-glass .lc-margin{ font-size:.62rem; opacity:.9; }
         .katalog-glass .lc-bar{ height:3px; border-radius:2px; margin-top:.3rem; margin-left:auto; max-width:110px; }
+        /* Keterangan RINGKAS: pill saja; deskripsi lewat hover-tooltip (title) → baris pendek, muat lebih banyak */
+        .katalog-glass .ket-desc{ display:none; }
+        .katalog-glass .lc-pill{ cursor:default; }
 
         /* Input angka → PILL kaca (netral) + chevron up/down halus, tanpa spinner native */
         .katalog-glass input[type="number"]::-webkit-inner-spin-button,
@@ -929,8 +932,8 @@
             const LOCKED = ['nama','aksi'];
             const LABELS = { nama:'Obat', komposisi:'Komposisi', diagnosis:'Diagnosis', pasien:'Pasien', item:'Item/Bln', beli:'Beli/Unit', sumber:'Sumber', klaim:'Klaim BPJS', bayar:'Bayar BPJS', pend:'Pend/Bln', laba:'Untung/Rugi', ket:'Keterangan', aksi:'Aksi' };
             const LENSES = [
-                { id:'keuangan', label:'Keuangan', cols:['nama','komposisi','pasien','item','beli','klaim','bayar','pend','laba','ket','aksi'] },
-                { id:'ringkas',  label:'Ringkas',  cols:['nama','beli','bayar','laba','aksi'] },
+                { id:'keuangan', label:'Keuangan', cols:['nama','komposisi','pasien','item','beli','klaim','laba','ket','aksi'] },
+                { id:'ringkas',  label:'Ringkas',  cols:['nama','beli','laba','aksi'] },
                 { id:'lengkap',  label:'Lengkap',  cols:ORDER.slice() },
             ];
             const KEY = 'ecatalog_katalog_v1';
@@ -1174,18 +1177,20 @@
                     </td>
                     {{-- Keterangan: penjelasan status laba/rugi/potensi --}}
                     <td data-col="ket" class="ket">
-                        @if($obat->klaim_bpjs_per_unit <= 0 && $obat->tipe_obat === 'kronis')
-                        <span class="lc-pill warn"><span class="dot"></span>Data belum lengkap</span>
-                        <div class="ket-desc">Klaim BPJS/unit belum diisi — laba belum bisa dihitung.</div>
-                        @elseif($obat->laba < 0)
-                        <span class="lc-pill bad"><span class="dot"></span>Rugi</span>
-                        <div class="ket-desc">Bayar BPJS (Rp {{ number_format($obat->bayar_bpjs,0,',','.') }}) &lt; harga beli (Rp {{ number_format($obat->harga_beli_per_unit,0,',','.') }})/unit — cek tarif klaim &amp; faktor jasa farmasi.</div>
-                        @elseif($noVolume && $lpu > 0)
-                        <span class="lc-pill warn"><span class="dot"></span>Potensi laba</span>
-                        <div class="ket-desc">Margin +Rp {{ number_format($lpu,0,',','.') }}/unit, tapi belum ada pasien/volume bulan ini.</div>
-                        @elseif($obat->laba > 0)
-                        <span class="lc-pill ok"><span class="dot"></span>Laba</span>
-                        <div class="ket-desc">{{ $obat->jumlah_pasien }} pasien · {{ number_format($obat->unit_per_bulan,0) }} item/bln{{ $obat->dari_resep ? ' (dari resep aktif)' : ' (input manual)' }}.</div>
+                        @php
+                            if ($obat->klaim_bpjs_per_unit <= 0 && $obat->tipe_obat === 'kronis') {
+                                $ketPill = ['warn', 'Data belum lengkap', 'Klaim BPJS/unit belum diisi — laba belum bisa dihitung.'];
+                            } elseif ($obat->laba < 0) {
+                                $ketPill = ['bad', 'Rugi', 'Bayar BPJS (Rp '.number_format($obat->bayar_bpjs,0,',','.').') < harga beli (Rp '.number_format($obat->harga_beli_per_unit,0,',','.').')/unit — cek tarif klaim & faktor jasa farmasi.'];
+                            } elseif ($noVolume && $lpu > 0) {
+                                $ketPill = ['warn', 'Potensi laba', 'Margin +Rp '.number_format($lpu,0,',','.').'/unit, tapi belum ada pasien/volume bulan ini.'];
+                            } elseif ($obat->laba > 0) {
+                                $ketPill = ['ok', 'Laba', $obat->jumlah_pasien.' pasien · '.number_format($obat->unit_per_bulan,0).' item/bln'.($obat->dari_resep ? ' (dari resep aktif)' : ' (input manual)').'.'];
+                            } else { $ketPill = null; }
+                        @endphp
+                        @if($ketPill)
+                        <span class="lc-pill {{ $ketPill[0] }}" title="{{ $ketPill[2] }}"><span class="dot"></span>{{ $ketPill[1] }}</span>
+                        <div class="ket-desc">{{ $ketPill[2] }}</div>
                         @else
                         <span class="ket-muted">—</span>
                         @endif
