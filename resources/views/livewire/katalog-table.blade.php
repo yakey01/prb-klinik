@@ -838,7 +838,7 @@
     @endif
 
     {{-- ─────────────── e-CATALOG: toolbar (lensa · kolom · kepadatan) ─────────────── --}}
-    @php $ecOrder = ['nama','komposisi','diagnosis','pasien','item','beli','sumber','klaim','bayar','pend','laba','ket','aksi']; @endphp
+    @php $ecOrder = ['nama','komposisi','diagnosis','pasien','item','beli','klaim','bayar','pend','laba','ket','aksi']; @endphp
     <style>
         [x-cloak]{ display:none !important; }
         .ec-toolbar{ display:flex; flex-wrap:wrap; align-items:center; gap:.5rem; margin-bottom:.7rem; }
@@ -931,13 +931,13 @@
         function ecatalog(){
             const ORDER  = @json($ecOrder);
             const LOCKED = ['nama','aksi'];
-            const LABELS = { nama:'Obat', komposisi:'Komposisi', diagnosis:'Diagnosis', pasien:'Pasien', item:'Item/Bln', beli:'Beli/Unit', sumber:'Sumber', klaim:'Klaim BPJS', bayar:'Bayar BPJS', pend:'Pend/Bln', laba:'Untung/Rugi', ket:'Keterangan', aksi:'Aksi' };
+            const LABELS = { nama:'Obat', komposisi:'Komposisi', diagnosis:'Diagnosis', pasien:'Pasien', item:'Item/Bln', beli:'Beli/Unit', klaim:'Klaim BPJS', bayar:'Bayar BPJS', pend:'Pend/Bln', laba:'Untung/Rugi', ket:'Keterangan', aksi:'Aksi' };
             const LENSES = [
                 { id:'keuangan', label:'Keuangan', cols:['nama','komposisi','pasien','item','beli','klaim','laba','ket','aksi'] },
                 { id:'ringkas',  label:'Ringkas',  cols:['nama','beli','laba','aksi'] },
                 { id:'lengkap',  label:'Lengkap',  cols:ORDER.slice() },
             ];
-            const KEY = 'ecatalog_katalog_v2';   // v2: lensa Keuangan tanpa bayar/pend (Rec C)
+            const KEY = 'ecatalog_katalog_v3';   // v2: lensa Keuangan tanpa bayar/pend (Rec C)
             return {
                 order:ORDER, locked:LOCKED, labels:LABELS, lenses:LENSES,
                 visible:{}, lens:'keuangan', density:'comfortable', colOpen:false,
@@ -1033,7 +1033,6 @@
                     </th>
                     <th data-col="item" style="text-align:right;">Item/Bln</th>
                     <th data-col="beli" style="text-align:right; min-width:90px;">Beli/Unit ✎</th>
-                    <th data-col="sumber" style="text-align:center;">Sumber</th>
                     <th data-col="klaim" style="text-align:right; min-width:90px;">Klaim BPJS ✎</th>
                     <th data-col="bayar" style="text-align:right;">Bayar BPJS</th>
                     <th data-col="pend" style="text-align:right;">Pend/Bln</th>
@@ -1065,7 +1064,7 @@
                 @if($groupMode && $curKat !== $prevKat)
                 @php $m = $gMeta[$curKat]; $prevKat = $curKat; @endphp
                 <tr class="ec-group" wire:key="grp-{{ $m['idx'] }}" @click="toggleGroup({{ $m['idx'] }})">
-                    <td colspan="13">
+                    <td colspan="12">
                         <div class="ec-group-bar">
                             <svg class="ec-group-chev" :class="{ col: isCollapsed({{ $m['idx'] }}) }" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
                             <span class="ec-group-name">{{ $curKat }}</span>
@@ -1142,10 +1141,6 @@
                             wire:change="updateHarga({{ $obat->id }}, $event.target.value)"
                             class="font-mono {{ (float)$obat->harga_beli_per_unit==0?'ec-zero':'' }}"
                             style="width:90px;text-align:right;background:rgba(232,100,90,.07);border:1px solid rgba(232,100,90,.2);border-radius:.3rem;padding:.18rem .35rem;font-size:.8rem;color:var(--red2);">
-                    </td>
-                    <td data-col="sumber" style="text-align:center;">
-                        @php $src = $obat->sumber_harga; @endphp
-                        <span class="badge badge-{{ $src==='PO'?'po':($src==='REAL'?'real':'est') }}">{{ $src }}</span>
                     </td>
                     <td data-col="klaim" style="text-align:right;">
                         <input type="number" value="{{ $obat->klaim_bpjs_per_unit }}" min="0" step="any"
@@ -1230,7 +1225,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="13" style="text-align:center;padding:2rem;color:var(--mut);">Tidak ada data obat.</td>
+                    <td colspan="12" style="text-align:center;padding:2rem;color:var(--mut);">Tidak ada data obat.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -1248,7 +1243,6 @@
                     <td data-col="pasien" class="font-mono" style="text-align:right;">{{ number_format($tPasien,0,',','.') }}</td>
                     <td data-col="item" class="font-mono" style="text-align:right;">{{ number_format($tItem,0,',','.') }}</td>
                     <td data-col="beli"></td>
-                    <td data-col="sumber"></td>
                     <td data-col="klaim"></td>
                     <td data-col="bayar"></td>
                     <td data-col="pend" class="font-mono" style="text-align:right;">{{ number_format($tPend,0,',','.') }}</td>
