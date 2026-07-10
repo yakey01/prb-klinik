@@ -151,7 +151,8 @@
         .katalog-glass .ec-zero-txt{ color:var(--mut2); opacity:.5; }
         /* Anchor Untung/Rugi — angka mono besar + mini-bar margin */
         .katalog-glass .lc-main{ font-size:1.05rem; font-family:'IBM Plex Mono',monospace; font-weight:600; letter-spacing:-.01em; }
-        .katalog-glass .lc-margin{ font-size:.62rem; opacity:.9; }
+        .katalog-glass .lc-margin{ font-size:.64rem; font-family:'IBM Plex Mono',monospace; font-weight:500; opacity:.92; }
+        .katalog-glass .lc-margin .u{ font-weight:400; opacity:.7; }
         .katalog-glass .lc-bar{ height:3px; border-radius:2px; margin-top:.3rem; margin-left:auto; max-width:110px; }
         /* Keterangan RINGKAS: pill saja; deskripsi lewat hover-tooltip (title) → baris pendek, muat lebih banyak */
         .katalog-glass .ket-desc{ display:none; }
@@ -1165,12 +1166,21 @@
                         $mBar = $mBar > 0 ? max($mBar, 8) : 0;
                     @endphp
                     <td data-col="laba" class="lc">
+                        @if($noVolume)
+                        {{-- Belum ada volume → per-unit jadi anchor BERWARNA (koheren), Rp 0/bln diredupkan --}}
+                        <div class="lc-main" title="Untung/rugi per unit — belum ada volume bulan ini" style="color:{{ $lpuColor }};">
+                            <span class="lc-arrow">@if($lpu>0)<x-i name="chevron-up" :size="11" />@elseif($lpu<0)<x-i name="chevron-down" :size="11" />@endif</span>{{ $lpu>=0?'+':'−' }}Rp {{ number_format(abs($lpu),0,',','.') }}<span style="font-size:.6rem;font-weight:400;color:var(--mut2);">/unit</span>
+                        </div>
+                        <div class="lc-margin" style="color:var(--mut2);">belum ada volume · Rp 0/bln</div>
+                        @else
+                        {{-- Ada volume → total bulanan jadi anchor --}}
                         <div class="lc-main" title="Untung/rugi per bulan = untung/rugi per unit × Item/Bln" style="color:{{ $obat->laba>0?'var(--emer2)':($obat->laba<0?'var(--red2)':'var(--mut)') }};">
                             <span class="lc-arrow">@if($obat->laba>0)<x-i name="chevron-up" :size="11" />@elseif($obat->laba<0)<x-i name="chevron-down" :size="11" />@endif</span>{{ $obat->laba>=0?'+':'−' }}Rp {{ number_format(abs($obat->laba),0,',','.') }}
                         </div>
                         <div class="lc-margin" title="Untung/rugi per unit (lepas dari jumlah pasien)" style="color:{{ $lpuColor }};">
                             {{ $lpu>=0?'untung +':'rugi −' }}{{ number_format(abs($lpu),0,',','.') }}<span class="u">/unit</span>
                         </div>
+                        @endif
                         @if($mBar > 0)
                         <div class="lc-bar" title="Rasio margin per unit terhadap harga beli" style="width:{{ $mBar }}%;background:{{ $lpu>=0?'var(--emer)':'var(--red2)' }};"></div>
                         @endif
