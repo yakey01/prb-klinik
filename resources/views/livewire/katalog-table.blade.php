@@ -582,6 +582,37 @@
     </div>
     @endif
 
+    {{-- ─────────────── KPI COCKPIT (butuh tindakan dulu) ─────────────── --}}
+    @php
+        $kp = $this->kpi;
+        $rpk = fn ($n) => 'Rp ' . number_format(abs($n), 0, ',', '.');
+        $kpiCards = [
+            ['k'=>'rugi','label'=>'Rugi','icon'=>'⚠','val'=>$kp['rugi'],'c'=>'#ff9a9a','bg'=>'rgba(232,100,90,.14)','bd'=>'rgba(232,100,90,.4)','hint'=>'bayar BPJS < harga beli'],
+            ['k'=>'perlu_cek','label'=>'Perlu Cek','icon'=>'◐','val'=>$kp['perlu_cek'],'c'=>'#f2c14e','bg'=>'rgba(217,164,65,.14)','bd'=>'rgba(217,164,65,.4)','hint'=>'klaim BPJS belum diisi'],
+            ['k'=>'no_price','label'=>'Belum Ada Harga','icon'=>'▤','val'=>$kp['no_price'],'c'=>'#eaa06b','bg'=>'rgba(234,160,107,.12)','bd'=>'rgba(234,160,107,.35)','hint'=>'harga beli kosong'],
+            ['k'=>'potensi','label'=>'Potensi Laba','icon'=>'◇','val'=>$kp['potensi'],'c'=>'#7fe3ac','bg'=>'rgba(95,211,154,.12)','bd'=>'rgba(95,211,154,.34)','hint'=>'margin +, belum ada volume'],
+        ];
+    @endphp
+    <div style="display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1rem;">
+        @foreach($kpiCards as $cd)
+        <button wire:click="$set('filter','{{ $filter===$cd['k']?'semua':$cd['k'] }}')" title="Klik untuk saring — {{ $cd['hint'] }}"
+            style="flex:1;min-width:148px;text-align:left;cursor:pointer;border-radius:14px;padding:.65rem .85rem;transition:all .15s;
+                   background:{{ $filter===$cd['k'] ? $cd['bg'] : 'rgba(255,255,255,.04)' }};
+                   border:1px solid {{ $filter===$cd['k'] ? $cd['bd'] : 'rgba(255,255,255,.1)' }};
+                   box-shadow:inset 0 1px 0 rgba(255,255,255,.06);">
+            <div style="font-size:.66rem;font-weight:700;letter-spacing:.04em;color:{{ $cd['c'] }};text-transform:uppercase;">{{ $cd['icon'] }} {{ $cd['label'] }}</div>
+            <div class="font-mono" style="font-size:1.5rem;font-weight:700;line-height:1.1;color:{{ $cd['val']>0?$cd['c']:'var(--mut2)' }};margin-top:.2rem;">{{ $cd['val'] }}</div>
+            <div style="font-size:.6rem;color:var(--mut2);margin-top:.05rem;">{{ $cd['hint'] }}</div>
+        </button>
+        @endforeach
+        {{-- Margin/bln (ringkasan, tak difilter) --}}
+        <div style="flex:1;min-width:148px;border-radius:14px;padding:.65rem .85rem;background:linear-gradient(180deg,rgba(217,164,65,.1),rgba(217,164,65,.03));border:1px solid rgba(217,164,65,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);">
+            <div style="font-size:.66rem;font-weight:700;letter-spacing:.04em;color:var(--gold2);text-transform:uppercase;">$ Margin / Bln</div>
+            <div class="font-mono" style="font-size:1.15rem;font-weight:700;line-height:1.1;color:{{ $kp['margin']>=0?'var(--emer2)':'var(--red2)' }};margin-top:.25rem;">{{ ($kp['margin']>=0?'+':'−').$rpk($kp['margin']) }}</div>
+            <div style="font-size:.6rem;color:var(--mut2);margin-top:.05rem;">{{ $kp['total'] }} obat · {{ $kp['laba'] }} laba berjalan</div>
+        </div>
+    </div>
+
     {{-- ─────────────── FILTER PILLS ─────────────── --}}
     <div style="display:flex; gap:.4rem; flex-wrap:wrap; margin-bottom:1.2rem; align-items:center;">
         {{-- Sumbu TIPE OBAT: Kronis / Non-Kronis (segmented) --}}

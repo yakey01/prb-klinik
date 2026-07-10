@@ -521,15 +521,28 @@ class KatalogTable extends Component
         $this->dispatch('toast', message: "Obat \"{$nama}\" berhasil dihapus.", type: 'success');
     }
 
+    /**
+     * Klasifikasi keparahan (untuk KPI cockpit + accent bar + urutan "butuh tindakan").
+     * Selaras dengan keterangan baris: no_price → rugi → perlu_cek → potensi → laba → netral.
+     */
+    public function severityOf($o): string
+    {
+        if ((float) $o->harga_beli_per_unit <= 0)                                  return 'no_price';
+        if ((float) $o->laba_per_unit < 0)                                         return 'rugi';
+        if ($o->tipe_obat === 'kronis' && (float) $o->klaim_bpjs_per_unit <= 0)    return 'perlu_cek';
+        if ((float) $o->laba_per_unit > 0 && (float) $o->unit_per_bulan <= 0)      return 'potensi';
+        if ((float) $o->laba > 0)                                                  return 'laba';
+        return 'netral';
+    }
+
+    private const SEV_RANK = ['rugi' => 0, 'no_price' => 1, 'perlu_cek' => 2, 'potensi' => 3, 'laba' => 4, 'netral' => 5];
+
+    /** Koleksi dasar (aktif + pencarian + tipe + sinkron resep) — sebelum filter keparahan. Dipakai KPI & obatList. */
     #[Computed]
-    public function obatList()
+    public function baseList()
     {
         $query = Obat::query();
-
-        if (!$this->showInactive) {
-            $query->where('is_active', true);
-        }
-
+        if (!$this->showInactive) $query->where('is_active', true);
         if ($this->search) {
             $query->where(function ($q) {
                 $q->where('nama_obat', 'like', '%' . $this->search . '%')
@@ -537,52 +550,75 @@ class KatalogTable extends Component
                   ->orWhere('komposisi', 'like', '%' . $this->search . '%');
             });
         }
-
         $list = $query->orderBy($this->sortBy, $this->sortDir)->get();
 
-        // Sinkronisasi real-time: ambil jumlah_pasien & unit_per_bulan dari resep aktif
         $resepStats = \Illuminate\Support\Facades\DB::table('resep_pasien')
             ->where('is_aktif', true)
-            ->select(
-                'obat_id',
+            ->select('obat_id',
                 \Illuminate\Support\Facades\DB::raw('COUNT(DISTINCT pasien_id) AS real_pasien'),
-                \Illuminate\Support\Facades\DB::raw('SUM(jumlah_default) AS real_unit')
-            )
-            ->groupBy('obat_id')
-            ->get()
-            ->keyBy('obat_id');
+                \Illuminate\Support\Facades\DB::raw('SUM(jumlah_default) AS real_unit'))
+            ->groupBy('obat_id')->get()->keyBy('obat_id');
 
         $list->each(function ($obat) use ($resepStats) {
             if (isset($resepStats[$obat->id])) {
-                // Ada resep aktif → pakai data real dari resep (otoritatif, read-only)
                 $obat->jumlah_pasien  = (int)   $resepStats[$obat->id]->real_pasien;
                 $obat->unit_per_bulan = (float) $resepStats[$obat->id]->real_unit;
                 $obat->dari_resep     = true;
             } else {
-                // Belum ada resep aktif → pakai nilai manual dari kolom DB (editable inline).
-                // Jangan di-nol-kan: input manual pasien/unit harus ikut terhitung di Laba/Bln.
-                $obat->dari_resep     = false;
+                $obat->dari_resep = false;
             }
         });
-
-        $list = match ($this->filter) {
-            'laba'      => $list->filter(fn ($o) => $o->laba > 0)->values(),
-            'rugi'      => $list->filter(fn ($o) => $o->laba < 0)->values(),
-            'perlu_cek' => $list->filter(fn ($o) => $o->laba == 0)->values(),
-            default     => ($this->filter !== 'semua')
-                           ? $list->where('kategori_diagnosis', $this->filter)->values()
-                           : $list,
-        };
 
         // Sumbu filter terpisah: tipe obat (kronis / non-kronis).
         if ($this->filterTipe !== 'semua') {
             $list = $list->where('tipe_obat', $this->filterTipe)->values();
         }
+        return $list;
+    }
 
-        // Mode grup: paksa urut per kategori diagnosis (lalu nama) agar header grup runut.
+    /** KPI cockpit: hitungan per kategori keparahan + total margin/bln (dari baseList). */
+    #[Computed]
+    public function kpi(): array
+    {
+        $c = ['rugi' => 0, 'perlu_cek' => 0, 'potensi' => 0, 'laba' => 0, 'no_price' => 0, 'margin' => 0.0, 'total' => 0];
+        foreach ($this->baseList as $o) {
+            $s = $this->severityOf($o);
+            if (isset($c[$s])) $c[$s]++;
+            $c['margin'] += (float) $o->laba;
+            $c['total']++;
+        }
+        return $c;
+    }
+
+    #[Computed]
+    public function obatList()
+    {
+        $list = $this->baseList;
+
+        // Filter keparahan (dari KPI cockpit) atau kategori diagnosis.
+        $list = match ($this->filter) {
+            'laba'      => $list->filter(fn ($o) => $this->severityOf($o) === 'laba')->values(),
+            'rugi'      => $list->filter(fn ($o) => $this->severityOf($o) === 'rugi')->values(),
+            'potensi'   => $list->filter(fn ($o) => $this->severityOf($o) === 'potensi')->values(),
+            'no_price'  => $list->filter(fn ($o) => $this->severityOf($o) === 'no_price')->values(),
+            'perlu_cek' => $list->filter(fn ($o) => $this->severityOf($o) === 'perlu_cek')->values(),
+            'butuh_tindakan' => $list->filter(fn ($o) => in_array($this->severityOf($o), ['rugi', 'no_price', 'perlu_cek'], true))->values(),
+            default     => ($this->filter !== 'semua')
+                           ? $list->where('kategori_diagnosis', $this->filter)->values()
+                           : $list,
+        };
+
         if ($this->groupMode) {
+            // Mode grup: urut per kategori diagnosis (lalu nama).
             $list = $list->sortBy([
                 fn ($a, $b) => strcasecmp($a->kategori_diagnosis ?: 'zzz', $b->kategori_diagnosis ?: 'zzz')
+                    ?: strcasecmp($a->nama_obat, $b->nama_obat),
+            ])->values();
+        } elseif ($this->sortBy === 'nama_obat' && $this->sortDir === 'asc') {
+            // DEFAULT: urut "butuh tindakan" (rugi → cek → potensi → laba), lalu nama.
+            // Sorting via header kolom akan menimpa ini.
+            $list = $list->sortBy([
+                fn ($a, $b) => (self::SEV_RANK[$this->severityOf($a)] <=> self::SEV_RANK[$this->severityOf($b)])
                     ?: strcasecmp($a->nama_obat, $b->nama_obat),
             ])->values();
         }
