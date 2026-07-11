@@ -173,20 +173,38 @@ class PengajuanPengadaan extends Component
         $hbox  = (float) ($r['harga_per_box'] ?? 0);
         $units = $box * $isi;
         $this->rows[$i]['subtotal_beli'] = $box * $hbox;
+        // KRONIS → diklaim ke BPJS (klaim × jasa farmasi). NON-KRONIS (umum) → TIDAK diklaim
+        // BPJS, jadi tak ada estimasi klaim / laba BPJS (pembelian murni).
         $kronis = ($r['tipe_obat'] ?? 'kronis') === 'kronis';
-        $perUnit = $kronis
-            ? (float) ($r['klaim_bpjs_per_unit'] ?? 0) * Obat::jfMultiplier($r['faktor_jasa_farmasi'] ?? 1.15)
-            : (float) ($r['harga_jual'] ?? 0);
-        $this->rows[$i]['estimasi_klaim'] = $units * $perUnit;
+        $this->rows[$i]['estimasi_klaim'] = $kronis
+            ? $units * (float) ($r['klaim_bpjs_per_unit'] ?? 0) * Obat::jfMultiplier($r['faktor_jasa_farmasi'] ?? 1.15)
+            : 0.0;
     }
 
     #[Computed]
     public function formTotal(): array
     {
-        $beli  = array_sum(array_map(fn ($r) => (float) ($r['subtotal_beli'] ?? 0), $this->rows));
-        $klaim = array_sum(array_map(fn ($r) => (float) ($r['estimasi_klaim'] ?? 0), $this->rows));
-        return ['beli' => $beli, 'klaim' => $klaim, 'laba' => $klaim - $beli,
-                'margin' => $klaim > 0 ? round(($klaim - $beli) / $klaim * 100, 1) : 0];
+        $beliKronis = 0.0; $beliUmum = 0.0; $klaim = 0.0;
+        foreach ($this->rows as $r) {
+            $sub = (float) ($r['subtotal_beli'] ?? 0);
+            if (($r['tipe_obat'] ?? 'kronis') === 'kronis') {
+                $beliKronis += $sub;
+                $klaim      += (float) ($r['estimasi_klaim'] ?? 0);
+            } else {
+                $beliUmum   += $sub;
+            }
+        }
+        $labaBpjs = $klaim - $beliKronis;   // laba BPJS HANYA dari kronis
+        return [
+            'beli'        => $beliKronis + $beliUmum,
+            'beli_kronis' => $beliKronis,
+            'beli_umum'   => $beliUmum,
+            'klaim'       => $klaim,
+            'laba'        => $labaBpjs,
+            'margin'      => $klaim > 0 ? round($labaBpjs / $klaim * 100, 1) : 0,
+            'ada_kronis'  => $beliKronis > 0 || $klaim > 0,
+            'ada_umum'    => $beliUmum > 0,
+        ];
     }
 
     /** Simpan sebagai draft (atau update draft). */
@@ -293,11 +311,11 @@ class PengajuanPengadaan extends Component
         $box = max(0, (int) ($r['jumlah_box'] ?? 0));
         $isi = max(1, (int) ($r['isi_per_box'] ?? 1));
         $r['subtotal_beli'] = $box * (float) ($r['harga_per_box'] ?? 0);
+        // Non-kronis (umum) tidak diklaim BPJS → estimasi_klaim 0.
         $kronis = ($r['tipe_obat'] ?? 'kronis') === 'kronis';
-        $perUnit = $kronis
-            ? (float) ($r['klaim_bpjs_per_unit'] ?? 0) * Obat::jfMultiplier($r['faktor_jasa_farmasi'] ?? 1.15)
-            : (float) ($r['harga_jual'] ?? 0);
-        $r['estimasi_klaim'] = ($box * $isi) * $perUnit;
+        $r['estimasi_klaim'] = $kronis
+            ? ($box * $isi) * (float) ($r['klaim_bpjs_per_unit'] ?? 0) * Obat::jfMultiplier($r['faktor_jasa_farmasi'] ?? 1.15)
+            : 0.0;
     }
 
     public function ajukanLangsung(): void  { $this->simpan(ajukan: true); }

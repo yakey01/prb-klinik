@@ -194,9 +194,9 @@
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Box</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Isi/Box</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Harga Beli/Box</th>
-                <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;" title="Klaim BPJS per unit (kronis)">Klaim/unit</th>
+                <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;" title="Klaim BPJS per unit — hanya obat kronis">Klaim BPJS/unit</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Subtotal Beli</th>
-                <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Est. Klaim</th>
+                <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;" title="Estimasi klaim BPJS — hanya obat kronis">Est. Klaim BPJS</th>
                 <th></th>
             </tr></thead>
             <tbody>
@@ -208,13 +208,20 @@
                             @foreach($this->obatList as $o)<option value="{{ $o->id }}">{{ $o->nama_obat }} ({{ $o->tipe_obat }})</option>@endforeach
                         </select>
                         @error("rows.$i.obat_id")<div style="color:var(--red2);font-size:.6rem;">{{ $message }}</div>@enderror
+                        @php $tp = $row['tipe_obat'] ?? ''; $isK = $tp === 'kronis'; @endphp
+                        @if($tp)
+                        <span style="display:inline-flex;align-items:center;gap:.28rem;margin-top:.3rem;font-size:.58rem;font-weight:800;letter-spacing:.04em;padding:.12rem .5rem;border-radius:999px;
+                            {{ $isK ? 'color:#8fbdf5;background:rgba(132,187,245,.14);border:1px solid rgba(132,187,245,.4);' : 'color:#f2c14e;background:rgba(217,164,65,.14);border:1px solid rgba(217,164,65,.4);' }}">
+                            <span style="width:5px;height:5px;border-radius:50%;background:{{ $isK ? '#8fbdf5' : '#f2c14e' }};"></span>{{ $isK ? 'KRONIS · diklaim BPJS' : 'NON-KRONIS · umum (non-BPJS)' }}
+                        </span>
+                        @endif
                     </td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.jumlah_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.isi_per_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="0" step="1" wire:model.live.debounce.400ms="rows.{{ $i }}.harga_per_box" style="width:92px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
-                    <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:{{ ($row['tipe_obat']??'')==='kronis' ? 'var(--blue)' : 'var(--mut2)' }};">{{ ($row['tipe_obat']??'')==='kronis' ? $rp($row['klaim_bpjs_per_unit']??0) : '—' }}</td>
+                    <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:{{ $isK ? 'var(--blue)' : 'var(--mut2)' }};">{{ $isK ? $rp($row['klaim_bpjs_per_unit']??0) : '—' }}</td>
                     <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:var(--red2);">{{ $rp($row['subtotal_beli']??0) }}</td>
-                    <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:var(--blue);">{{ $rp($row['estimasi_klaim']??0) }}</td>
+                    <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:{{ $isK ? 'var(--blue)' : 'var(--mut2)' }};" title="{{ $isK ? 'Estimasi klaim BPJS' : 'Non-kronis: dijual umum, tidak diklaim BPJS' }}">{{ $isK ? $rp($row['estimasi_klaim']??0) : '—' }}</td>
                     <td style="padding:.3rem .4rem;text-align:right;">
                         <button wire:click="removeRow({{ $i }})" style="background:none;border:none;color:var(--red2);cursor:pointer;font-size:.9rem;">✕</button>
                     </td>
@@ -224,15 +231,35 @@
         </table>
         </div>
 
-        {{-- Totals --}}
+        {{-- Totals — dipisah: BPJS (kronis) vs Umum (non-kronis) --}}
         @php $ft = $this->formTotal; @endphp
-        <div style="display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end;margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--line);">
-            <div style="text-align:right;"><div style="font-size:.58rem;color:var(--mut);text-transform:uppercase;">Total Beli (HPP)</div><div class="font-mono" style="font-size:.95rem;font-weight:800;color:var(--red2);">{{ $rp($ft['beli']) }}</div></div>
-            <div style="text-align:right;"><div style="font-size:.58rem;color:var(--mut);text-transform:uppercase;">Est. Klaim/Jual</div><div class="font-mono" style="font-size:.95rem;font-weight:800;color:var(--blue);">{{ $rp($ft['klaim']) }}</div></div>
-            <div style="text-align:right;padding:.35rem .9rem;border-radius:.7rem;background:{{ $ft['laba']>=0?'rgba(63,207,142,.1)':'rgba(232,100,90,.1)' }};border:1px solid {{ $ft['laba']>=0?'rgba(63,207,142,.3)':'rgba(232,100,90,.3)' }};">
-                <div style="font-size:.58rem;color:{{ $ft['laba']>=0?'var(--emer2)':'var(--red2)' }};text-transform:uppercase;">Est. Laba · {{ number_format(abs($ft['margin']),1) }}%</div>
-                <div class="font-mono" style="font-size:1rem;font-weight:900;color:{{ $ft['laba']>=0?'var(--emer2)':'var(--red2)' }};">{{ ($ft['laba']>=0?'+':'−').$rp(abs($ft['laba'])) }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end;margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--line);align-items:stretch;">
+            <div style="text-align:right;">
+                <div style="font-size:.58rem;color:var(--mut);text-transform:uppercase;">Total Beli (HPP)</div>
+                <div class="font-mono" style="font-size:.95rem;font-weight:800;color:var(--red2);">{{ $rp($ft['beli']) }}</div>
+                @if($ft['ada_umum'] && $ft['ada_kronis'])
+                <div style="font-size:.54rem;color:var(--mut2);">kronis {{ $rp($ft['beli_kronis']) }} · umum {{ $rp($ft['beli_umum']) }}</div>
+                @endif
             </div>
+            @if($ft['ada_kronis'])
+            <div style="text-align:right;">
+                <div style="font-size:.58rem;color:var(--mut);text-transform:uppercase;">Est. Klaim BPJS</div>
+                <div class="font-mono" style="font-size:.95rem;font-weight:800;color:var(--blue);">{{ $rp($ft['klaim']) }}</div>
+                <div style="font-size:.54rem;color:var(--mut2);">kronis saja</div>
+            </div>
+            <div style="text-align:right;padding:.35rem .9rem;border-radius:.7rem;background:{{ $ft['laba']>=0?'rgba(63,207,142,.1)':'rgba(232,100,90,.1)' }};border:1px solid {{ $ft['laba']>=0?'rgba(63,207,142,.3)':'rgba(232,100,90,.3)' }};">
+                <div style="font-size:.58rem;color:{{ $ft['laba']>=0?'var(--emer2)':'var(--red2)' }};text-transform:uppercase;">Est. Laba BPJS · {{ number_format(abs($ft['margin']),1) }}%</div>
+                <div class="font-mono" style="font-size:1rem;font-weight:900;color:{{ $ft['laba']>=0?'var(--emer2)':'var(--red2)' }};">{{ ($ft['laba']>=0?'+':'−').$rp(abs($ft['laba'])) }}</div>
+                <div style="font-size:.52rem;color:var(--mut2);">klaim − beli kronis</div>
+            </div>
+            @endif
+            @if($ft['ada_umum'])
+            <div style="text-align:right;padding:.35rem .9rem;border-radius:.7rem;background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.25);">
+                <div style="font-size:.58rem;color:var(--gold2);text-transform:uppercase;">Beli Umum (non-BPJS)</div>
+                <div class="font-mono" style="font-size:1rem;font-weight:900;color:var(--gold2);">{{ $rp($ft['beli_umum']) }}</div>
+                <div style="font-size:.52rem;color:var(--mut2);">dijual umum · di luar klaim BPJS</div>
+            </div>
+            @endif
         </div>
 
         {{-- Actions --}}

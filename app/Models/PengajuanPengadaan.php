@@ -64,12 +64,14 @@ class PengajuanPengadaan extends Model
     /** Hitung ulang ringkasan finansial dari item. */
     public function rekapUlang(): void
     {
-        $beli  = (float) $this->items->sum('subtotal_beli');
-        $klaim = (float) $this->items->sum('estimasi_klaim');
+        $beli       = (float) $this->items->sum('subtotal_beli');
+        $klaim      = (float) $this->items->sum('estimasi_klaim');
+        // Laba BPJS hanya dari item KRONIS (non-kronis/umum tak diklaim BPJS → tak masuk laba).
+        $beliKronis = (float) $this->items->where('tipe_obat', 'kronis')->sum('subtotal_beli');
         $this->update([
             'total_beli'           => $beli,
             'total_estimasi_klaim' => $klaim,
-            'estimasi_laba'        => $klaim - $beli,
+            'estimasi_laba'        => $klaim - $beliKronis,
         ]);
     }
 
