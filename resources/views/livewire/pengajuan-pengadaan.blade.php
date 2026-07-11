@@ -188,8 +188,9 @@
         </div>
 
         <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:.75rem;min-width:820px;">
+        <table style="width:100%;border-collapse:collapse;font-size:.75rem;min-width:960px;">
             <thead><tr style="color:var(--mut);">
+                <th style="text-align:left;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Tipe (BPJS?)</th>
                 <th style="text-align:left;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Obat</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Box</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Isi/Box</th>
@@ -202,19 +203,24 @@
             <tbody>
                 @foreach($rows as $i => $row)
                 <tr wire:key="row-{{ $i }}" style="border-top:1px solid rgba(31,61,48,.4);">
-                    <td style="padding:.3rem .4rem;min-width:220px;">
+                    @php $tp = $row['tipe_obat'] ?? 'kronis'; $isK = $tp === 'kronis'; @endphp
+                    {{-- FIELD TIPE: pilih dulu kategori (menentukan apakah diklaim BPJS) --}}
+                    <td style="padding:.3rem .4rem;vertical-align:top;">
+                        <div style="display:inline-flex;border:1px solid var(--line2);border-radius:.5rem;overflow:hidden;">
+                            <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','kronis')" title="Obat kronis — diklaim ke BPJS"
+                                style="padding:.36rem .6rem;font-size:.66rem;font-weight:800;cursor:pointer;border:none;transition:all .12s;{{ $isK ? 'background:rgba(132,187,245,.22);color:#8fbdf5;' : 'background:transparent;color:var(--mut);' }}">Kronis</button>
+                            <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','non_kronis')" title="Obat umum — tidak diklaim BPJS"
+                                style="padding:.36rem .6rem;font-size:.66rem;font-weight:800;cursor:pointer;border:none;border-left:1px solid var(--line2);transition:all .12s;{{ !$isK ? 'background:rgba(217,164,65,.22);color:#f2c14e;' : 'background:transparent;color:var(--mut);' }}">Non-Kronis</button>
+                        </div>
+                        <div style="font-size:.54rem;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};margin-top:.24rem;font-weight:700;">{{ $isK ? '✓ diklaim BPJS' : '✓ umum · non-BPJS' }}</div>
+                    </td>
+                    {{-- OBAT: difilter sesuai tipe terpilih --}}
+                    <td style="padding:.3rem .4rem;min-width:220px;vertical-align:top;">
                         <select wire:model.live="rows.{{ $i }}.obat_id" style="width:100%;padding:.4rem .5rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;">
-                            <option value="0">— pilih obat —</option>
-                            @foreach($this->obatList as $o)<option value="{{ $o->id }}">{{ $o->nama_obat }} ({{ $o->tipe_obat }})</option>@endforeach
+                            <option value="0">— pilih obat {{ $isK ? 'kronis' : 'non-kronis' }} —</option>
+                            @foreach($this->obatList->where('tipe_obat', $tp) as $o)<option value="{{ $o->id }}">{{ $o->nama_obat }}</option>@endforeach
                         </select>
                         @error("rows.$i.obat_id")<div style="color:var(--red2);font-size:.6rem;">{{ $message }}</div>@enderror
-                        @php $tp = $row['tipe_obat'] ?? ''; $isK = $tp === 'kronis'; @endphp
-                        @if($tp)
-                        <span style="display:inline-flex;align-items:center;gap:.28rem;margin-top:.3rem;font-size:.58rem;font-weight:800;letter-spacing:.04em;padding:.12rem .5rem;border-radius:999px;
-                            {{ $isK ? 'color:#8fbdf5;background:rgba(132,187,245,.14);border:1px solid rgba(132,187,245,.4);' : 'color:#f2c14e;background:rgba(217,164,65,.14);border:1px solid rgba(217,164,65,.4);' }}">
-                            <span style="width:5px;height:5px;border-radius:50%;background:{{ $isK ? '#8fbdf5' : '#f2c14e' }};"></span>{{ $isK ? 'KRONIS · diklaim BPJS' : 'NON-KRONIS · umum (non-BPJS)' }}
-                        </span>
-                        @endif
                     </td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.jumlah_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.isi_per_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>

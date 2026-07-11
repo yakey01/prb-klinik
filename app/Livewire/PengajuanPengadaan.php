@@ -149,6 +149,14 @@ class PengajuanPengadaan extends Component
         // key mis. "0.obat_id"
         [$i, $field] = array_pad(explode('.', $key), 2, null);
         $i = (int) $i;
+        if ($field === 'tipe_obat') {
+            // Ganti kategori Kronis/Non-Kronis → reset obat (daftar obat difilter per tipe).
+            $this->rows[$i]['obat_id']             = 0;
+            $this->rows[$i]['nama_obat']           = '';
+            $this->rows[$i]['klaim_bpjs_per_unit'] = 0;
+            $this->rows[$i]['harga_per_box']       = 0;
+            $this->rows[$i]['harga_jual']          = 0;
+        }
         if ($field === 'obat_id') {
             $o = $this->obatList->firstWhere('id', (int) $value);
             if ($o) {
