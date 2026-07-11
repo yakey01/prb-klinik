@@ -205,14 +205,19 @@
                 <tr wire:key="row-{{ $i }}" style="border-top:1px solid rgba(31,61,48,.4);">
                     @php $tp = $row['tipe_obat'] ?? 'kronis'; $isK = $tp === 'kronis'; @endphp
                     {{-- FIELD TIPE: pilih dulu kategori (menentukan apakah diklaim BPJS) --}}
-                    <td style="padding:.3rem .4rem;vertical-align:top;">
-                        <div style="display:inline-flex;border:1px solid var(--line2);border-radius:.5rem;overflow:hidden;">
+                    <td style="padding:.3rem .5rem;vertical-align:top;min-width:210px;">
+                        <div style="display:inline-flex;border-radius:.85rem;overflow:hidden;border:1px solid rgba(255,255,255,.14);
+                                    background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.08));
+                                    box-shadow:inset 0 1.5px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.02), 0 8px 20px -8px rgba(0,0,0,.6);
+                                    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
                             <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','kronis')" title="Obat kronis — diklaim ke BPJS"
-                                style="padding:.36rem .6rem;font-size:.66rem;font-weight:800;cursor:pointer;border:none;transition:all .12s;{{ $isK ? 'background:rgba(132,187,245,.22);color:#8fbdf5;' : 'background:transparent;color:var(--mut);' }}">Kronis</button>
+                                style="padding:.62rem 1.35rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;transition:all .15s;
+                                    {{ $isK ? 'background:linear-gradient(180deg,rgba(132,187,245,.42),rgba(132,187,245,.2));color:#d5e8fb;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35),0 0 16px rgba(132,187,245,.3);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Kronis</button>
                             <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','non_kronis')" title="Obat umum — tidak diklaim BPJS"
-                                style="padding:.36rem .6rem;font-size:.66rem;font-weight:800;cursor:pointer;border:none;border-left:1px solid var(--line2);transition:all .12s;{{ !$isK ? 'background:rgba(217,164,65,.22);color:#f2c14e;' : 'background:transparent;color:var(--mut);' }}">Non-Kronis</button>
+                                style="padding:.62rem 1.2rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,.1);transition:all .15s;
+                                    {{ !$isK ? 'background:linear-gradient(180deg,rgba(242,193,78,.45),rgba(224,168,50,.22));color:#ffe8ac;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.4),0 0 16px rgba(242,193,78,.32);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Non-Kronis</button>
                         </div>
-                        <div style="font-size:.54rem;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};margin-top:.24rem;font-weight:700;">{{ $isK ? '✓ diklaim BPJS' : '✓ umum · non-BPJS' }}</div>
+                        <div style="font-size:.66rem;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};margin-top:.4rem;font-weight:800;letter-spacing:.02em;">{{ $isK ? '✓ diklaim BPJS' : '✓ umum · non-BPJS' }}</div>
                     </td>
                     {{-- OBAT: difilter sesuai tipe terpilih --}}
                     <td style="padding:.3rem .4rem;min-width:220px;vertical-align:top;">
