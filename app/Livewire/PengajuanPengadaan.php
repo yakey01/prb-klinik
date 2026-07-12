@@ -290,14 +290,13 @@ class PengajuanPengadaan extends Component
                 $p->alasan_tolak = null;
             } elseif ($wasApproved) {
                 // Persetujuan lama GUGUR → kembali ke antrean, manajer wajib ACC ulang.
-                $p->status          = 'diajukan';
-                $p->submitted_at    = now();
-                $p->approver_id     = null;
-                $p->approver_nama   = null;
-                $p->approver_sumber = null;
-                $p->approved_at     = null;
+                // PERTAHANKAN approved_at (+ approver lama) sebagai jejak "pernah diputus" agar
+                // inbox SIM mendeteksi ini sbg RE-APPROVAL (is_reapproval = diajukan & approved_at≠null),
+                // bukan pengajuan baru. Keputusan baru manajer akan menimpanya.
+                $p->status           = 'diajukan';
+                $p->submitted_at     = now();
                 $p->catatan_approver = null;
-                $p->alasan_tolak    = null;
+                $p->alasan_tolak     = null;
                 $reAppr = true;
             }
             $p->save();
