@@ -65,6 +65,23 @@
         </div>
     </div>
 
+    {{-- ══ LEGEND: arti status & aturan faktur ══ --}}
+    <details style="margin-bottom:.9rem;">
+        <summary style="cursor:pointer;list-style:none;font-size:.72rem;color:var(--mut);display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .2rem;">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Apa arti <strong style="color:var(--emer2);">Direalisasi (PO)</strong>? &amp; aturan faktur — klik untuk baca
+        </summary>
+        <div class="glass-card" style="margin-top:.5rem;padding:.85rem 1.1rem;font-size:.74rem;line-height:1.65;color:var(--mut);">
+            <div style="margin-bottom:.4rem;"><strong style="color:var(--ink);">Alur:</strong> Draft → <span style="color:#5b9bd5;">Menunggu</span> (di manajer SIM) → <span style="color:var(--emer2);">Disetujui</span> → <strong style="color:var(--emer2);">Direalisasi (PO)</strong>.</div>
+            <div style="margin-bottom:.3rem;"><strong style="color:var(--emer2);">Direalisasi (PO)</strong> = pengajuan sudah jadi <strong>Purchase Order</strong> (stok &amp; tagihan sudah terbentuk).</div>
+            <ul style="margin:.2rem 0 0 1rem;padding:0;">
+                <li><span style="color:var(--emer2);">🧾 Faktur: INV-xxx</span> = faktur pengadaan <strong>sudah diinput</strong> → PO final, terkunci.</li>
+                <li><span style="color:var(--gold2);">⚠ Faktur belum diinput</span> = PO dibuat tapi <strong>faktur belum masuk</strong> (biasanya PO lama). Klik <strong style="color:var(--gold2);">🧾 Lengkapi Faktur</strong> untuk melengkapi nomor faktur.</li>
+            </ul>
+            <div style="margin-top:.4rem;color:var(--mut2);">Selama <strong>disetujui &amp; belum ada faktur/PO</strong>, pengajuan masih bisa <strong>diedit</strong> (perubahan minta ACC ulang manajer).</div>
+        </div>
+    </details>
+
     {{-- ══ DAFTAR ══ --}}
     <div class="glass-card" style="padding:0;overflow:hidden;">
         <div style="overflow-x:auto;">
@@ -94,6 +111,12 @@
                     <td class="font-mono" style="padding:.6rem .5rem;text-align:right;color:{{ $p->estimasi_laba>=0?'var(--emer2)':'var(--red2)' }};">{{ ($p->estimasi_laba>=0?'+':'−').$rp(abs($p->estimasi_laba)) }}</td>
                     <td style="padding:.6rem .5rem;text-align:center;">
                         <span style="font-size:.64rem;font-weight:700;padding:.16rem .6rem;border-radius:999px;color:{{ $p->statusColor() }};background:color-mix(in srgb,{{ $p->statusColor() }} 14%, transparent);border:1px solid {{ $p->statusColor() }};white-space:nowrap;">{{ $p->statusLabel() }}</span>
+                        @php $sf = $p->statusFaktur(); @endphp
+                        @if($sf === 'ada')
+                        <div style="font-size:.56rem;color:var(--emer2);margin-top:.22rem;white-space:nowrap;">🧾 Faktur: <span class="font-mono">{{ $p->purchaseOrder->nomor_invoice }}</span></div>
+                        @elseif($sf === 'kurang')
+                        <div style="font-size:.56rem;color:var(--gold2);margin-top:.22rem;white-space:nowrap;">⚠ Faktur belum diinput</div>
+                        @endif
                     </td>
                     <td style="padding:.6rem .9rem;text-align:right;white-space:nowrap;" wire:click.stop>
                         @if($p->bisaDiedit())
@@ -107,6 +130,9 @@
                         @endif
                         @if($p->bisaRealisasi())
                             <button wire:click="mintaRealisasi({{ $p->id }})" title="Input faktur pengadaan → buat PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
+                        @endif
+                        @if($p->poTanpaFaktur())
+                            <button wire:click="mintaLengkapiFaktur({{ $p->id }})" title="PO sudah dibuat tapi nomor faktur belum diinput — klik untuk lengkapi" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:rgba(217,164,65,.14);border:1px solid rgba(217,164,65,.4);color:var(--gold2);cursor:pointer;font-weight:800;">🧾 Lengkapi Faktur</button>
                         @endif
                         {{-- Kebab menu CRUD (x-teleport → lolos overflow tabel) --}}
                         <div x-data="{o:false,x:0,y:0}" @keydown.escape.window="o=false" style="display:inline-block;">
@@ -122,6 +148,9 @@
                                     @endif
                                     @if($p->bisaRealisasi())
                                     <button type="button" wire:click="mintaRealisasi({{ $p->id }})" class="pr-menu-item" style="color:var(--emer2);">🧾 Input Faktur → Buat PO</button>
+                                    @endif
+                                    @if($p->poTanpaFaktur())
+                                    <button type="button" wire:click="mintaLengkapiFaktur({{ $p->id }})" class="pr-menu-item" style="color:var(--gold2);">🧾 Lengkapi Faktur PO</button>
                                     @endif
                                     @if($p->bisaDibatalkan())
                                     <button type="button" wire:click="batalkan({{ $p->id }})" wire:confirm="Batalkan / tarik {{ $p->no_pengajuan }} dari antrean manajer SIM?" class="pr-menu-item" style="color:var(--gold2);">✕ Batalkan / Tarik</button>

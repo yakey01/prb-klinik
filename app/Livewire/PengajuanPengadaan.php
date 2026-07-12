@@ -61,7 +61,7 @@ class PengajuanPengadaan extends Component
     public function obatList()
     {
         return Obat::where('is_active', true)->orderBy('nama_obat')
-            ->get(['id', 'nama_obat', 'tipe_obat', 'satuan', 'harga_beli_per_unit', 'harga_jual_per_unit', 'klaim_bpjs_per_unit', 'faktor_jasa_farmasi']);
+            ->get(['id', 'nama_obat', 'kode_obat', 'tipe_obat', 'satuan', 'stok_aktual', 'stok_minimum', 'harga_beli_per_unit', 'harga_jual_per_unit', 'klaim_bpjs_per_unit', 'faktor_jasa_farmasi']);
     }
 
     #[Computed]
@@ -84,7 +84,7 @@ class PengajuanPengadaan extends Component
     #[Computed]
     public function daftar()
     {
-        return PR::with(['distributor', 'pemohon'])
+        return PR::with(['distributor', 'pemohon', 'purchaseOrder'])
             ->when($this->search !== '', fn ($q) => $q->where(fn ($w) =>
                 $w->where('no_pengajuan', 'like', "%{$this->search}%")
                   ->orWhere('justifikasi', 'like', "%{$this->search}%")))
@@ -166,6 +166,9 @@ class PengajuanPengadaan extends Component
             $this->rows[$i]['klaim_bpjs_per_unit'] = 0;
             $this->rows[$i]['harga_per_box']       = 0;
             $this->rows[$i]['harga_jual']          = 0;
+            $this->rows[$i]['stok_aktual']         = null;
+            $this->rows[$i]['stok_minimum']        = null;
+            $this->rows[$i]['satuan']              = '';
         }
         if ($field === 'obat_id') {
             $o = $this->obatList->firstWhere('id', (int) $value);
@@ -177,6 +180,9 @@ class PengajuanPengadaan extends Component
                 $this->rows[$i]['klaim_bpjs_per_unit'] = (float) ($o->klaim_bpjs_per_unit ?? 0);
                 $this->rows[$i]['faktor_jasa_farmasi'] = (float) ($o->faktor_jasa_farmasi ?? 1.15);
                 $this->rows[$i]['harga_jual']          = (float) ($o->harga_jual_per_unit ?? 0);
+                $this->rows[$i]['stok_aktual']         = (int) ($o->stok_aktual ?? 0);
+                $this->rows[$i]['stok_minimum']        = (int) ($o->stok_minimum ?? 0);
+                $this->rows[$i]['satuan']              = (string) ($o->satuan ?? '');
             }
         }
         $this->recalcRow($i);

@@ -64,6 +64,21 @@ class PengajuanPengadaan extends Model
     {
         return $this->status === 'disetujui' && ! $this->purchase_order_id;
     }
+
+    /** Sudah jadi PO tapi nomor faktur belum diisi (realisasi belum lengkap). */
+    public function poTanpaFaktur(): bool
+    {
+        return $this->status === 'direalisasi'
+            && $this->purchase_order_id
+            && empty(optional($this->purchaseOrder)->nomor_invoice);
+    }
+
+    /** Status faktur ringkas untuk badge: none | ada | kurang. */
+    public function statusFaktur(): string
+    {
+        if ($this->status !== 'direalisasi' || ! $this->purchase_order_id) return 'none';
+        return empty(optional($this->purchaseOrder)->nomor_invoice) ? 'kurang' : 'ada';
+    }
     public function bisaDihapus(): bool    { return in_array($this->status, ['draft', 'revisi', 'ditolak', 'dibatalkan'], true); }
     public function bisaApprove(): bool    { return $this->status === 'diajukan'; }
     public function bisaRealisasi(): bool  { return $this->status === 'disetujui'; }
