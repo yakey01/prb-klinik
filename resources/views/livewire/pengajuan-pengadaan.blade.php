@@ -224,12 +224,37 @@
         .obat-cb-opt{display:block;width:100%;text-align:left;background:none;border:none;color:var(--ink);cursor:pointer;padding:.45rem .55rem;border-radius:.4rem;font-size:.74rem;}
         .obat-cb-opt:hover,.obat-cb-opt.act{background:rgba(63,207,142,.14);}
         .obat-cb-empty{padding:.7rem;text-align:center;color:var(--mut);font-size:.72rem;}
+        .obat-cb-input{width:100%;padding:.45rem .55rem;border-radius:.45rem;background:var(--card)!important;border:1px solid var(--line2);color:var(--ink)!important;font-size:.74rem;}
+        .obat-cb-input.has-pick{font-weight:600;}
+        .obat-cb-input::placeholder{color:var(--mut2);opacity:1;}
+        .obat-cb-input:focus{outline:none;border-color:var(--emer);box-shadow:0 0 0 2px rgba(63,207,142,.2);}
+        /* matikan Chrome autofill putih */
+        .obat-cb-input:-webkit-autofill,.obat-cb-input:-webkit-autofill:focus,.obat-cb-input:-webkit-autofill:hover{
+            -webkit-box-shadow:0 0 0 30px var(--card) inset!important;-webkit-text-fill-color:var(--ink)!important;caret-color:var(--ink);
+        }
     </style>
     <div class="glass-card" style="padding:1.2rem 1.3rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
-            <h3 class="font-heading" style="font-size:1.1rem;color:var(--ink);margin:0;">{{ $editId ? 'Edit Pengajuan' : 'Pengajuan Pengadaan Baru' }}</h3>
+            <h3 class="font-heading" style="font-size:1.1rem;color:var(--ink);margin:0;">{{ $editId ? 'Edit Pengajuan' : ($formMode==='langsung' ? 'Input Langsung PO' : 'Pengajuan Pengadaan Baru') }}</h3>
             <button wire:click="cancel" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;">✕</button>
         </div>
+
+        {{-- MODE SEGMENTED: Ajukan (perlu approval) vs Input Langsung (koreksi) --}}
+        @unless($editId)
+        <div style="display:flex;flex-wrap:wrap;gap:.6rem;align-items:center;margin-bottom:1rem;">
+            <div style="display:inline-flex;border:1px solid var(--line2);border-radius:.7rem;overflow:hidden;background:rgba(0,0,0,.15);">
+                <button type="button" wire:click="setMode('ajukan')"
+                    style="padding:.55rem 1.1rem;font-size:.8rem;font-weight:800;cursor:pointer;border:none;transition:all .15s;{{ $formMode==='ajukan' ? 'background:linear-gradient(180deg,rgba(63,207,142,.35),rgba(63,207,142,.15));color:var(--emer2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.2);' : 'background:transparent;color:var(--mut);' }}">📝 Ajukan Pengadaan</button>
+                <button type="button" wire:click="setMode('langsung')"
+                    style="padding:.55rem 1.1rem;font-size:.8rem;font-weight:800;cursor:pointer;border:none;border-left:1px solid var(--line2);transition:all .15s;{{ $formMode==='langsung' ? 'background:linear-gradient(180deg,rgba(217,164,65,.35),rgba(217,164,65,.15));color:var(--gold2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.2);' : 'background:transparent;color:var(--mut);' }}">⚡ Input Langsung</button>
+            </div>
+            <div style="font-size:.7rem;color:{{ $formMode==='langsung' ? 'var(--gold2)' : 'var(--emer2)' }};line-height:1.4;flex:1;min-width:200px;">
+                {{ $formMode==='langsung'
+                    ? '⚠ Buat PO langsung TANPA persetujuan manajer — untuk koreksi / darurat yang sudah disepakati.'
+                    : '✓ Alur standar: usulan → disetujui manajer SIM → input faktur → PO.' }}
+            </div>
+        </div>
+        @endunless
 
         {{-- Header fields --}}
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.8rem;margin-bottom:1rem;">
@@ -255,8 +280,8 @@
             </div>
         </div>
         <div style="margin-bottom:1rem;">
-            <label style="font-size:.64rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;">Justifikasi / Alasan Belanja <span style="color:var(--red2);">*wajib untuk diajukan</span></label>
-            <textarea wire:model="justifikasi" rows="2" placeholder="Mis. stok kritis Metformin < minimum, permintaan pasien PRB meningkat…"
+            <label style="font-size:.64rem;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;">{{ $formMode==='langsung' ? 'Catatan (opsional)' : 'Justifikasi / Alasan Belanja' }} @if($formMode!=='langsung')<span style="color:var(--red2);">*wajib untuk diajukan</span>@endif</label>
+            <textarea wire:model="{{ $formMode==='langsung' ? 'catatan' : 'justifikasi' }}" rows="2" placeholder="{{ $formMode==='langsung' ? 'Mis. koreksi stok, pembelian darurat disepakati…' : 'Mis. stok kritis Metformin < minimum, permintaan pasien PRB meningkat…' }}"
                 style="width:100%;margin-top:.3rem;padding:.5rem .7rem;border-radius:.55rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.8rem;resize:vertical;"></textarea>
             @error('justifikasi')<div style="color:var(--red2);font-size:.68rem;margin-top:.2rem;">{{ $message }}</div>@enderror
         </div>
@@ -305,9 +330,9 @@
                              x-data="obatPicker({{ $i }}, @js($tp), {{ (int)($row['obat_id']??0) }}, @js($row['nama_obat']??''))"
                              @click.outside="open=false" style="position:relative;">
                             <input type="text" x-model="query" @focus="open=true;filter()" @input="open=true;filter()"
+                                   autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="obat_cari_{{ $i }}"
                                    :placeholder="picked ? picked.nama : '🔎 ketik nama obat {{ $isK ? 'kronis' : 'non-kronis' }}…'"
-                                   :style="picked ? 'color:var(--ink);font-weight:600;' : ''"
-                                   style="width:100%;padding:.45rem .55rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;">
+                                   class="obat-cb-input" :class="picked ? 'has-pick' : ''">
                             <template x-if="picked">
                                 <div style="display:flex;align-items:center;gap:.4rem;margin-top:.28rem;flex-wrap:wrap;">
                                     <span :style="`font-size:.58rem;font-weight:800;padding:.05rem .4rem;border-radius:999px;${picked.stok<=picked.min ? 'color:#ff8a7a;background:rgba(232,100,90,.16);border:1px solid rgba(232,100,90,.4);' : 'color:#7fe3ac;background:rgba(63,207,142,.12);border:1px solid rgba(63,207,142,.3);'}`">
@@ -397,6 +422,8 @@
             <button wire:click="simpan(false)" wire:confirm="Simpan perubahan? Persetujuan lama akan gugur dan pengajuan dikembalikan untuk ACC ulang manajer." style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(217,164,65,.95),rgba(217,164,65,.78));border:1px solid rgba(217,164,65,.5);color:#1a0e00;cursor:pointer;font-size:.8rem;font-weight:800;">💾 Simpan &amp; Ajukan Ulang →</button>
             @elseif($editStatus === 'diajukan')
             <button wire:click="simpan(false)" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">Simpan Perubahan</button>
+            @elseif($formMode === 'langsung')
+            <button wire:click="simpanLangsung" wire:confirm="Buat PO LANGSUNG tanpa persetujuan manajer? Stok & tagihan akan diperbarui." style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(217,164,65,.95),rgba(217,164,65,.78));border:1px solid rgba(217,164,65,.5);color:#1a0e00;cursor:pointer;font-size:.8rem;font-weight:800;">⚡ Buat PO Langsung →</button>
             @else
             <button wire:click="simpan(false)" style="padding:.6rem 1.1rem;border-radius:.6rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.8rem;font-weight:700;">Simpan Draft</button>
             <button wire:click="ajukanLangsung" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">Ajukan untuk Persetujuan →</button>

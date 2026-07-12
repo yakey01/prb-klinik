@@ -29,6 +29,7 @@ class PengajuanPengadaan extends Component
 
     // Form (draft)
     public bool $showForm = false;
+    public string $formMode = 'ajukan';   // 'ajukan' (perlu approval) | 'langsung' (buat PO langsung, koreksi/darurat)
     public ?int $editId = null;
     public string $editStatus = '';   // status pengajuan yg sedang diedit (utk label tombol)
     public string $tanggal = '';
@@ -94,14 +95,23 @@ class PengajuanPengadaan extends Component
     }
 
     // ── Form draft ──────────────────────────────────────────────
-    public function openAdd(): void
+    public function openAdd(?string $mode = null): void
     {
         $this->reset(['editId', 'editStatus', 'distributor_id', 'prioritas', 'justifikasi', 'catatan', 'rows']);
+        $this->formMode  = in_array($mode, ['ajukan', 'langsung'], true) ? $mode : 'ajukan';
         $this->tanggal   = now()->format('Y-m-d');
         $this->prioritas = 'rutin';
         $this->rows      = [];
         $this->addRow();
         $this->showForm  = true;
+    }
+
+    /** Ganti mode form Ajukan ↔ Input Langsung (tanpa reset item). */
+    public function setMode(string $mode): void
+    {
+        if (in_array($mode, ['ajukan', 'langsung'], true) && ! $this->editId) {
+            $this->formMode = $mode;
+        }
     }
 
     public function openEdit(int $id): void
@@ -111,6 +121,7 @@ class PengajuanPengadaan extends Component
             $this->dispatch('toast', type: 'error', message: 'Pengajuan sudah ' . $p->statusLabel() . ' — tidak bisa diedit.');
             return;
         }
+        $this->formMode       = 'ajukan';
         $this->editId         = $p->id;
         $this->editStatus     = $p->status;
         $this->tanggal        = $p->tanggal->format('Y-m-d');
@@ -357,6 +368,77 @@ class PengajuanPengadaan extends Component
     }
 
     public function ajukanLangsung(): void  { $this->simpan(ajukan: true); }
+
+    /**
+     * Mode INPUT LANGSUNG: buat PO langsung dari item (tanpa alur persetujuan) —
+     * untuk koreksi / pembelian darurat yang sudah disepakati. Menambah stok + tagihan.
+     */
+    public function simpanLangsung(): void
+    {
+        try {
+            $this->validate([
+                'distributor_id'     => 'required|integer|min:1',
+                'rows'               => 'required|array|min:1',
+                'rows.*.obat_id'     => 'required|integer|min:1',
+                'rows.*.jumlah_box'  => 'required|integer|min:1',
+                'rows.*.isi_per_box' => 'required|integer|min:1',
+                'rows.*.harga_per_box' => 'required|numeric|min:1',
+            ], [
+                'distributor_id.required' => 'Pilih distributor.',
+                'distributor_id.min'      => 'Pilih distributor.',
+                'rows.*.obat_id.required'  => 'Pilih obat pada setiap baris.',
+                'rows.*.obat_id.min'       => 'Pilih obat pada setiap baris.',
+                'rows.*.harga_per_box.min' => 'Isi harga beli/box (> 0).',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $this->dispatch('toast', type: 'error', message: 'Belum bisa disimpan: ' . collect($e->errors())->flatten()->first());
+            throw $e;
+        }
+
+        $rows = collect($this->rows)
+            ->filter(fn ($r) => (int) ($r['obat_id'] ?? 0) > 0 && (int) ($r['jumlah_box'] ?? 0) > 0)
+            ->values()->all();
+
+        DB::transaction(function () use ($rows) {
+            $total = array_sum(array_map(fn ($r) => (int) $r['jumlah_box'] * (float) $r['harga_per_box'], $rows));
+            $po = PurchaseOrder::create([
+                'distributor_id' => $this->distributor_id,
+                'nomor_invoice'  => null,
+                'tanggal_po'     => $this->tanggal ?: now()->toDateString(),
+                'total_nilai'    => $total,
+                'catatan'        => 'Input langsung (tanpa pengajuan)' . ($this->catatan ? ' · ' . $this->catatan : ''),
+                'status_bayar'   => 'belum',
+            ]);
+            $perTipe = [];
+            foreach ($rows as $r) {
+                $box = (int) $r['jumlah_box']; $isi = max(1, (int) $r['isi_per_box']); $hbox = (float) $r['harga_per_box'];
+                PurchaseOrderItem::create([
+                    'purchase_order_id' => $po->id, 'obat_id' => (int) $r['obat_id'],
+                    'tipe_obat' => $r['tipe_obat'] ?? 'kronis', 'jumlah_box' => $box,
+                    'isi_per_box' => $isi, 'harga_per_box' => $hbox, 'subtotal' => $box * $hbox,
+                ]);
+                $upd = ['harga_beli_per_unit' => $hbox / $isi, 'sumber_harga' => 'PO',
+                        'stok_aktual' => DB::raw('stok_aktual + ' . ($box * $isi))];
+                if (! empty($r['tanggal_kadaluarsa'])) $upd['tanggal_kadaluarsa'] = $r['tanggal_kadaluarsa'];
+                Obat::where('id', (int) $r['obat_id'])->update($upd);
+                $t = ($r['tipe_obat'] ?? 'kronis') === 'kronis' ? 'kronis' : 'non_kronis';
+                $perTipe[$t] = ($perTipe[$t] ?? 0) + $box * $hbox;
+            }
+            foreach ($perTipe as $tipeTag => $tot) {
+                if ($tot <= 0) continue;
+                Tagihan::create([
+                    'purchase_order_id' => $po->id, 'distributor_id' => $this->distributor_id,
+                    'nomor_tagihan' => Tagihan::generateNomor($tipeTag), 'tipe_obat' => $tipeTag,
+                    'periode_bulan' => now()->format('Y-m'), 'tanggal_tagihan' => $this->tanggal ?: now()->toDateString(),
+                    'tanggal_jatuh_tempo' => \Carbon\Carbon::parse($this->tanggal ?: now())->addDays(30)->toDateString(),
+                    'total_tagihan' => (int) $tot, 'status' => 'belum_bayar',
+                ]);
+            }
+        });
+
+        $this->showForm = false;
+        $this->dispatch('toast', message: 'PO langsung dibuat — stok & tagihan diperbarui.', type: 'success');
+    }
 
     public function cancel(): void { $this->showForm = false; }
 
