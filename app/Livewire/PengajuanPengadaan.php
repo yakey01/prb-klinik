@@ -251,7 +251,8 @@ class PengajuanPengadaan extends Component
             throw $e;
         }
 
-        DB::transaction(function () use ($ajukan) {
+        $reAppr = false;
+        DB::transaction(function () use ($ajukan, &$reAppr) {
             $u = Auth::user();
             $p = $this->editId ? PR::findOrFail($this->editId) : new PR();
             if (! $this->editId) {
@@ -264,6 +265,8 @@ class PengajuanPengadaan extends Component
             if ($p->exists && ! $p->bisaDiedit()) {
                 abort(403);
             }
+            // Deteksi: mengedit pengajuan yang SUDAH disetujui (belum jadi PO) → butuh ACC ulang.
+            $wasApproved = $p->exists && $p->status === 'disetujui' && ! $p->purchase_order_id;
             $p->fill([
                 'tanggal'        => $this->tanggal,
                 'distributor_id' => $this->distributor_id ?: null,
@@ -274,8 +277,18 @@ class PengajuanPengadaan extends Component
             if ($ajukan) {
                 $p->status = 'diajukan';
                 $p->submitted_at = now();
-                // reset jejak approval bila re-submit dari revisi
                 $p->alasan_tolak = null;
+            } elseif ($wasApproved) {
+                // Persetujuan lama GUGUR → kembali ke antrean, manajer wajib ACC ulang.
+                $p->status          = 'diajukan';
+                $p->submitted_at    = now();
+                $p->approver_id     = null;
+                $p->approver_nama   = null;
+                $p->approver_sumber = null;
+                $p->approved_at     = null;
+                $p->catatan_approver = null;
+                $p->alasan_tolak    = null;
+                $reAppr = true;
             }
             $p->save();
 
@@ -307,10 +320,12 @@ class PengajuanPengadaan extends Component
         $this->showForm = false;
         $msg = $ajukan
             ? 'Pengajuan diajukan — menunggu persetujuan manajer.'
-            : ($this->editStatus === 'diajukan'
-                ? 'Perubahan tersimpan — pengajuan tetap menunggu persetujuan manajer.'
-                : 'Draft pengajuan disimpan.');
-        $this->dispatch('toast', message: $msg, type: 'success');
+            : ($reAppr
+                ? 'Perubahan tersimpan — pengajuan dikembalikan untuk PERSETUJUAN ULANG manajer SIM.'
+                : ($this->editStatus === 'diajukan'
+                    ? 'Perubahan tersimpan — pengajuan tetap menunggu persetujuan manajer.'
+                    : 'Draft pengajuan disimpan.'));
+        $this->dispatch('toast', message: $msg, type: $reAppr ? 'info' : 'success');
     }
 
     /** recalc dari array lepas (dipakai saat simpan agar konsisten walau updatedRows tak terpicu). */

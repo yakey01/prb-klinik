@@ -97,7 +97,7 @@
                     </td>
                     <td style="padding:.6rem .9rem;text-align:right;white-space:nowrap;" wire:click.stop>
                         @if($p->bisaDiedit())
-                            <button wire:click="openEdit({{ $p->id }})" title="Edit pengajuan" style="font-size:.66rem;padding:.25rem .55rem;border-radius:.5rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;">✎ Edit</button>
+                            <button wire:click="openEdit({{ $p->id }})" title="{{ $p->editButuhReApprove() ? 'Edit — persetujuan akan gugur, minta ACC ulang manajer' : 'Edit pengajuan' }}" style="font-size:.66rem;padding:.25rem .55rem;border-radius:.5rem;background:{{ $p->editButuhReApprove() ? 'rgba(217,164,65,.1)' : 'rgba(255,255,255,.05)' }};border:1px solid {{ $p->editButuhReApprove() ? 'rgba(217,164,65,.35)' : 'var(--line3)' }};color:{{ $p->editButuhReApprove() ? 'var(--gold2)' : 'var(--ink)' }};cursor:pointer;">✎ Edit{{ $p->editButuhReApprove() ? ' ⟳' : '' }}</button>
                         @endif
                         @if($p->bisaDiajukan())
                             <button wire:click="ajukan({{ $p->id }})" title="Ajukan" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:rgba(91,155,213,.12);border:1px solid rgba(91,155,213,.35);color:#5b9bd5;cursor:pointer;font-weight:700;">Ajukan →</button>
@@ -273,13 +273,22 @@
             @endif
         </div>
 
+        {{-- Peringatan re-approve (edit pengajuan yang sudah disetujui) --}}
+        @if($editStatus === 'disetujui')
+        <div style="margin-top:1rem;padding:.7rem .9rem;border-radius:.7rem;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.4);font-size:.74rem;color:var(--gold2);line-height:1.5;">
+            ⚠ Pengajuan ini <strong>SUDAH DISETUJUI</strong> manajer. Menyimpan perubahan akan <strong>menggugurkan persetujuan</strong> dan mengembalikannya untuk <strong>PERSETUJUAN ULANG</strong> manajer SIM.
+        </div>
+        @endif
+
         {{-- Actions --}}
         <div style="display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.1rem;align-items:center;">
             @if($editStatus === 'diajukan')
             <span style="font-size:.66rem;color:#5b9bd5;margin-right:auto;">✎ Mengedit pengajuan yang sudah diajukan — perubahan langsung terlihat manajer SIM.</span>
             @endif
             <button wire:click="cancel" style="padding:.6rem 1.1rem;border-radius:.6rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.8rem;">Batal</button>
-            @if($editStatus === 'diajukan')
+            @if($editStatus === 'disetujui')
+            <button wire:click="simpan(false)" wire:confirm="Simpan perubahan? Persetujuan lama akan gugur dan pengajuan dikembalikan untuk ACC ulang manajer." style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(217,164,65,.95),rgba(217,164,65,.78));border:1px solid rgba(217,164,65,.5);color:#1a0e00;cursor:pointer;font-size:.8rem;font-weight:800;">💾 Simpan &amp; Ajukan Ulang →</button>
+            @elseif($editStatus === 'diajukan')
             <button wire:click="simpan(false)" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">Simpan Perubahan</button>
             @else
             <button wire:click="simpan(false)" style="padding:.6rem 1.1rem;border-radius:.6rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.8rem;font-weight:700;">Simpan Draft</button>

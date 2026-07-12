@@ -45,8 +45,19 @@ class PengajuanPengadaan extends Model
 
     // ── State machine helpers ────────────────────────────────────
     public function bisaDiajukan(): bool   { return in_array($this->status, ['draft', 'revisi'], true); }
-    // Bisa diedit selama BELUM disetujui — draft/revisi (belum diajukan) + diajukan (menunggu ACC manajer).
-    public function bisaDiedit(): bool     { return in_array($this->status, ['draft', 'revisi', 'diajukan'], true); }
+    // Bisa diedit: draft/revisi (belum diajukan) + diajukan (menunggu ACC) + DISETUJUI yang
+    // belum jadi PO (edit → butuh persetujuan ULANG manajer).
+    public function bisaDiedit(): bool
+    {
+        return in_array($this->status, ['draft', 'revisi', 'diajukan'], true)
+            || ($this->status === 'disetujui' && ! $this->purchase_order_id);
+    }
+
+    /** Edit pengajuan ini akan menggugurkan persetujuan & minta ACC ulang manajer? */
+    public function editButuhReApprove(): bool
+    {
+        return $this->status === 'disetujui' && ! $this->purchase_order_id;
+    }
     public function bisaDihapus(): bool    { return in_array($this->status, ['draft', 'revisi', 'ditolak', 'dibatalkan'], true); }
     public function bisaApprove(): bool    { return $this->status === 'diajukan'; }
     public function bisaRealisasi(): bool  { return $this->status === 'disetujui'; }
