@@ -13,7 +13,56 @@
             'segera' => ['Segera', 'var(--gold2)', 'rgba(217,164,65,.12)', 'rgba(217,164,65,.3)'],
             default  => ['Rutin', 'var(--mut)', 'rgba(255,255,255,.04)', 'var(--line2)'],
         };
+        $obatJson = $this->obatList->map(fn ($o) => [
+            'id' => $o->id, 'nama' => $o->nama_obat, 'kode' => $o->kode_obat,
+            'tipe' => $o->tipe_obat, 'stok' => (int) $o->stok_aktual, 'min' => (int) $o->stok_minimum,
+            'satuan' => $o->satuan ?: 'unit',
+        ])->values();
     @endphp
+    {{-- Combobox obat: data + fungsi Alpine didefinisikan di root (eksekusi saat load awal,
+         siap sebelum form dibuka via morph). --}}
+    <script>
+        window.PRB_OBAT = @json($obatJson);
+        window.obatPicker = function(idx, tipe, obatId, nama){
+            return {
+                idx, tipe, query:'', open:false, results:[],
+                picked: obatId ? { id:obatId, nama:nama } : null,
+                menuStyle:'',
+                init(){
+                    if(this.picked){ const f=(window.PRB_OBAT||[]).find(o=>o.id===this.picked.id); if(f) this.picked=f; }
+                    this.$watch('tipe', ()=>this.reset());
+                },
+                pos(){
+                    const r=this.$root.getBoundingClientRect();
+                    this.menuStyle=`left:${r.left}px;top:${r.bottom+4}px;width:${Math.max(r.width,240)}px;`;
+                },
+                filter(){
+                    this.pos();
+                    const q=(this.query||'').toLowerCase().trim();
+                    let list=(window.PRB_OBAT||[]).filter(o=>o.tipe===this.tipe);
+                    if(q) list=list.filter(o=>(o.nama||'').toLowerCase().includes(q)||(o.kode||'').toLowerCase().includes(q));
+                    list.sort((a,b)=>((a.stok<=a.min?0:1)-(b.stok<=b.min?0:1)) || (a.nama||'').localeCompare(b.nama||''));
+                    this.results=list.slice(0,60);
+                },
+                choose(o){ this.picked=o; this.query=''; this.open=false; this.$wire.set('rows.'+this.idx+'.obat_id', o.id); },
+                clearPick(){ this.picked=null; this.query=''; this.open=true; this.$wire.set('rows.'+this.idx+'.obat_id', 0); this.$nextTick(()=>this.filter()); },
+                reset(){ this.picked=null; this.query=''; this.open=false; this.results=[]; },
+            };
+        };
+    </script>
+    <style>
+        .obat-cb-menu{position:fixed;z-index:9500;max-height:280px;overflow-y:auto;background:#0e1e17;border:1px solid var(--line2);border-radius:.6rem;box-shadow:0 16px 40px rgba(0,0,0,.6);padding:.25rem;}
+        .obat-cb-opt{display:block;width:100%;text-align:left;background:none;border:none;color:var(--ink);cursor:pointer;padding:.45rem .55rem;border-radius:.4rem;font-size:.74rem;}
+        .obat-cb-opt:hover,.obat-cb-opt.act{background:rgba(63,207,142,.14);}
+        .obat-cb-empty{padding:.7rem;text-align:center;color:var(--mut);font-size:.72rem;}
+        .obat-cb-input{width:100%;padding:.45rem .55rem;border-radius:.45rem;background:var(--card)!important;border:1px solid var(--line2);color:var(--ink)!important;font-size:.74rem;}
+        .obat-cb-input.has-pick{font-weight:600;}
+        .obat-cb-input::placeholder{color:var(--mut2);opacity:1;}
+        .obat-cb-input:focus{outline:none;border-color:var(--emer);box-shadow:0 0 0 2px rgba(63,207,142,.2);}
+        .obat-cb-input:-webkit-autofill,.obat-cb-input:-webkit-autofill:focus,.obat-cb-input:-webkit-autofill:hover{
+            -webkit-box-shadow:0 0 0 30px var(--card) inset!important;-webkit-text-fill-color:var(--ink)!important;caret-color:var(--ink);
+        }
+    </style>
 
     {{-- ══ HEADER ══ --}}
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.2rem;">
@@ -174,65 +223,6 @@
 
     @else
     {{-- ══════════ FORM PENGAJUAN ══════════ --}}
-    @php
-        $obatJson = $this->obatList->map(fn ($o) => [
-            'id' => $o->id, 'nama' => $o->nama_obat, 'kode' => $o->kode_obat,
-            'tipe' => $o->tipe_obat, 'stok' => (int) $o->stok_aktual, 'min' => (int) $o->stok_minimum,
-            'satuan' => $o->satuan ?: 'unit',
-        ])->values();
-    @endphp
-    <script>
-        window.PRB_OBAT = @json($obatJson);
-        window.obatPicker = function(idx, tipe, obatId, nama){
-            return {
-                idx, tipe, query:'', open:false, results:[],
-                picked: obatId ? { id:obatId, nama:nama } : null,
-                menuStyle:'',
-                init(){
-                    // isi detail 'picked' dari daftar (agar badge stok tampil saat edit)
-                    if(this.picked){ const f=(window.PRB_OBAT||[]).find(o=>o.id===this.picked.id); if(f) this.picked=f; }
-                    this.$watch('tipe', ()=>this.reset());
-                },
-                pos(){
-                    const r=this.$root.getBoundingClientRect();
-                    this.menuStyle=`left:${r.left}px;top:${r.bottom+4}px;width:${Math.max(r.width,240)}px;`;
-                },
-                filter(){
-                    this.pos();
-                    const q=(this.query||'').toLowerCase().trim();
-                    let list=(window.PRB_OBAT||[]).filter(o=>o.tipe===this.tipe);
-                    if(q) list=list.filter(o=>(o.nama||'').toLowerCase().includes(q)||(o.kode||'').toLowerCase().includes(q));
-                    // low-stock diutamakan di atas (alasan belanja)
-                    list.sort((a,b)=>((a.stok<=a.min?0:1)-(b.stok<=b.min?0:1)) || (a.nama||'').localeCompare(b.nama||''));
-                    this.results=list.slice(0,60);
-                },
-                choose(o){
-                    this.picked=o; this.query=''; this.open=false;
-                    this.$wire.set('rows.'+this.idx+'.obat_id', o.id);
-                },
-                clearPick(){
-                    this.picked=null; this.query=''; this.open=true;
-                    this.$wire.set('rows.'+this.idx+'.obat_id', 0);
-                    this.$nextTick(()=>this.filter());
-                },
-                reset(){ this.picked=null; this.query=''; this.open=false; this.results=[]; },
-            };
-        };
-    </script>
-    <style>
-        .obat-cb-menu{position:fixed;z-index:9500;max-height:280px;overflow-y:auto;background:#0e1e17;border:1px solid var(--line2);border-radius:.6rem;box-shadow:0 16px 40px rgba(0,0,0,.6);padding:.25rem;}
-        .obat-cb-opt{display:block;width:100%;text-align:left;background:none;border:none;color:var(--ink);cursor:pointer;padding:.45rem .55rem;border-radius:.4rem;font-size:.74rem;}
-        .obat-cb-opt:hover,.obat-cb-opt.act{background:rgba(63,207,142,.14);}
-        .obat-cb-empty{padding:.7rem;text-align:center;color:var(--mut);font-size:.72rem;}
-        .obat-cb-input{width:100%;padding:.45rem .55rem;border-radius:.45rem;background:var(--card)!important;border:1px solid var(--line2);color:var(--ink)!important;font-size:.74rem;}
-        .obat-cb-input.has-pick{font-weight:600;}
-        .obat-cb-input::placeholder{color:var(--mut2);opacity:1;}
-        .obat-cb-input:focus{outline:none;border-color:var(--emer);box-shadow:0 0 0 2px rgba(63,207,142,.2);}
-        /* matikan Chrome autofill putih */
-        .obat-cb-input:-webkit-autofill,.obat-cb-input:-webkit-autofill:focus,.obat-cb-input:-webkit-autofill:hover{
-            -webkit-box-shadow:0 0 0 30px var(--card) inset!important;-webkit-text-fill-color:var(--ink)!important;caret-color:var(--ink);
-        }
-    </style>
     <div class="glass-card" style="padding:1.2rem 1.3rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
             <h3 class="font-heading" style="font-size:1.1rem;color:var(--ink);margin:0;">{{ $editId ? 'Edit Pengajuan' : ($formMode==='langsung' ? 'Input Langsung PO' : 'Pengajuan Pengadaan Baru') }}</h3>
