@@ -43,9 +43,13 @@ class PengajuanPengadaan extends Component
 
     // Input Faktur Pengadaan (realisasi → PO) — menarik data dari pengajuan yang sudah disetujui
     public bool   $showFaktur = false;
+    public string $fakturMode = 'buat';   // 'buat' (realisasi → PO) | 'lengkapi' (isi faktur PO legacy)
     public ?int   $fakturPrId = null;
     public string $nomorFaktur = '';
     public string $tanggalFaktur = '';
+    // Baris faktur AKTUAL — default ditarik dari pengajuan disetujui, tapi bisa disesuaikan
+    // (qty/harga barang yang benar-benar datang bisa beda dari yang disetujui).
+    public array  $fakturRows = [];
 
     public function mount(): void
     {
@@ -438,13 +442,53 @@ class PengajuanPengadaan extends Component
             return;
         }
         $this->fakturPrId    = $p->id;
+        $this->fakturMode    = 'buat';
         $this->nomorFaktur   = '';
         $this->tanggalFaktur = now()->format('Y-m-d');
+        // Tarik item disetujui sbg DEFAULT aktual (qty/harga bisa disesuaikan bila barang beda).
+        $this->fakturRows = $p->items->map(fn ($it) => [
+            'item_id'        => $it->id,
+            'obat_id'        => (int) $it->obat_id,
+            'nama_obat'      => $it->nama_obat,
+            'tipe_obat'      => $it->tipe_obat,
+            'app_box'        => (int) $it->jumlah_box,        // disetujui (referensi selisih)
+            'app_harga'      => (float) $it->harga_per_box,
+            'jumlah_box'     => (int) $it->jumlah_box,        // aktual (editable)
+            'isi_per_box'    => (int) $it->isi_per_box,
+            'harga_per_box'  => (float) $it->harga_per_box,
+            'subtotal'       => (float) $it->subtotal_beli,
+            'klaim_bpjs_per_unit' => (float) $it->klaim_bpjs_per_unit,
+            'faktor_jasa_farmasi' => (float) ($it->faktor_jasa_farmasi ?? 1.15),
+            'tanggal_kadaluarsa'  => optional($it->tanggal_kadaluarsa)->format('Y-m-d') ?? '',
+        ])->all();
         $this->resetValidation();
         $this->showFaktur    = true;
     }
 
-    public function tutupFaktur(): void { $this->showFaktur = false; $this->fakturPrId = null; }
+    /** Recalc subtotal baris faktur saat qty/harga aktual diubah. */
+    public function updatedFakturRows($value, $key): void
+    {
+        [$i, $field] = array_pad(explode('.', $key), 2, null);
+        if ($field === null || ! isset($this->fakturRows[(int) $i])) return;
+        $i = (int) $i;
+        $box  = max(0, (int) ($this->fakturRows[$i]['jumlah_box'] ?? 0));
+        $harga = (float) ($this->fakturRows[$i]['harga_per_box'] ?? 0);
+        $this->fakturRows[$i]['subtotal'] = $box * $harga;
+    }
+
+    /** Ringkasan faktur: total disetujui vs total aktual (selisih). */
+    #[Computed]
+    public function fakturTotal(): array
+    {
+        $app = 0.0; $act = 0.0;
+        foreach ($this->fakturRows as $r) {
+            $app += (int) ($r['app_box'] ?? 0) * (float) ($r['app_harga'] ?? 0);
+            $act += (int) ($r['jumlah_box'] ?? 0) * (float) ($r['harga_per_box'] ?? 0);
+        }
+        return ['disetujui' => $app, 'aktual' => $act, 'selisih' => $act - $app];
+    }
+
+    public function tutupFaktur(): void { $this->showFaktur = false; $this->fakturPrId = null; $this->fakturMode = 'buat'; }
 
     /** Pengajuan yang sedang di-input-faktur (data ditarik untuk ringkasan modal). */
     #[Computed]
@@ -461,7 +505,33 @@ class PengajuanPengadaan extends Component
             ['nomorFaktur.required' => 'Nomor faktur/invoice wajib diisi.', 'tanggalFaktur.required' => 'Tanggal faktur wajib.'],
             ['nomorFaktur' => 'nomor faktur', 'tanggalFaktur' => 'tanggal faktur']
         );
+        if ($this->fakturMode === 'lengkapi') {
+            // Legacy: PO sudah ada tapi faktur kosong → isi faktur ke PO yang sudah ada.
+            $p = PR::with('purchaseOrder')->findOrFail($this->fakturPrId);
+            if ($p->purchaseOrder) {
+                $p->purchaseOrder->update(['nomor_invoice' => $this->nomorFaktur, 'tanggal_po' => $this->tanggalFaktur]);
+            }
+            $this->showFaktur = false; $this->fakturPrId = null; $this->fakturMode = 'buat';
+            $this->dispatch('toast', message: "Faktur {$this->nomorFaktur} dilengkapi ke PO {$p->no_pengajuan}.", type: 'success');
+            return;
+        }
         $this->realisasi((int) $this->fakturPrId, $this->nomorFaktur, $this->tanggalFaktur);
+    }
+
+    /** Lengkapi faktur untuk pengajuan yang SUDAH direalisasi tapi PO-nya belum ada nomor faktur (legacy). */
+    public function mintaLengkapiFaktur(int $prId): void
+    {
+        $p = PR::with('purchaseOrder')->findOrFail($prId);
+        if ($p->status !== 'direalisasi' || ! $p->purchase_order_id) {
+            $this->dispatch('toast', type: 'error', message: 'Hanya pengajuan yang sudah jadi PO yang bisa dilengkapi fakturnya.');
+            return;
+        }
+        $this->fakturPrId    = $p->id;
+        $this->fakturMode    = 'lengkapi';
+        $this->nomorFaktur   = (string) ($p->purchaseOrder->nomor_invoice ?? '');
+        $this->tanggalFaktur = optional($p->purchaseOrder->tanggal_po)->format('Y-m-d') ?: now()->format('Y-m-d');
+        $this->resetValidation();
+        $this->showFaktur    = true;
     }
 
     // ── Realisasi → Purchase Order (gerbang belanja) ────────────
@@ -487,57 +557,74 @@ class PengajuanPengadaan extends Component
             return;
         }
 
+        // Nilai AKTUAL dari faktur (bisa beda dari yang disetujui). Hanya baris valid (obat + box>0).
+        $rows = collect($this->fakturRows)
+            ->filter(fn ($r) => (int) ($r['obat_id'] ?? 0) > 0 && (int) ($r['jumlah_box'] ?? 0) > 0)
+            ->values()->all();
+        if (empty($rows)) {
+            $this->dispatch('toast', type: 'error', message: 'Minimal 1 baris dengan obat & jumlah box > 0.');
+            return;
+        }
+
         $no = $p->no_pengajuan;
         $tglPo = $tglFaktur ?: now()->toDateString();
         try {
-            DB::transaction(function () use ($id, $faktur, $tglPo) {
+            DB::transaction(function () use ($id, $faktur, $tglPo, $rows) {
                 // K1: kunci baris + re-check DI DALAM transaksi → idempoten, anti double-PO/stok/tagihan.
-                $p = PR::with('items')->whereKey($id)->lockForUpdate()->first();
+                $p = PR::whereKey($id)->lockForUpdate()->first();
                 if (! $p || $p->status !== 'disetujui' || $p->purchase_order_id) {
                     throw new \RuntimeException('SUDAH_DIREALISASI');
                 }
 
+                $totalAktual = array_sum(array_map(fn ($r) => (int) $r['jumlah_box'] * (float) $r['harga_per_box'], $rows));
                 $po = PurchaseOrder::create([
                     'distributor_id' => $p->distributor_id,
                     'nomor_invoice'  => $faktur ?: null,
                     'tanggal_po'     => $tglPo,
-                    'total_nilai'    => (float) $p->items->sum('subtotal_beli'),   // K6: sumber sama dgn tagihan
+                    'total_nilai'    => $totalAktual,           // nilai AKTUAL faktur
                     'catatan'        => 'Realisasi pengajuan ' . $p->no_pengajuan,
                     'status_bayar'   => 'belum',
                 ]);
 
-                foreach ($p->items as $it) {
+                foreach ($rows as $r) {
+                    $box   = (int) $r['jumlah_box'];
+                    $isi   = max(1, (int) $r['isi_per_box']);
+                    $hbox  = (float) $r['harga_per_box'];
+                    $sub   = $box * $hbox;
                     PurchaseOrderItem::create([
                         'purchase_order_id' => $po->id,
-                        'obat_id'           => $it->obat_id,
-                        'tipe_obat'         => $it->tipe_obat,   // enum PO item kini termasuk 'bmhp' (migrasi K3)
-                        'jumlah_box'        => $it->jumlah_box,
-                        'isi_per_box'       => $it->isi_per_box,
-                        'harga_per_box'     => $it->harga_per_box,
-                        'subtotal'          => $it->subtotal_beli,
+                        'obat_id'           => (int) $r['obat_id'],
+                        'tipe_obat'         => $r['tipe_obat'] ?? 'kronis',
+                        'jumlah_box'        => $box,
+                        'isi_per_box'       => $isi,
+                        'harga_per_box'     => $hbox,
+                        'subtotal'          => $sub,
                     ]);
                     $upd = [
-                        'harga_beli_per_unit' => $it->harga_per_unit,
+                        'harga_beli_per_unit' => $hbox / $isi,     // harga AKTUAL per unit
                         'sumber_harga'        => 'PO',
-                        'stok_aktual'         => DB::raw('stok_aktual + ' . ((int) $it->jumlah_box * (int) $it->isi_per_box)),
+                        'stok_aktual'         => DB::raw('stok_aktual + ' . ($box * $isi)),
                     ];
-                    if ($it->tanggal_kadaluarsa) $upd['tanggal_kadaluarsa'] = $it->tanggal_kadaluarsa->format('Y-m-d');
-                    Obat::where('id', $it->obat_id)->update($upd);
+                    if (! empty($r['tanggal_kadaluarsa'])) $upd['tanggal_kadaluarsa'] = $r['tanggal_kadaluarsa'];
+                    Obat::where('id', (int) $r['obat_id'])->update($upd);
                 }
 
-                // Auto-split tagihan per tipe (bmhp → non_kronis; identik alur Pengadaan Baru)
-                $subtotalPerTipe = $p->items->groupBy('tipe_obat')->map(fn ($g) => $g->sum('subtotal_beli'));
-                foreach ($subtotalPerTipe as $tipe => $total) {
+                // Auto-split tagihan per tipe dari nilai AKTUAL.
+                $perTipe = [];
+                foreach ($rows as $r) {
+                    $t = ($r['tipe_obat'] ?? 'kronis') === 'kronis' ? 'kronis' : 'non_kronis';
+                    $perTipe[$t] = ($perTipe[$t] ?? 0) + (int) $r['jumlah_box'] * (float) $r['harga_per_box'];
+                }
+                foreach ($perTipe as $tipeTag => $total) {
                     if ($total <= 0) continue;
-                    $tipeTag = $tipe === 'kronis' ? 'kronis' : 'non_kronis';
                     Tagihan::create([
                         'purchase_order_id'   => $po->id,
                         'distributor_id'      => $p->distributor_id,
                         'nomor_tagihan'       => Tagihan::generateNomor($tipeTag),
                         'tipe_obat'           => $tipeTag,
                         'periode_bulan'       => now()->format('Y-m'),
-                        'tanggal_tagihan'     => now()->toDateString(),
-                        'tanggal_jatuh_tempo' => now()->addDays(30)->toDateString(),
+                        'tanggal_tagihan'     => $tglPo,
+                        'tanggal_jatuh_tempo' => \Carbon\Carbon::parse($tglPo)->addDays(30)->toDateString(),
                         'total_tagihan'       => (int) $total,
                         'status'              => 'belum_bayar',
                     ]);
@@ -552,6 +639,7 @@ class PengajuanPengadaan extends Component
 
         $this->showFaktur = false;
         $this->fakturPrId = null;
+        $this->fakturRows = [];
         $fakturTxt = $faktur ? " (faktur {$faktur})" : '';
         $this->dispatch('toast', message: "{$no} → PO dibuat{$fakturTxt}. Stok & tagihan diperbarui.", type: 'success');
     }

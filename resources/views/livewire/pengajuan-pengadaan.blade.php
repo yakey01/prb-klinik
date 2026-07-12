@@ -354,7 +354,19 @@
                 @if($d->approved_at)<div style="color:var(--ink);margin-top:.2rem;">{{ $d->statusLabel() }} oleh <strong>{{ $d->approver_nama ?? '—' }}</strong> ({{ $d->approver_sumber }}) · {{ $d->approved_at->translatedFormat('d M Y H:i') }}</div>@endif
                 @if($d->catatan_approver)<div style="color:var(--mut);margin-top:.2rem;">Catatan: {{ $d->catatan_approver }}</div>@endif
                 @if($d->alasan_tolak)<div style="color:var(--red2);margin-top:.2rem;">Alasan tolak: {{ $d->alasan_tolak }}</div>@endif
-                @if($d->purchaseOrder)<div style="color:var(--emer2);margin-top:.2rem;">✓ Direalisasi → PO #{{ $d->purchase_order_id }}</div>@endif
+                @if($d->purchaseOrder)
+                <div style="margin-top:.35rem;padding-top:.35rem;border-top:1px solid var(--line);">
+                    <span style="color:var(--emer2);">✓ Direalisasi → PO #{{ $d->purchase_order_id }}</span>
+                    @if($d->purchaseOrder->nomor_invoice)
+                    <span style="color:var(--emer2);"> · Faktur: <strong class="font-mono">{{ $d->purchaseOrder->nomor_invoice }}</strong></span>
+                    @else
+                    <div style="margin-top:.35rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                        <span style="font-size:.72rem;color:var(--gold2);">⚠ Belum ada faktur pengadaan</span>
+                        <button wire:click="mintaLengkapiFaktur({{ $d->id }})" style="font-size:.68rem;font-weight:800;padding:.28rem .6rem;border-radius:.45rem;background:rgba(217,164,65,.14);border:1px solid rgba(217,164,65,.4);color:var(--gold2);cursor:pointer;">🧾 Lengkapi Faktur</button>
+                    </div>
+                    @endif
+                </div>
+                @endif
             </div>
             @endif
 
@@ -385,41 +397,94 @@
 
     {{-- ══ MODAL INPUT FAKTUR PENGADAAN (realisasi → PO, tarik data pengajuan disetujui) ══ --}}
     @if($showFaktur && $this->fakturPr)
-    @php $fp = $this->fakturPr; @endphp
-    <div style="position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:1.5rem;">
-        <div wire:click="tutupFaktur" style="position:absolute;inset:0;background:rgba(3,8,6,.82);backdrop-filter:blur(5px);"></div>
-        <div class="glass-card" style="position:relative;width:100%;max-width:520px;padding:1.5rem;border:1px solid rgba(63,207,142,.4);box-shadow:0 30px 80px rgba(0,0,0,.7);">
+    @php $fp = $this->fakturPr; $isLengkapi = $fakturMode === 'lengkapi'; $ftot = $isLengkapi ? null : $this->fakturTotal; @endphp
+    <div style="position:fixed;inset:0;z-index:400;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem;overflow-y:auto;">
+        <div wire:click="tutupFaktur" style="position:fixed;inset:0;background:rgba(3,8,6,.82);backdrop-filter:blur(5px);"></div>
+        <div class="glass-card" style="position:relative;width:100%;max-width:{{ $isLengkapi ? '520px' : '820px' }};padding:1.5rem;border:1px solid rgba(63,207,142,.4);box-shadow:0 30px 80px rgba(0,0,0,.7);">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
                 <div>
-                    <div class="font-heading" style="font-size:1.05rem;color:var(--emer2);">🧾 Input Faktur Pengadaan</div>
-                    <div style="font-size:.72rem;color:var(--mut);margin-top:.2rem;line-height:1.5;">Data ditarik dari pengajuan yang <strong style="color:var(--emer2);">sudah disetujui</strong> manajer. Isi faktur/invoice supplier untuk membuat PO.</div>
+                    <div class="font-heading" style="font-size:1.05rem;color:var(--emer2);">🧾 {{ $isLengkapi ? 'Lengkapi Faktur PO' : 'Input Faktur Pengadaan' }}</div>
+                    <div style="font-size:.72rem;color:var(--mut);margin-top:.2rem;line-height:1.5;max-width:60ch;">
+                        {{ $isLengkapi
+                            ? 'Isi nomor faktur untuk PO yang sudah dibuat sebelumnya.'
+                            : 'Item ditarik dari pengajuan yang sudah disetujui. Sesuaikan qty/harga bila barang yang datang berbeda — PO dibuat dari nilai aktual faktur.' }}
+                    </div>
                 </div>
                 <button wire:click="tutupFaktur" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;">✕</button>
             </div>
-            {{-- Ringkasan pengajuan (read-only, ditarik) --}}
-            <div style="background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.6rem;padding:.75rem .9rem;margin-bottom:1rem;font-size:.78rem;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:.28rem;"><span style="color:var(--mut);">No. Pengajuan</span><span class="font-mono" style="color:var(--gold2);font-weight:700;">{{ $fp->no_pengajuan }}</span></div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:.28rem;"><span style="color:var(--mut);">Distributor</span><span>{{ $fp->distributor->name ?? '—' }}</span></div>
-                <div style="display:flex;justify-content:space-between;margin-bottom:.28rem;"><span style="color:var(--mut);">Item</span><span>{{ $fp->items->count() }} obat</span></div>
-                <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:.28rem;margin-top:.28rem;"><span style="color:var(--mut);">Total Beli (HPP)</span><span class="font-mono" style="font-weight:800;color:var(--red2);">{{ $rp($fp->items->sum('subtotal_beli')) }}</span></div>
-            </div>
-            {{-- Input faktur --}}
-            <div style="display:grid;grid-template-columns:1fr 155px;gap:.7rem;margin-bottom:.9rem;">
-                <div>
-                    <label style="font-size:.62rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;">Nomor Faktur / Invoice <span style="color:var(--red2);">*</span></label>
-                    <input wire:model="nomorFaktur" type="text" placeholder="mis. INV-2026-0123" style="width:100%;margin-top:.28rem;padding:.55rem .7rem;border-radius:.55rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.82rem;">
-                    @error('nomorFaktur')<div style="color:var(--red2);font-size:.66rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+            {{-- Ringkasan pengajuan + input faktur --}}
+            <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;align-items:flex-end;">
+                <div style="flex:1;min-width:200px;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.6rem;padding:.6rem .8rem;font-size:.74rem;">
+                    <div style="display:flex;justify-content:space-between;"><span style="color:var(--mut);">No. Pengajuan</span><span class="font-mono" style="color:var(--gold2);font-weight:700;">{{ $fp->no_pengajuan }}</span></div>
+                    <div style="display:flex;justify-content:space-between;margin-top:.2rem;"><span style="color:var(--mut);">Distributor</span><span>{{ $fp->distributor->name ?? '—' }}</span></div>
                 </div>
-                <div>
-                    <label style="font-size:.62rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;">Tanggal Faktur <span style="color:var(--red2);">*</span></label>
-                    <input wire:model="tanggalFaktur" type="date" style="width:100%;margin-top:.28rem;padding:.55rem .5rem;border-radius:.55rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.82rem;">
-                    @error('tanggalFaktur')<div style="color:var(--red2);font-size:.66rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+                <div style="min-width:180px;">
+                    <label style="font-size:.6rem;color:var(--mut);text-transform:uppercase;">Nomor Faktur / Invoice <span style="color:var(--red2);">*</span></label>
+                    <input wire:model="nomorFaktur" type="text" placeholder="mis. INV-2026-0123" style="width:100%;margin-top:.25rem;padding:.5rem .7rem;border-radius:.55rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.8rem;">
+                    @error('nomorFaktur')<div style="color:var(--red2);font-size:.64rem;margin-top:.15rem;">{{ $message }}</div>@enderror
+                </div>
+                <div style="width:150px;">
+                    <label style="font-size:.6rem;color:var(--mut);text-transform:uppercase;">Tanggal Faktur <span style="color:var(--red2);">*</span></label>
+                    <input wire:model="tanggalFaktur" type="date" style="width:100%;margin-top:.25rem;padding:.5rem .4rem;border-radius:.55rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.8rem;">
+                    @error('tanggalFaktur')<div style="color:var(--red2);font-size:.64rem;margin-top:.15rem;">{{ $message }}</div>@enderror
                 </div>
             </div>
-            <div style="font-size:.66rem;color:var(--mut2);margin-bottom:1rem;line-height:1.5;">⚠ Membuat PO akan <strong>menambah stok</strong> &amp; membuat <strong>tagihan otomatis</strong>. Setelah ini pengajuan terkunci (tak bisa diedit).</div>
+
+            @unless($isLengkapi)
+            {{-- Baris aktual (editable) — sesuaikan bila barang beda dari yang disetujui --}}
+            <div style="overflow-x:auto;margin-bottom:.8rem;">
+            <table style="width:100%;border-collapse:collapse;font-size:.74rem;min-width:640px;">
+                <thead><tr style="color:var(--mut);">
+                    <th style="text-align:left;padding:.3rem .4rem;font-size:.56rem;text-transform:uppercase;">Obat</th>
+                    <th style="text-align:right;padding:.3rem .4rem;font-size:.56rem;text-transform:uppercase;">Box (aktual)</th>
+                    <th style="text-align:right;padding:.3rem .4rem;font-size:.56rem;text-transform:uppercase;">Isi/Box</th>
+                    <th style="text-align:right;padding:.3rem .4rem;font-size:.56rem;text-transform:uppercase;">Harga/Box (aktual)</th>
+                    <th style="text-align:right;padding:.3rem .4rem;font-size:.56rem;text-transform:uppercase;">Subtotal</th>
+                </tr></thead>
+                <tbody>
+                    @foreach($fakturRows as $i => $r)
+                    @php
+                        $isK = ($r['tipe_obat'] ?? '') === 'kronis';
+                        $bedaBox = (int)($r['jumlah_box']??0) !== (int)($r['app_box']??0);
+                        $bedaHarga = (float)($r['harga_per_box']??0) != (float)($r['app_harga']??0);
+                    @endphp
+                    <tr wire:key="fr-{{ $i }}" style="border-top:1px solid rgba(31,61,48,.4);">
+                        <td style="padding:.3rem .4rem;">
+                            <div style="color:var(--ink);">{{ $r['nama_obat'] ?: '—' }}</div>
+                            <span style="font-size:.56rem;font-weight:700;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};">{{ $isK ? 'KRONIS' : 'NON-KRONIS' }}</span>
+                        </td>
+                        <td style="padding:.3rem .4rem;">
+                            <input type="number" min="0" wire:model.live.debounce.400ms="fakturRows.{{ $i }}.jumlah_box" style="width:64px;padding:.3rem;border-radius:.4rem;background:var(--card);border:1px solid {{ $bedaBox ? 'rgba(217,164,65,.5)' : 'var(--line2)' }};color:{{ $bedaBox ? 'var(--gold2)' : 'var(--ink)' }};font-size:.74rem;text-align:right;">
+                            @if($bedaBox)<div style="font-size:.54rem;color:var(--mut2);text-align:right;">disetujui: {{ $r['app_box'] }}</div>@endif
+                        </td>
+                        <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="fakturRows.{{ $i }}.isi_per_box" style="width:56px;padding:.3rem;border-radius:.4rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
+                        <td style="padding:.3rem .4rem;">
+                            <input type="number" min="0" wire:model.live.debounce.400ms="fakturRows.{{ $i }}.harga_per_box" style="width:100px;padding:.3rem;border-radius:.4rem;background:var(--card);border:1px solid {{ $bedaHarga ? 'rgba(217,164,65,.5)' : 'var(--line2)' }};color:{{ $bedaHarga ? 'var(--gold2)' : 'var(--ink)' }};font-size:.74rem;text-align:right;">
+                            @if($bedaHarga)<div style="font-size:.54rem;color:var(--mut2);text-align:right;">disetujui: {{ $rp($r['app_harga']) }}</div>@endif
+                        </td>
+                        <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:var(--red2);">{{ $rp($r['subtotal'] ?? 0) }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            </div>
+            {{-- Ringkasan selisih disetujui vs aktual --}}
+            <div style="display:flex;flex-wrap:wrap;gap:.6rem;justify-content:flex-end;margin-bottom:.9rem;align-items:center;">
+                <div style="text-align:right;"><div style="font-size:.56rem;color:var(--mut);text-transform:uppercase;">Total Disetujui</div><div class="font-mono" style="font-size:.85rem;color:var(--mut);">{{ $rp($ftot['disetujui']) }}</div></div>
+                <div style="text-align:right;"><div style="font-size:.56rem;color:var(--mut);text-transform:uppercase;">Total Aktual (Faktur)</div><div class="font-mono" style="font-size:.95rem;font-weight:800;color:var(--red2);">{{ $rp($ftot['aktual']) }}</div></div>
+                @if(abs($ftot['selisih']) >= 1)
+                <div style="text-align:right;padding:.3rem .8rem;border-radius:.6rem;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.35);">
+                    <div style="font-size:.56rem;color:var(--gold2);text-transform:uppercase;">Selisih vs Disetujui</div>
+                    <div class="font-mono" style="font-size:.9rem;font-weight:800;color:var(--gold2);">{{ ($ftot['selisih']>=0?'+':'−').$rp(abs($ftot['selisih'])) }}</div>
+                </div>
+                @endif
+            </div>
+            <div style="font-size:.66rem;color:var(--mut2);margin-bottom:1rem;line-height:1.5;">⚠ PO dibuat dari <strong>nilai aktual faktur</strong> → stok &amp; tagihan mengikuti aktual. Setelah ini pengajuan terkunci.</div>
+            @endunless
+
             <div style="display:flex;gap:.6rem;justify-content:flex-end;">
                 <button wire:click="tutupFaktur" style="padding:.6rem 1.1rem;border-radius:.6rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.8rem;">Batal</button>
-                <button wire:click="konfirmRealisasi" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.8rem;font-weight:800;">🛒 Buat PO dari Faktur →</button>
+                <button wire:click="konfirmRealisasi" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.8rem;font-weight:800;">{{ $isLengkapi ? '💾 Simpan Faktur' : '🛒 Buat PO dari Faktur →' }}</button>
             </div>
         </div>
     </div>
