@@ -106,7 +106,7 @@
                             <span title="Menunggu keputusan manajer di SIM · masih bisa diedit" style="font-size:.64rem;color:#5b9bd5;padding:.25rem .5rem;">⏳ di manajer SIM</span>
                         @endif
                         @if($p->bisaRealisasi())
-                            <button wire:click="realisasi({{ $p->id }})" wire:confirm="Realisasikan {{ $p->no_pengajuan }} menjadi Purchase Order? Stok & tagihan akan diperbarui." title="Realisasi ke PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
+                            <button wire:click="mintaRealisasi({{ $p->id }})" title="Input faktur pengadaan → buat PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
                         @endif
                         {{-- Kebab menu CRUD (x-teleport → lolos overflow tabel) --}}
                         <div x-data="{o:false,x:0,y:0}" @keydown.escape.window="o=false" style="display:inline-block;">
@@ -121,7 +121,7 @@
                                     <button type="button" wire:click="ajukan({{ $p->id }})" class="pr-menu-item" style="color:#5b9bd5;">📤 Ajukan untuk Persetujuan</button>
                                     @endif
                                     @if($p->bisaRealisasi())
-                                    <button type="button" wire:click="realisasi({{ $p->id }})" wire:confirm="Realisasikan {{ $p->no_pengajuan }} menjadi PO?" class="pr-menu-item" style="color:var(--emer2);">🛒 Belanja → Buat PO</button>
+                                    <button type="button" wire:click="mintaRealisasi({{ $p->id }})" class="pr-menu-item" style="color:var(--emer2);">🧾 Input Faktur → Buat PO</button>
                                     @endif
                                     @if($p->bisaDibatalkan())
                                     <button type="button" wire:click="batalkan({{ $p->id }})" wire:confirm="Batalkan / tarik {{ $p->no_pengajuan }} dari antrean manajer SIM?" class="pr-menu-item" style="color:var(--gold2);">✕ Batalkan / Tarik</button>
@@ -370,7 +370,7 @@
                     <div style="flex:1;padding:.55rem;border-radius:.55rem;background:rgba(91,155,213,.1);border:1px solid rgba(91,155,213,.3);color:#5b9bd5;font-size:.72rem;text-align:center;">⏳ Menunggu <strong>manajer SIM</strong> · masih bisa diedit</div>
                 @endif
                 @if($d->bisaRealisasi())
-                    <button wire:click="realisasi({{ $d->id }})" wire:confirm="Realisasikan {{ $d->no_pengajuan }} menjadi PO?" style="flex:1;padding:.55rem;border-radius:.55rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.76rem;font-weight:800;">🛒 Belanja → Buat PO</button>
+                    <button wire:click="mintaRealisasi({{ $d->id }})" style="flex:1;padding:.55rem;border-radius:.55rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.76rem;font-weight:800;">🛒 Belanja → Buat PO</button>
                 @endif
                 @if($d->bisaDibatalkan())
                     <button wire:click="batalkan({{ $d->id }})" wire:confirm="Batalkan / tarik {{ $d->no_pengajuan }} dari antrean manajer SIM?" style="padding:.55rem .8rem;border-radius:.55rem;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.35);color:var(--gold2);cursor:pointer;font-size:.76rem;">✕ Batalkan</button>
@@ -378,6 +378,48 @@
                 @if($d->bisaDihapus())
                     <button wire:click="hapus({{ $d->id }})" wire:confirm="Hapus permanen {{ $d->no_pengajuan }}? Tidak bisa dibatalkan." style="padding:.55rem .8rem;border-radius:.55rem;background:transparent;border:1px solid rgba(232,100,90,.3);color:var(--red2);cursor:pointer;font-size:.76rem;">🗑 Hapus</button>
                 @endif
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ══ MODAL INPUT FAKTUR PENGADAAN (realisasi → PO, tarik data pengajuan disetujui) ══ --}}
+    @if($showFaktur && $this->fakturPr)
+    @php $fp = $this->fakturPr; @endphp
+    <div style="position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;padding:1.5rem;">
+        <div wire:click="tutupFaktur" style="position:absolute;inset:0;background:rgba(3,8,6,.82);backdrop-filter:blur(5px);"></div>
+        <div class="glass-card" style="position:relative;width:100%;max-width:520px;padding:1.5rem;border:1px solid rgba(63,207,142,.4);box-shadow:0 30px 80px rgba(0,0,0,.7);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
+                <div>
+                    <div class="font-heading" style="font-size:1.05rem;color:var(--emer2);">🧾 Input Faktur Pengadaan</div>
+                    <div style="font-size:.72rem;color:var(--mut);margin-top:.2rem;line-height:1.5;">Data ditarik dari pengajuan yang <strong style="color:var(--emer2);">sudah disetujui</strong> manajer. Isi faktur/invoice supplier untuk membuat PO.</div>
+                </div>
+                <button wire:click="tutupFaktur" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;">✕</button>
+            </div>
+            {{-- Ringkasan pengajuan (read-only, ditarik) --}}
+            <div style="background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.6rem;padding:.75rem .9rem;margin-bottom:1rem;font-size:.78rem;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:.28rem;"><span style="color:var(--mut);">No. Pengajuan</span><span class="font-mono" style="color:var(--gold2);font-weight:700;">{{ $fp->no_pengajuan }}</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:.28rem;"><span style="color:var(--mut);">Distributor</span><span>{{ $fp->distributor->name ?? '—' }}</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:.28rem;"><span style="color:var(--mut);">Item</span><span>{{ $fp->items->count() }} obat</span></div>
+                <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:.28rem;margin-top:.28rem;"><span style="color:var(--mut);">Total Beli (HPP)</span><span class="font-mono" style="font-weight:800;color:var(--red2);">{{ $rp($fp->items->sum('subtotal_beli')) }}</span></div>
+            </div>
+            {{-- Input faktur --}}
+            <div style="display:grid;grid-template-columns:1fr 155px;gap:.7rem;margin-bottom:.9rem;">
+                <div>
+                    <label style="font-size:.62rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;">Nomor Faktur / Invoice <span style="color:var(--red2);">*</span></label>
+                    <input wire:model="nomorFaktur" type="text" placeholder="mis. INV-2026-0123" style="width:100%;margin-top:.28rem;padding:.55rem .7rem;border-radius:.55rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.82rem;">
+                    @error('nomorFaktur')<div style="color:var(--red2);font-size:.66rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+                </div>
+                <div>
+                    <label style="font-size:.62rem;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;">Tanggal Faktur <span style="color:var(--red2);">*</span></label>
+                    <input wire:model="tanggalFaktur" type="date" style="width:100%;margin-top:.28rem;padding:.55rem .5rem;border-radius:.55rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.82rem;">
+                    @error('tanggalFaktur')<div style="color:var(--red2);font-size:.66rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+                </div>
+            </div>
+            <div style="font-size:.66rem;color:var(--mut2);margin-bottom:1rem;line-height:1.5;">⚠ Membuat PO akan <strong>menambah stok</strong> &amp; membuat <strong>tagihan otomatis</strong>. Setelah ini pengajuan terkunci (tak bisa diedit).</div>
+            <div style="display:flex;gap:.6rem;justify-content:flex-end;">
+                <button wire:click="tutupFaktur" style="padding:.6rem 1.1rem;border-radius:.6rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.8rem;">Batal</button>
+                <button wire:click="konfirmRealisasi" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.8rem;font-weight:800;">🛒 Buat PO dari Faktur →</button>
             </div>
         </div>
     </div>

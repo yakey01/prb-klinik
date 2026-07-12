@@ -58,6 +58,12 @@ class PengajuanPengadaan extends Model
     {
         return $this->status === 'disetujui' && ! $this->purchase_order_id;
     }
+
+    /** Sudah disetujui TAPI belum ada faktur/PO (belum direalisasi) → masih boleh diedit. */
+    public function belumAdaFaktur(): bool
+    {
+        return $this->status === 'disetujui' && ! $this->purchase_order_id;
+    }
     public function bisaDihapus(): bool    { return in_array($this->status, ['draft', 'revisi', 'ditolak', 'dibatalkan'], true); }
     public function bisaApprove(): bool    { return $this->status === 'diajukan'; }
     public function bisaRealisasi(): bool  { return $this->status === 'disetujui'; }

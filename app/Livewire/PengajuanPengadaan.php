@@ -41,6 +41,12 @@ class PengajuanPengadaan extends Component
     // Detail drawer
     public ?int $detailId = null;
 
+    // Input Faktur Pengadaan (realisasi → PO) — menarik data dari pengajuan yang sudah disetujui
+    public bool   $showFaktur = false;
+    public ?int   $fakturPrId = null;
+    public string $nomorFaktur = '';
+    public string $tanggalFaktur = '';
+
     public function mount(): void
     {
         $this->tanggal = now()->format('Y-m-d');
@@ -410,8 +416,56 @@ class PengajuanPengadaan extends Component
 
     // Persetujuan (setujui/tolak/revisi) HANYA di manajer SIM — apotek tidak menyetujui sendiri.
 
+    // ── Input Faktur Pengadaan (realisasi → PO) ─────────────────
+    /** Buka modal input faktur — hanya untuk pengajuan DISETUJUI yang belum ada faktur/PO. */
+    public function mintaRealisasi(int $id): void
+    {
+        $p = PR::with('items')->findOrFail($id);
+        if (! $p->bisaRealisasi()) {
+            $this->dispatch('toast', type: 'error', message: 'Hanya pengajuan DISETUJUI yang bisa dibuatkan faktur/PO.');
+            return;
+        }
+        if (! $p->distributor_id) {
+            $this->dispatch('toast', type: 'error', message: 'Pengajuan belum punya distributor — tak bisa jadi PO.');
+            return;
+        }
+        if ($p->items->isEmpty()) {
+            $this->dispatch('toast', type: 'error', message: 'Pengajuan tidak punya item — tak bisa direalisasikan.');
+            return;
+        }
+        if ($p->items->contains(fn ($it) => empty($it->obat_id))) {
+            $this->dispatch('toast', type: 'error', message: 'Ada item obat yang belum ada di katalog. Tambahkan obatnya ke Katalog dulu.');
+            return;
+        }
+        $this->fakturPrId    = $p->id;
+        $this->nomorFaktur   = '';
+        $this->tanggalFaktur = now()->format('Y-m-d');
+        $this->resetValidation();
+        $this->showFaktur    = true;
+    }
+
+    public function tutupFaktur(): void { $this->showFaktur = false; $this->fakturPrId = null; }
+
+    /** Pengajuan yang sedang di-input-faktur (data ditarik untuk ringkasan modal). */
+    #[Computed]
+    public function fakturPr()
+    {
+        return $this->fakturPrId ? PR::with(['items', 'distributor'])->find($this->fakturPrId) : null;
+    }
+
+    /** Buat PO dari pengajuan disetujui + faktur yang diinput. Data ditarik dari pengajuan. */
+    public function konfirmRealisasi(): void
+    {
+        $this->validate(
+            ['nomorFaktur' => 'required|string|max:100', 'tanggalFaktur' => 'required|date'],
+            ['nomorFaktur.required' => 'Nomor faktur/invoice wajib diisi.', 'tanggalFaktur.required' => 'Tanggal faktur wajib.'],
+            ['nomorFaktur' => 'nomor faktur', 'tanggalFaktur' => 'tanggal faktur']
+        );
+        $this->realisasi((int) $this->fakturPrId, $this->nomorFaktur, $this->tanggalFaktur);
+    }
+
     // ── Realisasi → Purchase Order (gerbang belanja) ────────────
-    public function realisasi(int $id): void
+    protected function realisasi(int $id, ?string $faktur = null, ?string $tglFaktur = null): void
     {
         $p = PR::with('items')->findOrFail($id);
         if (! $p->bisaRealisasi()) {
@@ -434,8 +488,9 @@ class PengajuanPengadaan extends Component
         }
 
         $no = $p->no_pengajuan;
+        $tglPo = $tglFaktur ?: now()->toDateString();
         try {
-            DB::transaction(function () use ($id) {
+            DB::transaction(function () use ($id, $faktur, $tglPo) {
                 // K1: kunci baris + re-check DI DALAM transaksi → idempoten, anti double-PO/stok/tagihan.
                 $p = PR::with('items')->whereKey($id)->lockForUpdate()->first();
                 if (! $p || $p->status !== 'disetujui' || $p->purchase_order_id) {
@@ -444,8 +499,8 @@ class PengajuanPengadaan extends Component
 
                 $po = PurchaseOrder::create([
                     'distributor_id' => $p->distributor_id,
-                    'nomor_invoice'  => null,
-                    'tanggal_po'     => now()->toDateString(),
+                    'nomor_invoice'  => $faktur ?: null,
+                    'tanggal_po'     => $tglPo,
                     'total_nilai'    => (float) $p->items->sum('subtotal_beli'),   // K6: sumber sama dgn tagihan
                     'catatan'        => 'Realisasi pengajuan ' . $p->no_pengajuan,
                     'status_bayar'   => 'belum',
@@ -495,7 +550,10 @@ class PengajuanPengadaan extends Component
             return;
         }
 
-        $this->dispatch('toast', message: "{$no} direalisasikan → PO dibuat, stok & tagihan diperbarui.", type: 'success');
+        $this->showFaktur = false;
+        $this->fakturPrId = null;
+        $fakturTxt = $faktur ? " (faktur {$faktur})" : '';
+        $this->dispatch('toast', message: "{$no} → PO dibuat{$fakturTxt}. Stok & tagihan diperbarui.", type: 'success');
     }
 
     public function render()
