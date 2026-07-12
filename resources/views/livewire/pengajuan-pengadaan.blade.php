@@ -174,6 +174,57 @@
 
     @else
     {{-- ══════════ FORM PENGAJUAN ══════════ --}}
+    @php
+        $obatJson = $this->obatList->map(fn ($o) => [
+            'id' => $o->id, 'nama' => $o->nama_obat, 'kode' => $o->kode_obat,
+            'tipe' => $o->tipe_obat, 'stok' => (int) $o->stok_aktual, 'min' => (int) $o->stok_minimum,
+            'satuan' => $o->satuan ?: 'unit',
+        ])->values();
+    @endphp
+    <script>
+        window.PRB_OBAT = @json($obatJson);
+        window.obatPicker = function(idx, tipe, obatId, nama){
+            return {
+                idx, tipe, query:'', open:false, results:[],
+                picked: obatId ? { id:obatId, nama:nama } : null,
+                menuStyle:'',
+                init(){
+                    // isi detail 'picked' dari daftar (agar badge stok tampil saat edit)
+                    if(this.picked){ const f=(window.PRB_OBAT||[]).find(o=>o.id===this.picked.id); if(f) this.picked=f; }
+                    this.$watch('tipe', ()=>this.reset());
+                },
+                pos(){
+                    const r=this.$root.getBoundingClientRect();
+                    this.menuStyle=`left:${r.left}px;top:${r.bottom+4}px;width:${Math.max(r.width,240)}px;`;
+                },
+                filter(){
+                    this.pos();
+                    const q=(this.query||'').toLowerCase().trim();
+                    let list=(window.PRB_OBAT||[]).filter(o=>o.tipe===this.tipe);
+                    if(q) list=list.filter(o=>(o.nama||'').toLowerCase().includes(q)||(o.kode||'').toLowerCase().includes(q));
+                    // low-stock diutamakan di atas (alasan belanja)
+                    list.sort((a,b)=>((a.stok<=a.min?0:1)-(b.stok<=b.min?0:1)) || (a.nama||'').localeCompare(b.nama||''));
+                    this.results=list.slice(0,60);
+                },
+                choose(o){
+                    this.picked=o; this.query=''; this.open=false;
+                    this.$wire.set('rows.'+this.idx+'.obat_id', o.id);
+                },
+                clearPick(){
+                    this.picked=null; this.query=''; this.open=true;
+                    this.$wire.set('rows.'+this.idx+'.obat_id', 0);
+                    this.$nextTick(()=>this.filter());
+                },
+                reset(){ this.picked=null; this.query=''; this.open=false; this.results=[]; },
+            };
+        };
+    </script>
+    <style>
+        .obat-cb-menu{position:fixed;z-index:9500;max-height:280px;overflow-y:auto;background:#0e1e17;border:1px solid var(--line2);border-radius:.6rem;box-shadow:0 16px 40px rgba(0,0,0,.6);padding:.25rem;}
+        .obat-cb-opt{display:block;width:100%;text-align:left;background:none;border:none;color:var(--ink);cursor:pointer;padding:.45rem .55rem;border-radius:.4rem;font-size:.74rem;}
+        .obat-cb-opt:hover,.obat-cb-opt.act{background:rgba(63,207,142,.14);}
+        .obat-cb-empty{padding:.7rem;text-align:center;color:var(--mut);font-size:.72rem;}
+    </style>
     <div class="glass-card" style="padding:1.2rem 1.3rem;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
             <h3 class="font-heading" style="font-size:1.1rem;color:var(--ink);margin:0;">{{ $editId ? 'Edit Pengajuan' : 'Pengajuan Pengadaan Baru' }}</h3>
@@ -248,13 +299,40 @@
                         </div>
                         <div style="font-size:.66rem;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};margin-top:.4rem;font-weight:800;letter-spacing:.02em;">{{ $isK ? '✓ diklaim BPJS' : '✓ umum · non-BPJS' }}</div>
                     </td>
-                    {{-- OBAT: difilter sesuai tipe terpilih --}}
-                    <td style="padding:.3rem .4rem;min-width:220px;vertical-align:top;">
-                        <select wire:model.live="rows.{{ $i }}.obat_id" style="width:100%;padding:.4rem .5rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;">
-                            <option value="0">— pilih obat {{ $isK ? 'kronis' : 'non-kronis' }} —</option>
-                            @foreach($this->obatList->where('tipe_obat', $tp) as $o)<option value="{{ $o->id }}">{{ $o->nama_obat }}</option>@endforeach
-                        </select>
-                        @error("rows.$i.obat_id")<div style="color:var(--red2);font-size:.6rem;">{{ $message }}</div>@enderror
+                    {{-- OBAT: combobox cari + stok, difilter sesuai tipe --}}
+                    <td style="padding:.3rem .4rem;min-width:250px;vertical-align:top;">
+                        <div wire:key="obat-cb-{{ $i }}-{{ $tp }}"
+                             x-data="obatPicker({{ $i }}, @js($tp), {{ (int)($row['obat_id']??0) }}, @js($row['nama_obat']??''))"
+                             @click.outside="open=false" style="position:relative;">
+                            <input type="text" x-model="query" @focus="open=true;filter()" @input="open=true;filter()"
+                                   :placeholder="picked ? picked.nama : '🔎 ketik nama obat {{ $isK ? 'kronis' : 'non-kronis' }}…'"
+                                   :style="picked ? 'color:var(--ink);font-weight:600;' : ''"
+                                   style="width:100%;padding:.45rem .55rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;">
+                            <template x-if="picked">
+                                <div style="display:flex;align-items:center;gap:.4rem;margin-top:.28rem;flex-wrap:wrap;">
+                                    <span :style="`font-size:.58rem;font-weight:800;padding:.05rem .4rem;border-radius:999px;${picked.stok<=picked.min ? 'color:#ff8a7a;background:rgba(232,100,90,.16);border:1px solid rgba(232,100,90,.4);' : 'color:#7fe3ac;background:rgba(63,207,142,.12);border:1px solid rgba(63,207,142,.3);'}`">
+                                        <span x-text="picked.stok<=picked.min ? '⚠ stok '+picked.stok : '● stok '+picked.stok"></span><span x-text="' '+picked.satuan"></span>
+                                    </span>
+                                    <span style="font-size:.56rem;color:var(--mut2);" x-text="'min '+picked.min"></span>
+                                    <button type="button" @click="clearPick()" style="font-size:.56rem;color:var(--mut);background:none;border:none;cursor:pointer;">ganti ✕</button>
+                                </div>
+                            </template>
+                            <template x-teleport="body">
+                                <div x-show="open" x-cloak class="obat-cb-menu" :style="menuStyle" style="display:none;">
+                                    <template x-for="(o,idx) in results" :key="o.id">
+                                        <button type="button" class="obat-cb-opt" @click="choose(o)">
+                                            <div style="display:flex;justify-content:space-between;gap:.5rem;">
+                                                <span x-text="o.nama" style="font-weight:600;"></span>
+                                                <span :style="`font-size:.62rem;white-space:nowrap;${o.stok<=o.min ? 'color:#ff8a7a;' : 'color:#7fe3ac;'}`" x-text="(o.stok<=o.min?'⚠ ':'● ')+o.stok+' '+o.satuan"></span>
+                                            </div>
+                                            <div style="font-size:.6rem;color:var(--mut2);" x-text="(o.kode?o.kode+' · ':'')+'min '+o.min"></div>
+                                        </button>
+                                    </template>
+                                    <div x-show="results.length===0" class="obat-cb-empty">Tak ada obat cocok.</div>
+                                </div>
+                            </template>
+                        </div>
+                        @error("rows.$i.obat_id")<div style="color:var(--red2);font-size:.6rem;margin-top:.2rem;">{{ $message }}</div>@enderror
                     </td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.jumlah_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.isi_per_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
