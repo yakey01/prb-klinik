@@ -214,6 +214,7 @@
             </div>
         </div>
 
+        @php $dups = $this->duplikatPoIds; @endphp
         @forelse($this->tagihanGrouped as $poId => $poTagihan)
         @php
             $firstTag  = $poTagihan->first();
@@ -223,10 +224,18 @@
             $poSisa    = $poTagihan->sum(fn($t) => $t->sisa_tagihan);
             $hasKronis = $poTagihan->where('tipe_obat','kronis')->count() > 0;
             $hasNonKro = $poTagihan->where('tipe_obat','non_kronis')->count() > 0;
+            $isDup     = in_array($poId, $dups);
+            $items     = $po?->items ?? collect();
+            $adaBayarAktif = $poTagihan->flatMap(fn($t) => $t->pembayaran)->where('dibatalkan', false)->where('jumlah','>',0)->count() > 0;
+            $lunasSemua = $poSisa <= 0;
         @endphp
 
-        {{-- PO / Faktur header --}}
-        <div style="padding:.65rem 1.25rem;background:rgba(255,255,255,.025);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;">
+        <div x-data="{ open: {{ ($poSisa > 0 || $isDup || $tanggal !== '') ? 'true' : 'false' }} }" style="border-bottom:1px solid rgba(255,255,255,.07);{{ $isDup ? 'box-shadow:inset 3px 0 0 var(--gold);' : '' }}">
+
+        {{-- PO / Faktur header — KLIK untuk buka/tutup rincian --}}
+        <div @click="open=!open" style="padding:.65rem 1.25rem;background:rgba(255,255,255,{{ $isDup ? '.05' : '.025' }});border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;cursor:pointer;user-select:none;transition:background .12s;" onmouseover="this.style.background='rgba(255,255,255,.05)'" onmouseout="this.style.background='rgba(255,255,255,{{ $isDup ? '.05' : '.025' }})'">
+            {{-- Chevron collapse --}}
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="color:var(--mut);flex-shrink:0;transition:transform .18s;" :style="open ? 'transform:rotate(90deg);color:var(--gold2);' : ''"><polyline points="9 18 15 12 9 6"/></svg>
             <div style="display:flex;align-items:center;gap:.5rem;">
                 <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color:var(--gold2);flex-shrink:0;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 <span class="font-mono" style="font-size:.72rem;color:var(--gold2);font-weight:700;">PO #{{ $poId }}</span>
@@ -238,6 +247,10 @@
             @if($po)
             <span style="font-size:.7rem;color:var(--mut);">{{ $po->tanggal_po->format('d M Y') }}</span>
             @endif
+            {{-- Jumlah item obat --}}
+            @if($items->count())
+            <span style="font-size:.64rem;color:var(--mut);">· {{ $items->count() }} item obat</span>
+            @endif
             {{-- Tipe badges --}}
             @if($hasKronis)
             <span style="font-size:.65rem;padding:.1rem .45rem;border-radius:.3rem;background:rgba(63,207,142,.12);border:1px solid rgba(63,207,142,.25);color:var(--emer2);">Kronis</span>
@@ -245,14 +258,68 @@
             @if($hasNonKro)
             <span style="font-size:.65rem;padding:.1rem .45rem;border-radius:.3rem;background:rgba(111,177,224,.12);border:1px solid rgba(111,177,224,.25);color:var(--blue);">Non-Kronis</span>
             @endif
+            {{-- Badge duplikat --}}
+            @if($isDup)
+            <span title="Faktur ini terindikasi dobel (PBF + no. invoice / tanggal + nominal sama). Cek & hapus salah satu jika keliru." style="font-size:.62rem;font-weight:800;padding:.1rem .45rem;border-radius:.3rem;background:rgba(217,164,65,.16);border:1px solid var(--gold);color:var(--gold2);">⧉ Mungkin Dobel</span>
+            @endif
             {{-- Faktur total --}}
-            <div style="margin-left:auto;text-align:right;">
-                <span class="font-mono" style="font-size:.82rem;font-weight:700;color:var(--ink);">Rp {{ number_format($poTotal,0,',','.') }}</span>
-                @if($poSisa > 0)
-                <span style="font-size:.68rem;color:var(--red2);margin-left:.5rem;">sisa Rp {{ number_format($poSisa,0,',','.') }}</span>
-                @endif
+            <div style="margin-left:auto;text-align:right;display:flex;align-items:center;gap:.6rem;">
+                <div>
+                    <span class="font-mono" style="font-size:.82rem;font-weight:700;color:var(--ink);">Rp {{ number_format($poTotal,0,',','.') }}</span>
+                    @if($poSisa > 0)
+                    <span style="font-size:.68rem;color:var(--red2);margin-left:.4rem;">sisa Rp {{ number_format($poSisa,0,',','.') }}</span>
+                    @endif
+                </div>
+                {{-- Hapus faktur (koreksi entry dobel) --}}
+                <button type="button" @click.stop="$wire.konfirmHapusFaktur({{ $poId }})"
+                    title="{{ $adaBayarAktif ? 'Ada pembayaran aktif — batalkan dulu sebelum hapus' : 'Hapus faktur ini (koreksi entry dobel) — stok dikembalikan' }}"
+                    style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:.4rem;cursor:pointer;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.28);color:var(--red2);{{ $adaBayarAktif ? 'opacity:.45;' : '' }}">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                </button>
             </div>
         </div>
+
+        {{-- ISI COLLAPSIBLE: rincian obat + tagihan rows --}}
+        <div x-show="open" x-cloak style="overflow:hidden;">
+
+        {{-- ── RINCIAN OBAT (dari PO items) ── --}}
+        @if($items->count())
+        <div style="padding:.55rem 1.25rem .35rem;background:rgba(0,0,0,.15);">
+            <div style="font-size:.6rem;text-transform:uppercase;letter-spacing:.07em;color:var(--mut);margin-bottom:.35rem;display:flex;align-items:center;gap:.35rem;">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7L12 3 4 7l8 4 8-4z"/><path d="M4 7v10l8 4 8-4V7"/></svg>
+                Rincian Obat
+            </div>
+            <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;min-width:640px;font-size:.74rem;">
+                <thead>
+                    <tr style="color:var(--mut);">
+                        <th style="text-align:left;padding:.25rem .6rem;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Obat</th>
+                        <th style="text-align:center;padding:.25rem .6rem;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Tipe</th>
+                        <th style="text-align:right;padding:.25rem .6rem;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Qty</th>
+                        <th style="text-align:right;padding:.25rem .6rem;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Harga/Box</th>
+                        <th style="text-align:right;padding:.25rem .6rem;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Subtotal</th>
+                        <th style="text-align:center;padding:.25rem .6rem;font-size:.6rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Exp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($items as $it)
+                    @php $unit = (int)$it->jumlah_box * max(1,(int)$it->isi_per_box); @endphp
+                    <tr style="border-top:1px solid rgba(255,255,255,.04);">
+                        <td style="padding:.3rem .6rem;color:var(--ink);">{{ $it->obat->nama_obat ?? '—' }}</td>
+                        <td style="padding:.3rem .6rem;text-align:center;">
+                            <span style="font-size:.58rem;padding:.05rem .35rem;border-radius:.25rem;{{ $it->tipe_obat==='kronis' ? 'background:rgba(63,207,142,.12);color:var(--emer2);' : 'background:rgba(111,177,224,.12);color:var(--blue);' }}">{{ $it->tipe_obat==='kronis' ? 'Kronis' : 'Non' }}</span>
+                        </td>
+                        <td class="font-mono" style="padding:.3rem .6rem;text-align:right;color:var(--mut);">{{ $it->jumlah_box }}×{{ $it->isi_per_box }} <span style="color:var(--ink);">= {{ number_format($unit,0,',','.') }}</span> {{ $it->obat->satuan ?? '' }}</td>
+                        <td class="font-mono" style="padding:.3rem .6rem;text-align:right;color:var(--mut);">Rp {{ number_format($it->harga_per_box,0,',','.') }}</td>
+                        <td class="font-mono" style="padding:.3rem .6rem;text-align:right;color:var(--ink);font-weight:600;">Rp {{ number_format($it->subtotal,0,',','.') }}</td>
+                        <td style="padding:.3rem .6rem;text-align:center;color:var(--mut);font-size:.66rem;">{{ $it->tanggal_kadaluarsa ? \Carbon\Carbon::parse($it->tanggal_kadaluarsa)->format('M Y') : '—' }}</td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            </div>
+        </div>
+        @endif
 
         {{-- Tagihan rows for this PO --}}
         <div style="overflow-x:auto;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;">
@@ -346,8 +413,8 @@
         </table>
         </div>
 
-        {{-- Separator between POs --}}
-        <div style="height:1px;background:rgba(255,255,255,.07);"></div>
+        </div>{{-- /x-show collapsible --}}
+        </div>{{-- /x-data faktur --}}
 
         @empty
         <div style="text-align:center;padding:3rem;color:var(--mut);">
@@ -552,9 +619,84 @@
         </div>
     </div>
     @endif
+
+    {{-- ══ MODAL HAPUS FAKTUR (koreksi entry dobel) ══════════════════════ --}}
+    @if($hapusPoId)
+    @php $hp = $this->hapusPreview; @endphp
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:5100;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;" wire:click.self="batalHapusFaktur">
+        <div class="glass-card" style="width:100%;max-width:560px;padding:1.5rem;border-color:rgba(232,100,90,.5);box-shadow:0 24px 64px rgba(0,0,0,.7);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                <div class="font-heading" style="font-size:1rem;color:var(--red2);display:flex;align-items:center;gap:.45rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    Hapus Faktur PO #{{ $hapusPoId }}
+                </div>
+                <button wire:click="batalHapusFaktur" style="background:none;border:none;color:var(--mut);cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            @if($hp)
+            @php
+                $adaBayar = $hp->tagihan->flatMap->pembayaran->where('dibatalkan', false)->where('jumlah','>',0)->count() > 0;
+            @endphp
+
+            {{-- Ringkasan faktur --}}
+            <div style="background:rgba(255,255,255,.04);border-radius:.5rem;padding:.7rem .9rem;margin-bottom:.85rem;font-size:.78rem;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;"><span style="color:var(--mut);">PBF</span><span style="color:var(--ink);">{{ $hp->distributor->name ?? '—' }}</span></div>
+                @if($hp->nomor_invoice)
+                <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;"><span style="color:var(--mut);">No. Invoice</span><span class="font-mono" style="color:var(--gold2);">{{ $hp->nomor_invoice }}</span></div>
+                @endif
+                <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;"><span style="color:var(--mut);">Tanggal</span><span>{{ optional($hp->tanggal_po)->format('d M Y') }}</span></div>
+                <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:.25rem;margin-top:.25rem;"><span style="color:var(--mut);">Total Faktur</span><span class="font-mono" style="font-weight:700;color:var(--ink);">Rp {{ number_format($hp->total_nilai,0,',','.') }}</span></div>
+            </div>
+
+            {{-- Stok yang akan dikembalikan --}}
+            @if($hp->items->count())
+            <div style="margin-bottom:.85rem;">
+                <div style="font-size:.66rem;color:var(--mut);margin-bottom:.3rem;">Stok obat berikut akan <strong style="color:var(--gold2);">dikembalikan</strong> (dikurangi dari stok):</div>
+                <div style="max-height:150px;overflow-y:auto;border:1px solid var(--line);border-radius:.4rem;">
+                    @foreach($hp->items as $it)
+                    @php $unit = (int)$it->jumlah_box * max(1,(int)$it->isi_per_box); @endphp
+                    <div style="display:flex;justify-content:space-between;padding:.3rem .6rem;font-size:.72rem;border-bottom:1px solid rgba(255,255,255,.04);">
+                        <span style="color:var(--ink);">{{ $it->obat->nama_obat ?? '—' }}</span>
+                        <span class="font-mono" style="color:var(--red2);">− {{ number_format($unit,0,',','.') }} {{ $it->obat->satuan ?? '' }}</span>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            @if($adaBayar)
+            {{-- Diblokir: ada pembayaran aktif --}}
+            <div style="background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.4);border-radius:.5rem;padding:.7rem .85rem;margin-bottom:1rem;font-size:.73rem;color:var(--red2);line-height:1.5;">
+                <strong>⛔ Tidak bisa dihapus.</strong> Faktur ini sudah punya <strong>pembayaran aktif</strong>. Batalkan dulu pembayarannya (via tombol Bayar → Batalkan) baru faktur bisa dihapus.
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+                <button type="button" wire:click="batalHapusFaktur" class="btn-outline">Tutup</button>
+            </div>
+            @else
+            <div style="background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.3);border-radius:.5rem;padding:.6rem .8rem;margin-bottom:.85rem;font-size:.72rem;color:var(--red2);line-height:1.5;">
+                ⚠️ Tindakan <strong>permanen</strong>: faktur, tagihan (kronis & non-kronis), dan arsip pembayaran akan dihapus. Stok dikembalikan otomatis. Gunakan hanya untuk memperbaiki <strong>entry dobel/salah</strong>.
+            </div>
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Alasan Penghapusan <span style="color:var(--red2)">*</span> <span style="color:var(--mut);font-weight:400;font-size:.66rem;">— jejak audit</span></label>
+                <input wire:model="hapusAlasan" type="text" placeholder="mis. entry dobel dgn PO #… / salah PBF / salah nominal" class="form-input" wire:keydown.enter="hapusFaktur">
+                @error('hapusAlasan')<div style="color:var(--red2);font-size:.68rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+            </div>
+            <div style="display:flex;gap:.6rem;">
+                <button type="button" wire:click="hapusFaktur" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;font-weight:800;padding:.6rem;border-radius:.5rem;cursor:pointer;background:rgba(232,100,90,.18);border:1px solid rgba(232,100,90,.5);color:var(--red2);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    Hapus Faktur & Kembalikan Stok
+                </button>
+                <button type="button" wire:click="batalHapusFaktur" class="btn-outline">Batal</button>
+            </div>
+            @endif
+            @endif
+        </div>
+    </div>
+    @endif
 </div>
 
 <style>
+[x-cloak]{display:none!important;}
 .cb-scroll::-webkit-scrollbar{width:4px;}.cb-scroll::-webkit-scrollbar-track{background:transparent;}.cb-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:4px;}
 mark.hl{background:rgba(217,164,65,.3);color:var(--gold2);border-radius:2px;font-weight:700;font-style:normal;}
 @keyframes pbfSlideIn{from{opacity:0;transform:translateY(-4px) scaleY(.96);}to{opacity:1;transform:translateY(0) scaleY(1);}}

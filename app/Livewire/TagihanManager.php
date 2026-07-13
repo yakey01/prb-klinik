@@ -3,9 +3,12 @@
 namespace App\Livewire;
 
 use App\Models\Distributor;
+use App\Models\Obat;
 use App\Models\PembayaranTagihan;
+use App\Models\PurchaseOrder;
 use App\Models\Tagihan;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -47,6 +50,10 @@ class TagihanManager extends Component
     public ?int   $editPembayaranId = null;          // >0 → modal dalam mode edit pembayaran arsip
     public ?int   $voidId    = null;                 // pembayaran yg sedang diminta pembatalan
     public string $voidAlasan = '';                  // alasan pembatalan (wajib)
+
+    // Hapus faktur/PO (koreksi entry dobel) — reversal stok + jejak audit
+    public ?int   $hapusPoId  = null;                // PO yg sedang diminta penghapusan
+    public string $hapusAlasan = '';                 // alasan penghapusan (wajib)
 
     /** Daftar bank umum Indonesia untuk datalist. */
     public array $bankList = ['BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'CIMB Niaga', 'Permata', 'Danamon', 'BTN', 'Panin', 'Maybank', 'OCBC NISP', 'Bank Jatim', 'Muamalat', 'Mega'];
@@ -123,7 +130,7 @@ class TagihanManager extends Component
     {
         // Paginate by PO (faktur), showing newest PO first
         // Each PO may have 1-2 tagihan (kronis and/or non_kronis)
-        $q = Tagihan::with(['distributor', 'purchaseOrder', 'pembayaran'])
+        $q = Tagihan::with(['distributor', 'purchaseOrder.items.obat:id,nama_obat,satuan', 'pembayaran'])
             ->orderByDesc('purchase_order_id')
             ->orderBy('tipe_obat');  // kronis before non_kronis within same PO
 
@@ -158,6 +165,106 @@ class TagihanManager extends Component
     {
         // Group tagihanList by purchase_order_id for per-faktur display
         return collect($this->tagihanList->items())->groupBy('purchase_order_id');
+    }
+
+    /**
+     * ID PO yang terindikasi ENTRY DOBEL (faktur kembar) — untuk ditandai di UI.
+     * Kriteria: PO lain dgn distributor + nomor_invoice sama (non-kosong),
+     * ATAU distributor + tanggal_po + total_nilai sama persis. Global (bukan cuma halaman ini).
+     */
+    #[Computed]
+    public function duplikatPoIds(): array
+    {
+        $ids = [];
+        $collect = function ($rows) use (&$ids) {
+            foreach ($rows as $r) {
+                foreach (explode(',', (string) $r->ids) as $i) {
+                    if ($i !== '') $ids[(int) $i] = true;
+                }
+            }
+        };
+        // Kembar berdasarkan nomor invoice (paling kuat).
+        $collect(PurchaseOrder::whereNotNull('nomor_invoice')->where('nomor_invoice', '!=', '')
+            ->selectRaw('GROUP_CONCAT(id) as ids')
+            ->groupBy('distributor_id', 'nomor_invoice')
+            ->havingRaw('COUNT(*) > 1')->get());
+        // Kembar berdasarkan tanggal + nominal (kasus invoice kosong).
+        $collect(PurchaseOrder::selectRaw('GROUP_CONCAT(id) as ids')
+            ->groupBy('distributor_id', 'tanggal_po', 'total_nilai')
+            ->havingRaw('COUNT(*) > 1')->get());
+
+        return array_keys($ids);
+    }
+
+    public function konfirmHapusFaktur(int $poId): void
+    {
+        $this->hapusPoId  = $poId;
+        $this->hapusAlasan = '';
+        $this->resetValidation();
+    }
+
+    public function batalHapusFaktur(): void
+    {
+        $this->hapusPoId = null;
+        $this->hapusAlasan = '';
+    }
+
+    /** Data PO yang akan dihapus (preview di modal konfirmasi). */
+    #[Computed]
+    public function hapusPreview(): ?PurchaseOrder
+    {
+        return $this->hapusPoId
+            ? PurchaseOrder::with(['items.obat:id,nama_obat,satuan', 'tagihan.pembayaran', 'distributor'])->find($this->hapusPoId)
+            : null;
+    }
+
+    /**
+     * Hapus faktur/PO yang terlanjur di-entry dobel. MENGEMBALIKAN stok (reversal
+     * qty per item, guard non-negatif), lalu hapus PO (cascade: items, tagihan,
+     * pembayaran). DIBLOKIR bila ada pembayaran aktif — batalkan pembayaran dulu.
+     */
+    public function hapusFaktur(): void
+    {
+        $this->validate(
+            ['hapusAlasan' => 'required|string|min:3|max:300'],
+            ['hapusAlasan.required' => 'Isi alasan penghapusan (jejak audit wajib).', 'hapusAlasan.min' => 'Alasan minimal 3 karakter.'],
+            ['hapusAlasan' => 'alasan']
+        );
+
+        $po = PurchaseOrder::with(['items', 'tagihan.pembayaran'])->findOrFail($this->hapusPoId);
+
+        // Guard: ada pembayaran AKTIF (belum dibatalkan) → tak boleh hapus.
+        $adaBayar = $po->tagihan->flatMap->pembayaran->where('dibatalkan', false)->where('jumlah', '>', 0)->count() > 0;
+        if ($adaBayar) {
+            $this->dispatch('toast', type: 'error', message: 'Tidak bisa hapus: ada pembayaran aktif pada faktur ini. Batalkan pembayarannya dulu.');
+            return;
+        }
+
+        \DB::transaction(function () use ($po) {
+            // Kembalikan stok untuk tiap item (qty box × isi), guard tak negatif.
+            foreach ($po->items as $it) {
+                $unit = (int) $it->jumlah_box * max(1, (int) $it->isi_per_box);
+                if ($unit > 0 && $it->obat_id) {
+                    Obat::where('id', $it->obat_id)
+                        ->update(['stok_aktual' => \DB::raw('GREATEST(0, stok_aktual - ' . $unit . ')')]);
+                }
+            }
+            Log::info('[Tagihan] Faktur/PO dihapus (koreksi entry dobel)', [
+                'po_id'   => $po->id,
+                'invoice' => $po->nomor_invoice,
+                'total'   => $po->total_nilai,
+                'items'   => $po->items->count(),
+                'oleh'    => Auth::user()?->name,
+                'alasan'  => $this->hapusAlasan,
+            ]);
+            $po->delete();   // cascade: purchase_order_items, tagihan, pembayaran_tagihan
+        });
+
+        $no = $this->hapusPoId;
+        $this->hapusPoId = null;
+        $this->hapusAlasan = '';
+        $this->resetPage();
+        $this->dispatch('toast', type: 'success', message: "Faktur PO #{$no} dihapus & stok obat dikembalikan.");
     }
 
     #[Computed]
