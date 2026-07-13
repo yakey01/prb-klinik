@@ -317,13 +317,9 @@
             </a>
 
             <div class="mobile-drawer-group-label">Pengadaan</div>
-            <a href="{{ route('pengadaan.pengajuan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.pengajuan') ? 'active' : '' }}">
+            <a href="{{ route('pengadaan.pengajuan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.pengajuan') || request()->routeIs('pengadaan.create') || request()->routeIs('pengadaan.store') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
-                Pengajuan Pengadaan
-            </a>
-            <a href="{{ route('pengadaan.create') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.create') ? 'active' : '' }}">
-                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                Pengadaan Baru
+                Pengadaan &amp; Pengajuan
             </a>
             <a href="{{ route('riwayat.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('riwayat.*') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -464,14 +460,10 @@
                         <svg class="nav-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="nav-dropdown" id="dd-pengadaan" style="display:none;">
-                        <a href="{{ route('pengadaan.pengajuan') }}" class="{{ request()->routeIs('pengadaan.pengajuan') ? 'active' : '' }}">
+                        <a href="{{ route('pengadaan.pengajuan') }}" class="{{ request()->routeIs('pengadaan.pengajuan') || request()->routeIs('pengadaan.create') || request()->routeIs('pengadaan.store') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
-                            Pengajuan Pengadaan
+                            Pengadaan &amp; Pengajuan
                             @if($siapBelanjaCount > 0)<span style="margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:linear-gradient(180deg,#f2c668,#d9a441);color:#1a0e00;font-size:.62rem;font-weight:900;">{{ $siapBelanjaCount }}</span>@endif
-                        </a>
-                        <a href="{{ route('pengadaan.create') }}" class="{{ request()->routeIs('pengadaan.create') || request()->routeIs('pengadaan.store') ? 'active' : '' }}">
-                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-                            Pengadaan Baru
                         </a>
                         <a href="{{ route('riwayat.index') }}" class="{{ request()->routeIs('riwayat.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>

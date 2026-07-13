@@ -16,7 +16,8 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/katalog/gabung', fn () => view('katalog.gabung'))->name('katalog.gabung');
 
     Route::get('/pengadaan/pengajuan', fn () => view('pengadaan.pengajuan'))->name('pengadaan.pengajuan');
-    Route::get('/pengadaan/baru', [PengadaanController::class, 'create'])->name('pengadaan.create');
+    // Halaman Pengadaan Baru DIGABUNG ke Pengajuan (mode Input Langsung). Redirect agar bookmark lama tetap jalan.
+    Route::get('/pengadaan/baru', fn () => redirect()->route('pengadaan.pengajuan', ['mode' => 'langsung']))->name('pengadaan.create');
     Route::post('/pengadaan', [PengadaanController::class, 'store'])->name('pengadaan.store');
     Route::get('/pengadaan/kebutuhan', fn () => view('pengadaan.kebutuhan'))->name('pengadaan.kebutuhan');
     Route::get('/pengadaan/harian', fn () => view('pengadaan.harian'))->name('pengadaan.harian');
@@ -45,7 +46,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
 
     Route::get('/diagnosis', fn () => view('diagnosis.index'))->name('diagnosis.index');
     Route::get('/users',     fn () => view('users.index'))->name('users.index');
-    Route::get('/pengadaan', fn () => redirect()->route('pengadaan.create'))->name('pengadaan.index');
+    Route::get('/pengadaan', fn () => redirect()->route('pengadaan.pengajuan'))->name('pengadaan.index');
 
     Route::get('/pengaturan', fn () => view('pengaturan.index'))->name('pengaturan.index');
 

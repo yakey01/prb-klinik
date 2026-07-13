@@ -68,14 +68,20 @@
     <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.2rem;">
         <div>
             <div class="font-label" style="font-size:.7rem;color:var(--mut);margin-bottom:.25rem;">Pengadaan</div>
-            <h2 class="font-heading" style="font-size:1.5rem;color:var(--ink);margin:0;">Pengajuan Pengadaan</h2>
-            <p style="color:var(--mut);font-size:.78rem;margin-top:.3rem;max-width:52ch;">Ajukan usulan belanja obat → disetujui manajer → baru direalisasikan jadi PO. Standar izin belanja klinik.</p>
+            <h2 class="font-heading" style="font-size:1.5rem;color:var(--ink);margin:0;">Pengadaan &amp; Pengajuan</h2>
+            <p style="color:var(--mut);font-size:.78rem;margin-top:.3rem;max-width:56ch;">Ajukan usulan belanja → disetujui manajer → realisasi jadi PO. Atau <strong style="color:var(--gold2);">Input Langsung</strong> untuk koreksi/darurat. Satu tempat.</p>
         </div>
         @unless($showForm)
-        <button wire:click="openAdd" class="btn-emerald" style="display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.1rem;border-radius:.7rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 6px 18px rgba(63,207,142,.2);">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Ajukan Pengadaan
-        </button>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+            <button wire:click="openAdd('langsung')" title="Buat PO langsung tanpa persetujuan (koreksi/darurat)" style="display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1rem;border-radius:.7rem;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.4);color:var(--gold2);font-weight:800;font-size:.82rem;cursor:pointer;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Input Langsung
+            </button>
+            <button wire:click="openAdd('ajukan')" class="btn-emerald" style="display:inline-flex;align-items:center;gap:.5rem;padding:.6rem 1.1rem;border-radius:.7rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 6px 18px rgba(63,207,142,.2);">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Ajukan Pengadaan
+            </button>
+        </div>
         @endunless
     </div>
 

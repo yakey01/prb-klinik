@@ -55,6 +55,10 @@ class PengajuanPengadaan extends Component
     public function mount(): void
     {
         $this->tanggal = now()->format('Y-m-d');
+        // Datang dari /pengadaan/baru (digabung) → langsung buka form mode Input Langsung.
+        if (request()->query('mode') === 'langsung') {
+            $this->openAdd('langsung');
+        }
     }
 
     // ── Data ────────────────────────────────────────────────────

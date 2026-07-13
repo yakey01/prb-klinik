@@ -47,9 +47,9 @@
                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export CSV
             </a>
-            <a href="{{ route('pengadaan.create') }}" class="btn-gold">
+            <a href="{{ route('pengadaan.pengajuan') }}" class="btn-gold">
                 <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Pengadaan Baru
+                Pengadaan
             </a>
         </div>
     </div>
@@ -205,7 +205,7 @@
     <div class="glass-card" style="padding:3rem; text-align:center; color:var(--mut);">
         <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24" style="margin:0 auto 1rem;color:var(--line2);"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
         <div style="font-size:1rem; margin-bottom:.5rem;">Belum ada riwayat PO</div>
-        <a href="{{ route('pengadaan.create') }}" style="color:var(--gold2); font-size:.85rem;">Buat pengadaan pertama <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
+        <a href="{{ route('pengadaan.pengajuan') }}" style="color:var(--gold2); font-size:.85rem;">Buat pengadaan pertama <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></a>
     </div>
     @endforelse
 
