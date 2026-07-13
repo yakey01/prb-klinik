@@ -74,11 +74,17 @@ class PoKoreksi extends Component
 
     public function simpan(): void
     {
-        $this->validate(
-            ['alasan' => 'required|string|min:3|max:300', 'nomorFaktur' => 'nullable|string|max:100', 'tanggalPo' => 'required|date'],
-            ['alasan.required' => 'Isi alasan koreksi (jejak audit wajib).', 'alasan.min' => 'Alasan minimal 3 karakter.'],
-            ['alasan' => 'alasan koreksi', 'tanggalPo' => 'tanggal PO']
-        );
+        try {
+            $this->validate(
+                ['alasan' => 'required|string|min:3|max:300', 'nomorFaktur' => 'nullable|string|max:100', 'tanggalPo' => 'required|date'],
+                ['alasan.required' => 'Isi alasan koreksi (jejak audit wajib).', 'alasan.min' => 'Alasan minimal 3 karakter.'],
+                ['alasan' => 'alasan koreksi', 'tanggalPo' => 'tanggal PO']
+            );
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Toast jelas — cegah kesan "sudah terkirim" padahal tertolak validasi.
+            $this->dispatch('toast', type: 'error', message: 'Belum terkirim: ' . collect($e->errors())->flatten()->first());
+            throw $e;
+        }
 
         $sisa = collect($this->rows)->reject(fn ($r) => $r['hapus'] ?? false);
         if ($sisa->isEmpty()) {
