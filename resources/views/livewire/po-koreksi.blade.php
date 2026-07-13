@@ -11,7 +11,7 @@
                 <div>
                     <div class="font-heading" style="font-size:1.05rem;color:var(--gold2);">✎ Koreksi Purchase Order #{{ $po->id }}</div>
                     <div style="font-size:.72rem;color:var(--mut);margin-top:.2rem;line-height:1.5;max-width:64ch;">
-                        Perbaiki qty/harga/expiry saat barang atau harga faktur tidak sesuai. <strong style="color:var(--gold2);">Stok &amp; tagihan otomatis diselaraskan</strong> dengan nilai koreksi.
+                        Perbaiki qty/harga/expiry saat barang atau harga faktur tidak sesuai. Koreksi <strong style="color:var(--gold2);">butuh persetujuan manajer di SIM</strong> — stok &amp; tagihan diselaraskan setelah disetujui.
                     </div>
                 </div>
                 <button wire:click="tutup" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:1.2rem;">✕</button>
@@ -112,7 +112,7 @@
 
             <div style="display:flex;gap:.6rem;justify-content:flex-end;">
                 <button wire:click="tutup" style="padding:.6rem 1.1rem;border-radius:.6rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.8rem;">Batal</button>
-                <button wire:click="simpan" wire:confirm="Simpan koreksi? Stok & tagihan akan disesuaikan dengan nilai baru." style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(217,164,65,.95),rgba(217,164,65,.78));border:1px solid rgba(217,164,65,.5);color:#1a0e00;cursor:pointer;font-size:.8rem;font-weight:800;">💾 Simpan Koreksi</button>
+                <button wire:click="simpan" wire:confirm="Ajukan koreksi ini ke manajer SIM untuk disetujui? Stok & tagihan belum berubah sampai disetujui." style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(217,164,65,.95),rgba(217,164,65,.78));border:1px solid rgba(217,164,65,.5);color:#1a0e00;cursor:pointer;font-size:.8rem;font-weight:800;">📤 Ajukan Koreksi ke Manajer →</button>
             </div>
         </div>
     </div>

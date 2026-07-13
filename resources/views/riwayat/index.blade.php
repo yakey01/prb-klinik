@@ -174,13 +174,21 @@
             <div style="font-size:.78rem; color:var(--mut); margin-bottom:.75rem;">Catatan: {{ $po->catatan }}</div>
             @endif
 
-            <div style="display:flex; justify-content:flex-end; gap:.6rem;">
+            <div style="display:flex; justify-content:flex-end; gap:.6rem; align-items:center;">
+                @php $kp = $po->koreksiPending(); @endphp
+                @if($kp)
+                <span style="display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .9rem;border-radius:.5rem;background:rgba(217,164,65,.1);border:1px solid rgba(217,164,65,.35);color:var(--gold2);font-size:.76rem;font-weight:700;"
+                    title="Usulan koreksi diajukan {{ $kp->created_at->diffForHumans() }} oleh {{ $kp->pemohon_nama }} — menunggu ACC manajer di SIM">
+                    ⏳ Koreksi menunggu persetujuan manajer SIM
+                </span>
+                @else
                 <button type="button" onclick="Livewire.dispatch('koreksi-po', { poId: {{ $po->id }} })"
                     style="display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:.5rem;background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.4);color:var(--gold2);font-size:.8rem;font-weight:700;cursor:pointer;"
-                    title="Perbaiki qty/harga bila barang/faktur tidak sesuai — stok & tagihan diselaraskan">
+                    title="Ajukan perbaikan qty/harga bila barang/faktur tidak sesuai — perlu persetujuan manajer">
                     <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4z"/></svg>
                     Koreksi PO
                 </button>
+                @endif
                 <form method="POST" action="{{ route('riwayat.destroy', $po) }}"
                       onsubmit="return confirm('Hapus PO ini? Data tidak dapat dikembalikan.');">
                     @csrf

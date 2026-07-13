@@ -2,12 +2,9 @@
 
 namespace App\Livewire;
 
-use App\Models\Obat;
+use App\Models\KoreksiPo;
 use App\Models\PurchaseOrder;
-use App\Models\PurchaseOrderItem;
-use App\Models\Tagihan;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -89,77 +86,51 @@ class PoKoreksi extends Component
             return;
         }
 
-        DB::transaction(function () {
-            $po = PurchaseOrder::with('items')->whereKey($this->poId)->lockForUpdate()->firstOrFail();
+        // Cegah dobel usulan koreksi yang masih menunggu untuk PO yang sama.
+        if (KoreksiPo::where('purchase_order_id', $this->poId)->where('status', 'diajukan')->exists()) {
+            $this->dispatch('toast', type: 'error', message: 'Sudah ada usulan koreksi PO ini yang menunggu persetujuan manajer.');
+            $this->show = false; $this->poId = null;
+            return;
+        }
 
-            foreach ($this->rows as $r) {
-                $item = $po->items->firstWhere('id', $r['item_id']);
-                $oriUnits = (int) $r['ori_box'] * (int) $r['ori_isi'];
+        $r = $this->ringkas;
+        // KOREKSI TIDAK langsung diterapkan — diajukan ke manajer SIM untuk disetujui.
+        // Payload menyimpan perubahan (before/after) untuk dinilai + diterapkan saat disetujui.
+        $payload = [
+            'faktur'     => $this->nomorFaktur ?: null,
+            'tanggal_po' => $this->tanggalPo,
+            'rows'       => array_map(fn ($row) => [
+                'item_id'  => $row['item_id'] ?? null,
+                'obat_id'  => (int) ($row['obat_id'] ?? 0),
+                'nama'     => $row['nama_obat'] ?? '',
+                'tipe'     => $row['tipe_obat'] ?? 'kronis',
+                'ori_box'  => (int) ($row['ori_box'] ?? 0),
+                'ori_isi'  => (int) ($row['ori_isi'] ?? 1),
+                'ori_harga' => (float) ($row['ori_harga'] ?? 0),
+                'box'      => (int) ($row['jumlah_box'] ?? 0),
+                'isi'      => (int) ($row['isi_per_box'] ?? 1),
+                'harga'    => (float) ($row['harga_per_box'] ?? 0),
+                'expiry'   => $row['tanggal_kadaluarsa'] ?? '',
+                'hapus'    => (bool) ($row['hapus'] ?? false),
+            ], $this->rows),
+        ];
 
-                if ($r['hapus'] ?? false) {
-                    // Hapus item → tarik kembali stok yang dulu ditambah.
-                    Obat::where('id', (int) $r['obat_id'])->update([
-                        'stok_aktual' => DB::raw('GREATEST(0, stok_aktual - ' . $oriUnits . ')'),
-                    ]);
-                    $item?->delete();
-                    continue;
-                }
-
-                $box = max(0, (int) $r['jumlah_box']);
-                $isi = max(1, (int) $r['isi_per_box']);
-                $hbox = (float) $r['harga_per_box'];
-                $newUnits = $box * $isi;
-                $delta = $newUnits - $oriUnits;   // penyesuaian stok
-
-                if ($item) {
-                    $item->update([
-                        'jumlah_box' => $box, 'isi_per_box' => $isi,
-                        'harga_per_box' => $hbox, 'subtotal' => $box * $hbox,
-                    ]);
-                }
-                $upd = [
-                    'harga_beli_per_unit' => $hbox / $isi,
-                    'sumber_harga'        => 'PO',
-                    'stok_aktual'         => DB::raw('GREATEST(0, stok_aktual + (' . $delta . '))'),
-                ];
-                if (! empty($r['tanggal_kadaluarsa'])) $upd['tanggal_kadaluarsa'] = $r['tanggal_kadaluarsa'];
-                Obat::where('id', (int) $r['obat_id'])->update($upd);
-            }
-
-            // Rekap ulang PO total dari item tersisa.
-            $po->load('items');
-            $total = (float) $po->items->sum('subtotal');
-            $po->update([
-                'nomor_invoice' => $this->nomorFaktur ?: null,
-                'tanggal_po'    => $this->tanggalPo,
-                'total_nilai'   => $total,
-                'catatan'       => trim(($po->catatan ? $po->catatan . ' · ' : '')
-                    . 'Dikoreksi ' . now()->format('d/m/y H:i') . ' oleh ' . (Auth::user()?->name ?? '-') . ': ' . $this->alasan),
-            ]);
-
-            // Rekonsiliasi TAGIHAN per tipe (total ikut item aktual; status dihitung ulang).
-            $perTipe = ['kronis' => 0.0, 'non_kronis' => 0.0];
-            foreach ($po->items as $it) {
-                $t = ($it->tipe_obat ?? 'kronis') === 'kronis' ? 'kronis' : 'non_kronis';
-                $perTipe[$t] += (float) $it->subtotal;
-            }
-            foreach ($po->tagihan as $tag) {
-                $newTotal = (float) ($perTipe[$tag->tipe_obat] ?? 0);
-                if ($newTotal <= 0) {
-                    // Tipe ini tak lagi ada → tagihan jadi 0 (kosongkan, tandai lunas bila sudah dibayar).
-                    $tag->update(['total_tagihan' => 0, 'status' => 'lunas']);
-                    continue;
-                }
-                $dib = (float) $tag->jumlah_dibayar;
-                $status = $dib <= 0 ? 'belum_bayar' : ($dib >= $newTotal ? 'lunas' : 'sebagian');
-                $tag->update(['total_tagihan' => (int) $newTotal, 'status' => $status]);
-            }
-        });
+        KoreksiPo::create([
+            'purchase_order_id' => $this->poId,
+            'pemohon_nama'      => Auth::user()?->name,
+            'pemohon_id'        => Auth::id(),
+            'alasan'            => $this->alasan,
+            'total_lama'        => $r['lama'],
+            'total_baru'        => $r['baru'],
+            'payload'           => $payload,
+            'status'            => 'diajukan',
+            'applied'           => false,
+        ]);
 
         $this->show = false;
         $this->poId = null;
-        $this->dispatch('toast', message: 'PO dikoreksi — stok & tagihan diselaraskan.', type: 'success');
-        $this->dispatch('po-updated');   // pemicu refresh halaman bila perlu
+        $this->dispatch('toast', message: 'Koreksi PO diajukan — menunggu PERSETUJUAN manajer SIM. Stok/tagihan belum berubah.', type: 'info');
+        $this->dispatch('po-updated');
     }
 
     public function render()

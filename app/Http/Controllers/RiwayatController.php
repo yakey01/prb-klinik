@@ -10,7 +10,10 @@ class RiwayatController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PurchaseOrder::with(['distributor', 'items.obat'])
+        // Terapkan koreksi yang SUDAH disetujui manajer tapi belum direkonsiliasi.
+        \App\Models\KoreksiPo::terapkanYangDisetujui();
+
+        $query = PurchaseOrder::with(['distributor', 'items.obat', 'koreksi'])
             ->latest('tanggal_po');
 
         if ($request->filled('distributor_id')) {

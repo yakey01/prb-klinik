@@ -22,6 +22,15 @@ class PurchaseOrder extends Model
     public function distributor(): BelongsTo { return $this->belongsTo(Distributor::class); }
     public function items(): HasMany          { return $this->hasMany(PurchaseOrderItem::class); }
     public function tagihan(): HasMany        { return $this->hasMany(Tagihan::class); }
+    public function koreksi(): HasMany        { return $this->hasMany(KoreksiPo::class); }
+
+    /** Ada usulan koreksi yang masih menunggu persetujuan manajer? */
+    public function koreksiPending(): ?KoreksiPo
+    {
+        return $this->relationLoaded('koreksi')
+            ? $this->koreksi->firstWhere('status', 'diajukan')
+            : $this->koreksi()->where('status', 'diajukan')->first();
+    }
 
     public function sisaTagihan(): Attribute
     {
