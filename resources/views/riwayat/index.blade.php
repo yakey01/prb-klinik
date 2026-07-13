@@ -82,9 +82,27 @@
         @endif
     </form>
 
+    {{-- GUARDIAN AI BANNER --}}
+    @php $gs = $guardianSummary ?? []; @endphp
+    @if(($gs['total'] ?? 0) > 0)
+    <a href="{{ route('guardian.index') }}" style="text-decoration:none;display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;padding:.75rem 1.1rem;margin-bottom:1.25rem;border-radius:.7rem;border:1px solid {{ ($gs['kritis']??0)>0 ? 'rgba(232,100,90,.45)' : 'rgba(217,164,65,.4)' }};background:linear-gradient(100deg,{{ ($gs['kritis']??0)>0 ? 'rgba(232,100,90,.14)' : 'rgba(217,164,65,.12)' }},transparent 70%);">
+        <div style="width:34px;height:34px;border-radius:.6rem;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#3fcf8e,#2b9d68);flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#04120c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div style="flex:1;min-width:200px;">
+            <div style="font-size:.85rem;font-weight:700;color:var(--ink);">Guardian AI: {{ $gs['total'] }} temuan rekonsiliasi PO ↔ Tagihan</div>
+            <div style="font-size:.72rem;color:var(--mut);margin-top:.1rem;">
+                @if(($gs['kritis']??0)>0)<span style="color:var(--red2);font-weight:700;">🔴 {{ $gs['kritis'] }} kritis</span> · @endif
+                @if(($gs['tinggi']??0)>0)<span style="color:#e6863c;font-weight:700;">🟠 {{ $gs['tinggi'] }} tinggi</span> · @endif
+                cek agar tidak ada yang tertukar
+            </div>
+        </div>
+        <span style="font-size:.75rem;font-weight:700;color:var(--emer2);display:inline-flex;align-items:center;gap:.3rem;flex-shrink:0;">Tinjau <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+    </a>
+    @endif
+
     {{-- LIST PO --}}
     @forelse($orders as $po)
-    <div class="glass-card riwayat-po" data-po="{{ $po->id }}" style="margin-bottom:1rem; overflow:hidden;">
+    @php $risk = $guardianRisk[$po->id] ?? null; @endphp
+    <div class="glass-card riwayat-po" id="po-{{ $po->id }}" data-po="{{ $po->id }}" style="margin-bottom:1rem; overflow:hidden;{{ $risk ? 'border-color:'.($risk['level']==='kritis'?'rgba(232,100,90,.45)':($risk['level']==='tinggi'?'rgba(230,134,60,.4)':'rgba(217,164,65,.35)')).';' : '' }}">
         <div style="display:flex; align-items:center; gap:1rem; padding:1.1rem 1.5rem; cursor:pointer;"
              onclick="riwayatToggle({{ $po->id }})">
             <div style="width:10px; height:10px; border-radius:50%; background:var(--emer); flex-shrink:0; box-shadow:0 0 6px var(--emer);"></div>
@@ -98,6 +116,12 @@
                     <span style="background:rgba(111,177,224,.1); border:1px solid rgba(111,177,224,.2); border-radius:999px; padding:.1rem .5rem; font-size:.7rem; color:var(--blue);">
                         {{ $po->items->count() }} item
                     </span>
+                    @if($risk)
+                    @php $rl = $risk['level']; $rc = $rl==='kritis'?'var(--red2)':($rl==='tinggi'?'#e6863c':($rl==='sedang'?'var(--gold2)':'var(--blue)')); $ri = $rl==='kritis'?'🔴':($rl==='tinggi'?'🟠':($rl==='sedang'?'🟡':'🔵')); @endphp
+                    <a href="{{ route('guardian.index') }}" onclick="event.stopPropagation();" title="{{ $risk['top'] }}" style="text-decoration:none;background:rgba(63,207,142,.06);border:1px solid {{ $rc }};border-radius:999px;padding:.1rem .55rem;font-size:.68rem;font-weight:700;color:{{ $rc }};display:inline-flex;align-items:center;gap:.25rem;">
+                        🛡 {{ $ri }} {{ $risk['count'] }} temuan AI
+                    </a>
+                    @endif
                     @if(isset($po->status_bayar))
                     <span class="badge badge-{{ $po->status_bayar==='lunas'?'laba':($po->status_bayar==='sebagian'?'cek':'rugi') }}" style="font-size:.68rem;">
                         {{ ucfirst($po->status_bayar) }}

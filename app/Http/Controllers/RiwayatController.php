@@ -29,7 +29,17 @@ class RiwayatController extends Controller
         $orders = $query->paginate(15)->withQueryString();
         $distributors = Distributor::where('is_active', true)->orderBy('name')->get();
 
-        return view('riwayat.index', compact('orders', 'distributors'));
+        // Guardian AI: peta risiko per PO (rekonsiliasi PO↔Tagihan + anomali) untuk badge.
+        $guardianRisk = [];
+        $guardianSummary = ['total' => 0, 'kritis' => 0, 'tinggi' => 0, 'sedang' => 0, 'rendah' => 0];
+        try {
+            $gm = app(\App\Services\Guardian\GuardianEngine::class)->riskMap();
+            $guardianRisk = $gm['risk'] ?? [];
+            $guardianSummary = $gm['counts'] ?? $guardianSummary;
+        } catch (\Throwable $e) {
+        }
+
+        return view('riwayat.index', compact('orders', 'distributors', 'guardianRisk', 'guardianSummary'));
     }
 
     public function destroy(PurchaseOrder $purchaseOrder)

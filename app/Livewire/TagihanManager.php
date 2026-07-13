@@ -82,6 +82,13 @@ class TagihanManager extends Component
         return Distributor::orderBy('name')->get(['id','name']);
     }
 
+    /** Ringkasan Guardian AI (di-cache) untuk banner deteksi anomali. */
+    #[Computed]
+    public function guardian(): array
+    {
+        return app(\App\Services\Guardian\GuardianEngine::class)->summary();
+    }
+
     #[Computed]
     public function kpiCards(): array
     {

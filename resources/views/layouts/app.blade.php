@@ -406,6 +406,7 @@
 
             <div class="mobile-drawer-group-label">Keuangan</div>
             <a href="{{ route('tagihan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('tagihan.*') ? 'active' : '' }}">Tagihan</a>
+            <a href="{{ route('guardian.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('guardian.*') ? 'active' : '' }}">Guardian AI</a>
             <a href="{{ route('laporan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}">Laporan Bulanan</a>
             <a href="{{ route('rekonsiliasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">Rekonsiliasi BPJS</a>
             <a href="{{ route('kalkulator.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
@@ -561,6 +562,10 @@
                         <a href="{{ route('tagihan.index') }}" class="{{ request()->routeIs('tagihan.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                             Tagihan
+                        </a>
+                        <a href="{{ route('guardian.index') }}" class="{{ request()->routeIs('guardian.*') ? 'active' : '' }}" style="{{ request()->routeIs('guardian.*') ? '' : 'color:var(--emer2);' }}">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                            Guardian AI
                         </a>
                         <a href="{{ route('laporan.index') }}" class="{{ request()->routeIs('laporan.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>

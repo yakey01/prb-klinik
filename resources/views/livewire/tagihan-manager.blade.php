@@ -14,6 +14,24 @@
     </div>
     @endif
 
+    {{-- ══ GUARDIAN AI BANNER (deteksi PO↔Tagihan tertukar) ══════════ --}}
+    @php $g = $this->guardian; @endphp
+    @if(($g['total'] ?? 0) > 0)
+    <a href="{{ route('guardian.index') }}" wire:navigate style="text-decoration:none;display:flex;align-items:center;gap:.85rem;flex-wrap:wrap;padding:.75rem 1.1rem;margin-bottom:1rem;border-radius:.7rem;border:1px solid {{ ($g['kritis']??0)>0 ? 'rgba(232,100,90,.45)' : 'rgba(217,164,65,.4)' }};background:linear-gradient(100deg,{{ ($g['kritis']??0)>0 ? 'rgba(232,100,90,.14)' : 'rgba(217,164,65,.12)' }},transparent 70%);">
+        <div style="width:34px;height:34px;border-radius:.6rem;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#3fcf8e,#2b9d68);flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#04120c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <div style="flex:1;min-width:200px;">
+            <div style="font-size:.85rem;font-weight:700;color:var(--ink);">Guardian AI menemukan {{ $g['total'] }} potensi masalah PO ↔ Tagihan</div>
+            <div style="font-size:.72rem;color:var(--mut);margin-top:.1rem;">
+                @if(($g['kritis']??0)>0)<span style="color:var(--red2);font-weight:700;">🔴 {{ $g['kritis'] }} kritis</span> · @endif
+                @if(($g['tinggi']??0)>0)<span style="color:#e6863c;font-weight:700;">🟠 {{ $g['tinggi'] }} tinggi</span> · @endif
+                @if(($g['sedang']??0)>0)<span style="color:var(--gold2);">🟡 {{ $g['sedang'] }} sedang</span> · @endif
+                agar tidak tertukar — tinjau & konfirmasi
+            </div>
+        </div>
+        <span style="font-size:.75rem;font-weight:700;color:var(--emer2);display:inline-flex;align-items:center;gap:.3rem;flex-shrink:0;">Tinjau <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+    </a>
+    @endif
+
     {{-- ══ KPI CARDS ══════════════════════════════════════════════════ --}}
     @php $k = $this->kpiCards; @endphp
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.85rem;margin-bottom:1.5rem;">

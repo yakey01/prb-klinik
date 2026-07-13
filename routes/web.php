@@ -33,6 +33,7 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
     Route::get('/stok-keluar',  fn () => view('stok-keluar.index'))->name('stok-keluar.index');
     Route::get('/laporan',      fn () => view('laporan.index'))->name('laporan.index');
     Route::get('/tagihan',      fn () => view('keuangan.tagihan'))->name('tagihan.index');
+    Route::get('/guardian',     fn () => view('guardian.index'))->name('guardian.index');
     Route::get('/kalkulator',   fn () => view('keuangan.kalkulator'))->name('kalkulator.index');
     Route::get('/rekonsiliasi', fn () => view('rekonsiliasi.index'))->name('rekonsiliasi.index');
     Route::get('/audit',        fn () => view('audit.index'))->name('audit.index');
