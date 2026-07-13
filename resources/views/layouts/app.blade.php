@@ -171,9 +171,12 @@
             border: 1px solid rgba(255,255,255,.12);
             box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 18px 44px -14px rgba(0,0,0,.7), 0 0 0 1px rgba(0,0,0,.3);
             backdrop-filter: blur(14px) saturate(1.15); -webkit-backdrop-filter: blur(14px) saturate(1.15);
-            animation: toastIn .32s cubic-bezier(.16,1,.3,1) both;
+            /* WAJIB terlihat instan (opacity 1) — TANPA animasi/keyframe masuk yang bisa beku
+               tersembunyi di sebagian lingkungan. Keluar halus via kelas .out (transition). */
+            opacity: 1; transform: none;
+            transition: opacity .28s ease, transform .3s cubic-bezier(.16,1,.3,1);
         }
-        .toast.out { animation: toastOut .28s cubic-bezier(.4,0,1,1) both; }
+        .toast.out { opacity: 0; transform: translateX(120%); transition: opacity .28s ease, transform .28s ease; }
         .toast .t-ico { flex-shrink: 0; width: 26px; height: 26px; border-radius: 999px; display: flex; align-items: center; justify-content: center; margin-top: .05rem; box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
         .toast .t-msg { flex: 1; min-width: 0; }
         .toast .t-x { position: absolute; top: .5rem; right: .5rem; width: 22px; height: 22px; border: none; background: rgba(255,255,255,.06); color: var(--mut, #8fae9f); border-radius: 999px; cursor: pointer; font-size: .8rem; line-height: 1; display: flex; align-items: center; justify-content: center; transition: background .12s, color .12s; }
