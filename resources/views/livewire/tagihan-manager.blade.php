@@ -232,7 +232,7 @@
             </div>
         </div>
 
-        @php $dups = $this->duplikatPoIds; @endphp
+        @php $dups = $this->duplikatPoIds; $gpo = $this->guardianByPo; @endphp
         @forelse($this->tagihanGrouped as $poId => $poTagihan)
         @php
             $firstTag  = $poTagihan->first();
@@ -246,6 +246,10 @@
             $items     = $po?->items ?? collect();
             $adaBayarAktif = $poTagihan->flatMap(fn($t) => $t->pembayaran)->where('dibatalkan', false)->where('jumlah','>',0)->count() > 0;
             $lunasSemua = $poSisa <= 0;
+            $gInfo     = $gpo[$poId] ?? null;
+            $gLvl      = $gInfo['level'] ?? null;
+            $gColor    = $gLvl==='kritis'?'var(--red2)':($gLvl==='tinggi'?'#e6863c':($gLvl==='sedang'?'var(--gold2)':'var(--blue)'));
+            $gIcon     = $gLvl==='kritis'?'🔴':($gLvl==='tinggi'?'🟠':($gLvl==='sedang'?'🟡':'🔵'));
         @endphp
 
         <div x-data="{ open: {{ ($poSisa > 0 || $isDup || $tanggal !== '') ? 'true' : 'false' }} }" style="border-bottom:1px solid rgba(255,255,255,.07);{{ $isDup ? 'box-shadow:inset 3px 0 0 var(--gold);' : '' }}">
@@ -280,6 +284,65 @@
             @if($isDup)
             <span title="Faktur ini terindikasi dobel (PBF + no. invoice / tanggal + nominal sama). Cek & hapus salah satu jika keliru." style="font-size:.62rem;font-weight:800;padding:.1rem .45rem;border-radius:.3rem;background:rgba(217,164,65,.16);border:1px solid var(--gold);color:var(--gold2);">⧉ Mungkin Dobel</span>
             @endif
+
+            {{-- 🛡 Badge Guardian AI — klik untuk penjelasan masalah --}}
+            @if($gInfo)
+            <span x-data="{ gOpen:false }" @click.stop style="display:inline-flex;">
+                <button type="button" @click="gOpen=true" title="Penjelasan AI atas masalah faktur ini"
+                    style="display:inline-flex;align-items:center;gap:.25rem;font-size:.62rem;font-weight:800;padding:.12rem .5rem;border-radius:.3rem;cursor:pointer;background:rgba(63,207,142,.06);border:1px solid {{ $gColor }};color:{{ $gColor }};">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    {{ $gIcon }} {{ $gInfo['count'] }} masalah AI
+                </button>
+                {{-- Popover / modal penjelasan --}}
+                <template x-teleport="body">
+                    <div x-show="gOpen" x-cloak @click.self="gOpen=false" @keydown.escape.window="gOpen=false"
+                        style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:5200;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;">
+                        <div class="glass-card" @click.stop style="width:100%;max-width:560px;padding:1.35rem 1.4rem;border-color:{{ $gColor }};box-shadow:0 24px 64px rgba(0,0,0,.7);">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                                <div class="font-heading" style="font-size:.98rem;color:var(--ink);display:flex;align-items:center;gap:.5rem;">
+                                    <span style="width:28px;height:28px;border-radius:.55rem;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#3fcf8e,#2b9d68);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#04120c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
+                                    Analisis AI · Faktur PO #{{ $poId }}
+                                </div>
+                                <button type="button" @click="gOpen=false" style="background:none;border:none;color:var(--mut);cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+                            </div>
+                            <div style="font-size:.72rem;color:var(--mut);margin-bottom:.85rem;">{{ $gInfo['count'] }} potensi masalah terdeteksi. Guardian AI menjelaskan & menyarankan tindakan:</div>
+
+                            @foreach($gInfo['findings'] as $f)
+                            @php $fc = $f['severity']==='kritis'?'var(--red2)':($f['severity']==='tinggi'?'#e6863c':($f['severity']==='sedang'?'var(--gold2)':'var(--blue)')); $fi=$f['severity']==='kritis'?'🔴':($f['severity']==='tinggi'?'🟠':($f['severity']==='sedang'?'🟡':'🔵')); @endphp
+                            <div style="border:1px solid rgba(255,255,255,.07);border-left:3px solid {{ $fc }};border-radius:.5rem;padding:.7rem .85rem;margin-bottom:.6rem;background:rgba(0,0,0,.15);">
+                                <div style="display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;margin-bottom:.3rem;">
+                                    <span style="font-size:.58rem;font-weight:800;padding:.08rem .4rem;border-radius:.3rem;background:rgba(255,255,255,.05);border:1px solid {{ $fc }};color:{{ $fc }};">{{ $fi }} {{ strtoupper($f['severity']) }}</span>
+                                    <span style="font-size:.58rem;font-weight:700;padding:.08rem .4rem;border-radius:.3rem;background:rgba(255,255,255,.05);color:var(--mut);">{{ $f['category'] }}</span>
+                                    <span style="margin-left:auto;font-size:.62rem;color:{{ $fc }};font-weight:800;">Keyakinan {{ $f['confidence'] }}%</span>
+                                </div>
+                                <div style="font-size:.82rem;font-weight:700;color:var(--ink);">{{ $f['title'] }}</div>
+                                <div style="font-size:.73rem;color:var(--mut);margin-top:.2rem;line-height:1.5;">{{ $f['detail'] }}</div>
+                                @if(!empty($f['evidence']))
+                                <div style="display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.45rem;">
+                                    @foreach($f['evidence'] as $lbl=>$val)
+                                    <span style="font-size:.63rem;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);border-radius:.35rem;padding:.12rem .45rem;color:var(--mut);">{{ $lbl }}: <strong style="color:var(--ink);">{{ $val }}</strong></span>
+                                    @endforeach
+                                </div>
+                                @endif
+                                @if(!empty($f['recommendation']))
+                                <div style="font-size:.7rem;color:var(--emer2);margin-top:.45rem;display:flex;gap:.35rem;align-items:flex-start;">
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;margin-top:.1rem;"><path d="M9 18h6M10 22h4M12 2a7 7 0 00-4 12.7c.6.5 1 1.2 1 2h6c0-.8.4-1.5 1-2A7 7 0 0012 2z"/></svg>
+                                    <span><strong>Saran:</strong> {{ $f['recommendation'] }}</span>
+                                </div>
+                                @endif
+                            </div>
+                            @endforeach
+
+                            <a href="{{ route('guardian.index') }}" wire:navigate style="display:flex;align-items:center;justify-content:center;gap:.4rem;margin-top:.4rem;padding:.55rem;border-radius:.5rem;text-decoration:none;font-size:.76rem;font-weight:700;background:rgba(63,207,142,.12);border:1px solid rgba(63,207,142,.35);color:var(--emer2);">
+                                Buka Pusat Tinjau untuk konfirmasi / tandai selesai
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                            </a>
+                        </div>
+                    </div>
+                </template>
+            </span>
+            @endif
+
             {{-- Faktur total --}}
             <div style="margin-left:auto;text-align:right;display:flex;align-items:center;gap:.6rem;">
                 <div>

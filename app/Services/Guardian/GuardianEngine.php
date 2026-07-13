@@ -122,10 +122,39 @@ class GuardianEngine
         });
     }
 
+    /** Detail temuan per-PO (untuk popover penjelasan AI di header faktur). */
+    public function poFindings(int $ttl = 120): array
+    {
+        return Cache::remember('guardian:pofindings', $ttl, function () {
+            $r = $this->scan();
+            $risk = $r->riskByPo();
+            $out = [];
+            foreach ($r->groupedByPo() as $poId => $g) {
+                $poId = (int) $poId;
+                $out[$poId] = [
+                    'level' => $risk[$poId]['level'] ?? 'rendah',
+                    'count' => $g->count(),
+                    'findings' => $g->map(fn (Finding $f) => [
+                        'code'           => $f->code,
+                        'category'       => $f->category,
+                        'severity'       => $f->severity,
+                        'confidence'     => $f->confidence,
+                        'title'          => $f->title,
+                        'detail'         => $f->detail,
+                        'evidence'       => $f->evidence,
+                        'recommendation' => $f->recommendation,
+                    ])->all(),
+                ];
+            }
+            return $out;
+        });
+    }
+
     public static function bustCache(): void
     {
         Cache::forget('guardian:summary');
         Cache::forget('guardian:riskmap');
+        Cache::forget('guardian:pofindings');
     }
 
     // ═══════════════════════════════════════════════════════════════════

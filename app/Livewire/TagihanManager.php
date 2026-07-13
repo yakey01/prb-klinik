@@ -89,6 +89,13 @@ class TagihanManager extends Component
         return app(\App\Services\Guardian\GuardianEngine::class)->summary();
     }
 
+    /** Detail temuan Guardian per-PO (untuk badge penjelasan di header faktur). */
+    #[Computed]
+    public function guardianByPo(): array
+    {
+        return app(\App\Services\Guardian\GuardianEngine::class)->poFindings();
+    }
+
     #[Computed]
     public function kpiCards(): array
     {
