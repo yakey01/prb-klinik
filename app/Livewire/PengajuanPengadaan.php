@@ -38,6 +38,7 @@ class PengajuanPengadaan extends Component
     public string $justifikasi = '';
     public string $catatan = '';
     public array $rows = [];
+    public int   $rowSeq = 0;   // penghasil uid baris unik & stabil (untuk wire:key)
 
     // Detail drawer
     public ?int $detailId = null;
@@ -155,6 +156,7 @@ class PengajuanPengadaan extends Component
         $this->justifikasi    = (string) $p->justifikasi;
         $this->catatan        = (string) $p->catatan;
         $this->rows = $p->items->map(fn ($it) => [
+            'uid'                 => 'r' . (++$this->rowSeq),
             'obat_id'             => (int) $it->obat_id,
             'nama_obat'           => $it->nama_obat,
             'tipe_obat'           => $it->tipe_obat,
@@ -176,6 +178,7 @@ class PengajuanPengadaan extends Component
     public function addRow(): void
     {
         $this->rows[] = [
+            'uid' => 'r' . (++$this->rowSeq),
             'obat_id' => 0, 'nama_obat' => '', 'tipe_obat' => 'kronis',
             'jumlah_box' => 1, 'isi_per_box' => 1, 'harga_per_box' => 0,
             'klaim_bpjs_per_unit' => 0, 'faktor_jasa_farmasi' => 1.15, 'harga_jual' => 0,
@@ -185,8 +188,9 @@ class PengajuanPengadaan extends Component
 
     public function removeRow(int $i): void
     {
+        // JANGAN array_values() — biarkan kunci numerik baris yang tersisa STABIL agar
+        // index Alpine (obatPicker) & wire:model tidak bergeser (mencegah data "loncat" baris).
         unset($this->rows[$i]);
-        $this->rows = array_values($this->rows);
         if (empty($this->rows)) $this->addRow();
     }
 

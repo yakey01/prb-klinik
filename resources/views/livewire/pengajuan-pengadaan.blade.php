@@ -303,7 +303,7 @@
             </tr></thead>
             <tbody>
                 @foreach($rows as $i => $row)
-                <tr wire:key="row-{{ $i }}" style="border-top:1px solid rgba(31,61,48,.4);">
+                <tr wire:key="row-{{ $row['uid'] ?? $i }}" style="border-top:1px solid rgba(31,61,48,.4);">
                     @php $tp = $row['tipe_obat'] ?? 'kronis'; $isK = $tp === 'kronis'; @endphp
                     {{-- FIELD TIPE: pilih dulu kategori (menentukan apakah diklaim BPJS) --}}
                     <td style="padding:.3rem .5rem;vertical-align:top;min-width:210px;">
@@ -322,7 +322,7 @@
                     </td>
                     {{-- OBAT: combobox cari + stok, difilter sesuai tipe --}}
                     <td style="padding:.3rem .4rem;min-width:250px;vertical-align:top;">
-                        <div wire:key="obat-cb-{{ $i }}-{{ $tp }}"
+                        <div wire:key="obat-cb-{{ $row['uid'] ?? $i }}-{{ $tp }}"
                              x-data="obatPicker({{ $i }}, @js($tp), {{ (int)($row['obat_id']??0) }}, @js($row['nama_obat']??''))"
                              @click.outside="open=false" style="position:relative;">
                             <input type="text" x-model="query" @focus="open=true;filter()" @input="open=true;filter()"
