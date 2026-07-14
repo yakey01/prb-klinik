@@ -250,6 +250,64 @@ class PengajuanPengadaan extends Component
             : 0.0;
     }
 
+    /** Cari index baris berdasarkan UID stabil (bukan posisi). */
+    private function rowIndexByUid(string $uid): ?int
+    {
+        foreach ($this->rows as $i => $r) {
+            if (($r['uid'] ?? null) === $uid) return $i;
+        }
+        return null;
+    }
+
+    /**
+     * Pilih/kosongkan obat pada baris ber-UID (dipanggil combobox Alpine).
+     * Memakai UID agar TIDAK pernah salah baris walau index bergeser — ini
+     * memperbaiki bug "obat kelihatan terpilih tapi obat_id tak tersimpan".
+     */
+    public function pilihObat(string $uid, int $obatId): void
+    {
+        $i = $this->rowIndexByUid($uid);
+        if ($i === null) return;
+        $this->rows[$i]['obat_id'] = $obatId;
+        $o = $obatId > 0 ? $this->obatList->firstWhere('id', $obatId) : null;
+        if ($o) {
+            $this->rows[$i]['nama_obat']           = $o->nama_obat;
+            // BMHP diperlakukan sebagai non-kronis (enum PO/tagihan valid).
+            $this->rows[$i]['tipe_obat']           = ($o->tipe_obat === 'bmhp') ? 'non_kronis' : ($o->tipe_obat ?: 'kronis');
+            $this->rows[$i]['isi_per_box']         = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
+            $this->rows[$i]['harga_per_box']       = (float) ($o->harga_beli_per_unit ?? 0) * (int) $this->rows[$i]['isi_per_box'];
+            $this->rows[$i]['klaim_bpjs_per_unit'] = (float) ($o->klaim_bpjs_per_unit ?? 0);
+            $this->rows[$i]['faktor_jasa_farmasi'] = (float) ($o->faktor_jasa_farmasi ?? 1.15);
+            $this->rows[$i]['harga_jual']          = (float) ($o->harga_jual_per_unit ?? 0);
+            $this->rows[$i]['stok_aktual']         = (int) ($o->stok_aktual ?? 0);
+            $this->rows[$i]['stok_minimum']        = (int) ($o->stok_minimum ?? 0);
+            $this->rows[$i]['satuan']              = (string) ($o->satuan ?? '');
+        } else {
+            $this->rows[$i]['nama_obat']           = '';
+            $this->rows[$i]['klaim_bpjs_per_unit'] = 0;
+            $this->rows[$i]['harga_per_box']       = 0;
+            $this->rows[$i]['harga_jual']          = 0;
+        }
+        $this->recalcRow($i);
+    }
+
+    /** Ganti tipe (kronis/non-kronis) pada baris ber-UID → reset obat. */
+    public function setTipeRow(string $uid, string $tipe): void
+    {
+        $i = $this->rowIndexByUid($uid);
+        if ($i === null) return;
+        $this->rows[$i]['tipe_obat']           = $tipe === 'kronis' ? 'kronis' : 'non_kronis';
+        $this->rows[$i]['obat_id']             = 0;
+        $this->rows[$i]['nama_obat']           = '';
+        $this->rows[$i]['klaim_bpjs_per_unit'] = 0;
+        $this->rows[$i]['harga_per_box']       = 0;
+        $this->rows[$i]['harga_jual']          = 0;
+        $this->rows[$i]['stok_aktual']         = null;
+        $this->rows[$i]['stok_minimum']        = null;
+        $this->rows[$i]['satuan']              = '';
+        $this->recalcRow($i);
+    }
+
     #[Computed]
     public function formTotal(): array
     {

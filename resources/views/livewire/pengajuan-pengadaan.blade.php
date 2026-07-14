@@ -23,9 +23,9 @@
          siap sebelum form dibuka via morph). --}}
     <script>
         window.PRB_OBAT = @json($obatJson);
-        window.obatPicker = function(idx, tipe, obatId, nama){
+        window.obatPicker = function(uid, tipe, obatId, nama){
             return {
-                idx, tipe, query:'', open:false, results:[],
+                uid, tipe, query:'', open:false, results:[],
                 picked: obatId ? { id:obatId, nama:nama } : null,
                 menuStyle:'',
                 init(){
@@ -45,8 +45,8 @@
                     list.sort((a,b)=>((a.stok<=a.min?0:1)-(b.stok<=b.min?0:1)) || (a.nama||'').localeCompare(b.nama||''));
                     this.results=list.slice(0,60);
                 },
-                choose(o){ this.picked=o; this.query=''; this.open=false; this.$wire.set('rows.'+this.idx+'.obat_id', o.id); },
-                clearPick(){ this.picked=null; this.query=''; this.open=true; this.$wire.set('rows.'+this.idx+'.obat_id', 0); this.$nextTick(()=>this.filter()); },
+                choose(o){ this.picked=o; this.query=''; this.open=false; this.$wire.call('pilihObat', this.uid, o.id); },
+                clearPick(){ this.picked=null; this.query=''; this.open=true; this.$wire.call('pilihObat', this.uid, 0); this.$nextTick(()=>this.filter()); },
                 reset(){ this.picked=null; this.query=''; this.open=false; this.results=[]; },
             };
         };
@@ -312,10 +312,10 @@
                                     background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.08));
                                     box-shadow:inset 0 1.5px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.02), 0 8px 20px -8px rgba(0,0,0,.6);
                                     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
-                            <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','kronis')" title="Obat kronis — diklaim ke BPJS"
+                            <button type="button" wire:click="setTipeRow('{{ $row['uid'] ?? $i }}','kronis')" title="Obat kronis — diklaim ke BPJS"
                                 style="padding:.62rem 1.35rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;transition:all .15s;
                                     {{ $isK ? 'background:linear-gradient(180deg,rgba(132,187,245,.42),rgba(132,187,245,.2));color:#d5e8fb;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35),0 0 16px rgba(132,187,245,.3);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Kronis</button>
-                            <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','non_kronis')" title="Obat umum & BMHP — tidak diklaim BPJS"
+                            <button type="button" wire:click="setTipeRow('{{ $row['uid'] ?? $i }}','non_kronis')" title="Obat umum & BMHP — tidak diklaim BPJS"
                                 style="padding:.62rem 1.2rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,.1);transition:all .15s;
                                     {{ !$isK ? 'background:linear-gradient(180deg,rgba(242,193,78,.45),rgba(224,168,50,.22));color:#ffe8ac;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.4),0 0 16px rgba(242,193,78,.32);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Non-Kronis</button>
                         </div>
@@ -324,7 +324,7 @@
                     {{-- OBAT: combobox cari + stok, difilter sesuai tipe --}}
                     <td style="padding:.3rem .4rem;min-width:250px;vertical-align:top;">
                         <div wire:key="obat-cb-{{ $row['uid'] ?? $i }}-{{ $tp }}"
-                             x-data="obatPicker({{ $i }}, @js($tp), {{ (int)($row['obat_id']??0) }}, @js($row['nama_obat']??''))"
+                             x-data="obatPicker(@js($row['uid'] ?? (string)$i), @js($tp), {{ (int)($row['obat_id']??0) }}, @js($row['nama_obat']??''))"
                              @click.outside="open=false" style="position:relative;">
                             <input type="text" x-model="query" @focus="open=true;filter()" @input="open=true;filter()"
                                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="obat_cari_{{ $i }}"
