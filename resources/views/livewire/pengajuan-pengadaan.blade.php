@@ -420,10 +420,19 @@
             @elseif($editStatus === 'diajukan')
             <button wire:click="simpan(false)" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">Simpan Perubahan</button>
             @elseif($formMode === 'langsung')
-            <button wire:click="simpanLangsung" wire:confirm="Buat PO LANGSUNG tanpa persetujuan manajer? Stok & tagihan akan diperbarui." style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(217,164,65,.95),rgba(217,164,65,.78));border:1px solid rgba(217,164,65,.5);color:#1a0e00;cursor:pointer;font-size:.8rem;font-weight:800;">⚡ Buat PO Langsung →</button>
+            <button wire:click="simpanLangsung" wire:loading.attr="disabled" wire:target="simpanLangsung" wire:confirm="Buat PO LANGSUNG tanpa persetujuan manajer? Stok & tagihan akan diperbarui." style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(217,164,65,.95),rgba(217,164,65,.78));border:1px solid rgba(217,164,65,.5);color:#1a0e00;cursor:pointer;font-size:.8rem;font-weight:800;">
+                <span wire:loading.remove wire:target="simpanLangsung">⚡ Buat PO Langsung →</span>
+                <span wire:loading wire:target="simpanLangsung">⏳ Memproses…</span>
+            </button>
             @else
-            <button wire:click="simpan(false)" style="padding:.6rem 1.1rem;border-radius:.6rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.8rem;font-weight:700;">Simpan Draft</button>
-            <button wire:click="ajukanLangsung" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">Ajukan untuk Persetujuan →</button>
+            <button wire:click="simpan(false)" wire:loading.attr="disabled" wire:target="simpan" style="padding:.6rem 1.1rem;border-radius:.6rem;background:rgba(255,255,255,.05);border:1px solid var(--line3);color:var(--ink);cursor:pointer;font-size:.8rem;font-weight:700;">
+                <span wire:loading.remove wire:target="simpan">Simpan Draft</span>
+                <span wire:loading wire:target="simpan">Menyimpan…</span>
+            </button>
+            <button wire:click="ajukanLangsung" wire:loading.attr="disabled" wire:target="ajukanLangsung" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(91,155,213,.95),rgba(91,155,213,.78));border:1px solid rgba(91,155,213,.5);color:#04121f;cursor:pointer;font-size:.8rem;font-weight:800;">
+                <span wire:loading.remove wire:target="ajukanLangsung">Ajukan untuk Persetujuan →</span>
+                <span wire:loading wire:target="ajukanLangsung">⏳ Mengirim ke Manajer…</span>
+            </button>
             @endif
         </div>
     </div>
@@ -615,7 +624,10 @@
 
             <div style="display:flex;gap:.6rem;justify-content:flex-end;">
                 <button wire:click="tutupFaktur" style="padding:.6rem 1.1rem;border-radius:.6rem;background:transparent;border:1px solid var(--line2);color:var(--mut);cursor:pointer;font-size:.8rem;">Batal</button>
-                <button wire:click="konfirmRealisasi" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.8rem;font-weight:800;">{{ $isLengkapi ? '💾 Simpan Faktur' : '🛒 Buat PO dari Faktur →' }}</button>
+                <button wire:click="konfirmRealisasi" wire:loading.attr="disabled" wire:target="konfirmRealisasi" style="padding:.6rem 1.3rem;border-radius:.6rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.75));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-size:.8rem;font-weight:800;">
+                    <span wire:loading.remove wire:target="konfirmRealisasi">{{ $isLengkapi ? '💾 Simpan Faktur' : '🛒 Buat PO dari Faktur →' }}</span>
+                    <span wire:loading wire:target="konfirmRealisasi">⏳ Memproses…</span>
+                </button>
             </div>
         </div>
     </div>

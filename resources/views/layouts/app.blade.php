@@ -803,6 +803,34 @@
             const d = e.detail?.[0] ?? e.detail ?? {};
             window.showToast(d.message, d.type || 'success');
         });
+
+        // ── Detektor kegagalan aksi Livewire (anti "klik tapi tak tersimpan") ──
+        // 419 = halaman/sesi kedaluwarsa (sering setelah deploy / tab lama dibiarkan);
+        // 500 = server gagal; offline = koneksi putus. Semua diberi umpan balik jelas.
+        function showStaleBanner() {
+            if (document.getElementById('stale-banner')) return;
+            const b = document.createElement('div');
+            b.id = 'stale-banner';
+            b.style.cssText = 'position:fixed;left:50%;top:1rem;transform:translateX(-50%);z-index:200000;background:linear-gradient(180deg,#e6863c,#c96a26);color:#1a0e00;padding:.75rem 1rem;border-radius:.75rem;box-shadow:0 14px 36px rgba(0,0,0,.55);display:flex;align-items:center;gap:.75rem;font-weight:700;font-size:.85rem;max-width:94vw;';
+            b.innerHTML = '<span>⚠️ Halaman kedaluwarsa — aksi terakhir <u>belum tersimpan</u>. Muat ulang lalu ulangi.</span>';
+            const btn = document.createElement('button');
+            btn.textContent = 'Muat Ulang';
+            btn.style.cssText = 'background:#1a0e00;color:#f2c668;border:none;border-radius:.5rem;padding:.45rem .85rem;font-weight:800;cursor:pointer;white-space:nowrap;';
+            btn.onclick = () => location.reload();
+            b.appendChild(btn);
+            document.body.appendChild(b);
+        }
+        document.addEventListener('livewire:init', () => {
+            if (window.Livewire && Livewire.hook) {
+                Livewire.hook('request', ({ fail }) => {
+                    fail(({ status, preventDefault }) => {
+                        if (status === 419) { preventDefault(); showStaleBanner(); }
+                        else if (status >= 500) { preventDefault(); window.showToast('Server gagal memproses. Coba lagi sebentar.', 'error'); }
+                    });
+                });
+            }
+        });
+        window.addEventListener('offline', () => window.showToast('Koneksi internet terputus — perubahan belum tersimpan.', 'warning'));
     </script>
 </body>
 </html>
