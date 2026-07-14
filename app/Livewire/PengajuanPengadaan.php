@@ -68,7 +68,11 @@ class PengajuanPengadaan extends Component
     {
         // Batasi ke lingkup obat user (kronis/non/keduanya) — user hanya melihat
         // & bisa memilih obat sesuai izinnya. Admin melihat semua.
+        // BMHP (bahan medis habis pakai) = non-BPJS/umum → ikut kategori non-kronis.
         $tipes = Auth::user()?->lingkupTipes() ?? ['kronis', 'non_kronis'];
+        if (in_array('non_kronis', $tipes, true)) {
+            $tipes[] = 'bmhp';
+        }
         return Obat::where('is_active', true)
             ->whereIn('tipe_obat', $tipes)
             ->orderBy('nama_obat')
@@ -214,7 +218,8 @@ class PengajuanPengadaan extends Component
             $o = $this->obatList->firstWhere('id', (int) $value);
             if ($o) {
                 $this->rows[$i]['nama_obat']           = $o->nama_obat;
-                $this->rows[$i]['tipe_obat']           = $o->tipe_obat ?: 'kronis';
+                // BMHP diperlakukan sebagai non-kronis untuk PO/tagihan (enum: kronis|non_kronis).
+                $this->rows[$i]['tipe_obat']           = ($o->tipe_obat === 'bmhp') ? 'non_kronis' : ($o->tipe_obat ?: 'kronis');
                 $this->rows[$i]['isi_per_box']         = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
                 $this->rows[$i]['harga_per_box']       = (float) ($o->harga_beli_per_unit ?? 0) * (int) $this->rows[$i]['isi_per_box'];
                 $this->rows[$i]['klaim_bpjs_per_unit'] = (float) ($o->klaim_bpjs_per_unit ?? 0);

@@ -265,6 +265,8 @@ class GuardianEngine
         foreach ($po->items as $it) {
             $master = $it->obat?->tipe_obat;
             if (! $master || ! $it->tipe_obat) continue;
+            // BMHP diadakan & ditagih sebagai non-kronis — bukan ketidaksesuaian.
+            if ($master === 'bmhp') $master = 'non_kronis';
             if ($master !== $it->tipe_obat) {
                 $mLbl = $master === 'kronis' ? 'Kronis' : 'Non-Kronis';
                 $iLbl = $it->tipe_obat === 'kronis' ? 'Kronis' : 'Non-Kronis';

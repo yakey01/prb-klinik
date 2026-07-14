@@ -39,7 +39,8 @@
                 filter(){
                     this.pos();
                     const q=(this.query||'').toLowerCase().trim();
-                    let list=(window.PRB_OBAT||[]).filter(o=>o.tipe===this.tipe);
+                    // Non-Kronis mencakup BMHP (bahan medis habis pakai — non-BPJS).
+                    let list=(window.PRB_OBAT||[]).filter(o=> o.tipe===this.tipe || (this.tipe==='non_kronis' && o.tipe==='bmhp'));
                     if(q) list=list.filter(o=>(o.nama||'').toLowerCase().includes(q)||(o.kode||'').toLowerCase().includes(q));
                     list.sort((a,b)=>((a.stok<=a.min?0:1)-(b.stok<=b.min?0:1)) || (a.nama||'').localeCompare(b.nama||''));
                     this.results=list.slice(0,60);
@@ -314,7 +315,7 @@
                             <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','kronis')" title="Obat kronis — diklaim ke BPJS"
                                 style="padding:.62rem 1.35rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;transition:all .15s;
                                     {{ $isK ? 'background:linear-gradient(180deg,rgba(132,187,245,.42),rgba(132,187,245,.2));color:#d5e8fb;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35),0 0 16px rgba(132,187,245,.3);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Kronis</button>
-                            <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','non_kronis')" title="Obat umum — tidak diklaim BPJS"
+                            <button type="button" wire:click="$set('rows.{{ $i }}.tipe_obat','non_kronis')" title="Obat umum & BMHP — tidak diklaim BPJS"
                                 style="padding:.62rem 1.2rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,.1);transition:all .15s;
                                     {{ !$isK ? 'background:linear-gradient(180deg,rgba(242,193,78,.45),rgba(224,168,50,.22));color:#ffe8ac;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.4),0 0 16px rgba(242,193,78,.32);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Non-Kronis</button>
                         </div>
@@ -343,7 +344,7 @@
                                     <template x-for="(o,idx) in results" :key="o.id">
                                         <button type="button" class="obat-cb-opt" @click="choose(o)">
                                             <div style="display:flex;justify-content:space-between;gap:.5rem;">
-                                                <span x-text="o.nama" style="font-weight:600;"></span>
+                                                <span style="font-weight:600;"><span x-text="o.nama"></span><template x-if="o.tipe==='bmhp'"><span style="margin-left:.35rem;font-size:.54rem;font-weight:800;padding:.03rem .32rem;border-radius:999px;background:rgba(180,140,255,.16);border:1px solid rgba(180,140,255,.4);color:#c9b0ff;">BMHP</span></template></span>
                                                 <span :style="`font-size:.62rem;white-space:nowrap;${o.stok<=o.min ? 'color:#ff8a7a;' : 'color:#7fe3ac;'}`" x-text="(o.stok<=o.min?'⚠ ':'● ')+o.stok+' '+o.satuan"></span>
                                             </div>
                                             <div style="font-size:.6rem;color:var(--mut2);" x-text="(o.kode?o.kode+' · ':'')+'min '+o.min"></div>
