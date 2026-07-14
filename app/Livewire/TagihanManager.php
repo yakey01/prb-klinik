@@ -55,6 +55,10 @@ class TagihanManager extends Component
     public ?int   $hapusPoId  = null;                // PO yg sedang diminta penghapusan
     public string $hapusAlasan = '';                 // alasan penghapusan (wajib)
 
+    // Hapus SATU baris tagihan (koreksi tagihan dobel/salah) — tanpa sentuh stok
+    public ?int   $hapusTagihanId = null;
+    public string $hapusTagihanAlasan = '';
+
     /** Daftar bank umum Indonesia untuk datalist. */
     public array $bankList = ['BCA', 'Mandiri', 'BRI', 'BNI', 'BSI', 'CIMB Niaga', 'Permata', 'Danamon', 'BTN', 'Panin', 'Maybank', 'OCBC NISP', 'Bank Jatim', 'Muamalat', 'Mega'];
 
@@ -527,6 +531,68 @@ class TagihanManager extends Component
             'status'         => $status,
             'tanggal_bayar'  => $last?->tanggal?->format('Y-m-d'),
         ]);
+    }
+
+    public function konfirmHapusTagihan(int $id): void
+    {
+        $this->hapusTagihanId = $id;
+        $this->hapusTagihanAlasan = '';
+        $this->resetValidation();
+    }
+
+    public function batalHapusTagihan(): void
+    {
+        $this->hapusTagihanId = null;
+        $this->hapusTagihanAlasan = '';
+    }
+
+    #[Computed]
+    public function hapusTagihanPreview(): ?Tagihan
+    {
+        return $this->hapusTagihanId
+            ? Tagihan::with(['pembayaran', 'distributor', 'purchaseOrder'])->find($this->hapusTagihanId)
+            : null;
+    }
+
+    /**
+     * Hapus SATU baris tagihan yang dobel/salah entry. TIDAK menyentuh stok
+     * (stok terikat ke item PO, bukan tagihan). Arsip pembayaran ikut terhapus
+     * via cascade — DIBLOKIR bila ada pembayaran aktif (batalkan dulu).
+     */
+    public function hapusTagihan(): void
+    {
+        $this->validate(
+            ['hapusTagihanAlasan' => 'required|string|min:3|max:300'],
+            ['hapusTagihanAlasan.required' => 'Isi alasan penghapusan (jejak audit wajib).', 'hapusTagihanAlasan.min' => 'Alasan minimal 3 karakter.'],
+            ['hapusTagihanAlasan' => 'alasan']
+        );
+
+        $t = Tagihan::with('pembayaran')->findOrFail($this->hapusTagihanId);
+        $adaBayar = $t->pembayaran->where('dibatalkan', false)->where('jumlah', '>', 0)->count() > 0;
+        if ($adaBayar) {
+            $this->dispatch('toast', type: 'error', message: 'Tidak bisa hapus: tagihan ini punya pembayaran aktif. Batalkan pembayarannya dulu.');
+            return;
+        }
+
+        \DB::transaction(function () use ($t) {
+            Log::info('[Tagihan] Baris tagihan dihapus (koreksi dobel/salah)', [
+                'tagihan_id' => $t->id,
+                'nomor'      => $t->nomor_tagihan,
+                'po_id'      => $t->purchase_order_id,
+                'tipe'       => $t->tipe_obat,
+                'total'      => $t->total_tagihan,
+                'oleh'       => Auth::user()?->name,
+                'alasan'     => $this->hapusTagihanAlasan,
+            ]);
+            $t->delete();   // cascade: pembayaran_tagihan
+        });
+
+        $no = $t->nomor_tagihan;
+        $this->hapusTagihanId = null;
+        $this->hapusTagihanAlasan = '';
+        \App\Services\Guardian\GuardianEngine::bustCache();
+        $this->resetPage();
+        $this->dispatch('toast', type: 'success', message: "Tagihan {$no} dihapus.");
     }
 
     public function konfirm(int $id): void

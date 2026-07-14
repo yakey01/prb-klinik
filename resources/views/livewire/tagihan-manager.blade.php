@@ -468,7 +468,8 @@
                     <div title="{{ $docCfg['title'] }}" style="margin-top:.25rem;font-size:.58rem;font-weight:800;color:var(--red2);background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.3);border-radius:.3rem;padding:.08rem .3rem;display:inline-block;">{{ $docCfg['label'] }}</div>
                     @endif
                 </td>
-                <td style="padding:.55rem .5rem;text-align:center;width:88px;">
+                <td style="padding:.55rem .5rem;text-align:center;width:104px;">
+                    <div style="display:inline-flex;align-items:center;gap:.3rem;">
                     @if($t->status === 'draft')
                     <button wire:click="konfirm({{ $t->id }})"
                         style="font-size:.68rem;padding:.22rem .5rem;border-radius:.3rem;cursor:pointer;background:rgba(217,164,65,.15);border:1px solid rgba(217,164,65,.3);color:var(--gold2);">
@@ -488,6 +489,12 @@
                     @else
                     <span title="Lunas — dokumen lengkap" style="font-size:.65rem;color:var(--emer2);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg></span>
                     @endif
+                    {{-- Hapus baris tagihan (koreksi dobel/salah) --}}
+                    <button wire:click="konfirmHapusTagihan({{ $t->id }})" title="Hapus tagihan ini (koreksi dobel / salah entry)"
+                        style="flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:.35rem;cursor:pointer;background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.25);color:var(--red2);">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    </button>
+                    </div>
                 </td>
             </tr>
             @endforeach
@@ -768,6 +775,55 @@
                     Hapus Faktur & Kembalikan Stok
                 </button>
                 <button type="button" wire:click="batalHapusFaktur" class="btn-outline">Batal</button>
+            </div>
+            @endif
+            @endif
+        </div>
+    </div>
+    @endif
+
+    {{-- ══ MODAL HAPUS BARIS TAGIHAN (koreksi dobel/salah) ═══════════════ --}}
+    @if($hapusTagihanId)
+    @php $ht = $this->hapusTagihanPreview; @endphp
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:5100;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem 1rem;overflow-y:auto;" wire:click.self="batalHapusTagihan">
+        <div class="glass-card" style="width:100%;max-width:500px;padding:1.5rem;border-color:rgba(232,100,90,.5);box-shadow:0 24px 64px rgba(0,0,0,.7);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                <div class="font-heading" style="font-size:1rem;color:var(--red2);display:flex;align-items:center;gap:.45rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    Hapus Tagihan
+                </div>
+                <button wire:click="batalHapusTagihan" style="background:none;border:none;color:var(--mut);cursor:pointer;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+            </div>
+
+            @if($ht)
+            @php $adaBayarT = $ht->pembayaran->where('dibatalkan', false)->where('jumlah','>',0)->count() > 0; @endphp
+            <div style="background:rgba(255,255,255,.04);border-radius:.5rem;padding:.7rem .9rem;margin-bottom:.85rem;font-size:.78rem;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;"><span style="color:var(--mut);">No. Tagihan</span><span class="font-mono" style="color:var(--gold2);">{{ $ht->nomor_tagihan }}</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;"><span style="color:var(--mut);">Faktur / PBF</span><span>PO #{{ $ht->purchase_order_id }} · {{ $ht->distributor->name ?? '—' }}</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:.25rem;"><span style="color:var(--mut);">Jenis</span><span style="color:{{ $ht->tipe_obat==='kronis' ? 'var(--emer2)' : 'var(--blue)' }};">{{ $ht->label_tipe }}</span></div>
+                <div style="display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:.25rem;margin-top:.25rem;"><span style="color:var(--mut);">Nilai Tagihan</span><span class="font-mono" style="font-weight:700;color:var(--ink);">Rp {{ number_format($ht->total_tagihan,0,',','.') }}</span></div>
+            </div>
+
+            @if($adaBayarT)
+            <div style="background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.4);border-radius:.5rem;padding:.7rem .85rem;margin-bottom:1rem;font-size:.73rem;color:var(--red2);line-height:1.5;">
+                <strong>⛔ Tidak bisa dihapus.</strong> Tagihan ini punya <strong>pembayaran aktif</strong>. Batalkan dulu pembayarannya (tombol Bayar → Batalkan) baru bisa dihapus.
+            </div>
+            <div style="display:flex;justify-content:flex-end;"><button type="button" wire:click="batalHapusTagihan" class="btn-outline">Tutup</button></div>
+            @else
+            <div style="background:rgba(232,100,90,.08);border:1px solid rgba(232,100,90,.3);border-radius:.5rem;padding:.6rem .8rem;margin-bottom:.85rem;font-size:.72rem;color:var(--red2);line-height:1.5;">
+                ⚠️ Menghapus <strong>satu baris tagihan</strong> ini (mis. tagihan dobel/salah). Stok & faktur PO <strong>tidak</strong> terpengaruh. Arsip pembayaran (jika ada, non-aktif) ikut terhapus.
+            </div>
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Alasan Penghapusan <span style="color:var(--red2)">*</span> <span style="color:var(--mut);font-weight:400;font-size:.66rem;">— jejak audit</span></label>
+                <input wire:model="hapusTagihanAlasan" type="text" placeholder="mis. tagihan dobel dgn {{ $ht->nomor_tagihan }} / salah tipe" class="form-input" wire:keydown.enter="hapusTagihan">
+                @error('hapusTagihanAlasan')<div style="color:var(--red2);font-size:.68rem;margin-top:.2rem;">{{ $message }}</div>@enderror
+            </div>
+            <div style="display:flex;gap:.6rem;">
+                <button type="button" wire:click="hapusTagihan" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.4rem;font-weight:800;padding:.6rem;border-radius:.5rem;cursor:pointer;background:rgba(232,100,90,.18);border:1px solid rgba(232,100,90,.5);color:var(--red2);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                    Hapus Tagihan
+                </button>
+                <button type="button" wire:click="batalHapusTagihan" class="btn-outline">Batal</button>
             </div>
             @endif
             @endif
