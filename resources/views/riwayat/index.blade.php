@@ -128,6 +128,16 @@
                     </span>
                     @endif
                 </div>
+                {{-- Jejak pembuat PO (siapa yg mengadakan) --}}
+                @if($po->dibuat_oleh_nama)
+                <div style="display:flex;align-items:center;gap:.4rem;margin-top:.4rem;font-size:.68rem;color:var(--mut);">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Dibuat oleh <strong style="color:var(--ink);">{{ $po->dibuat_oleh_nama }}</strong>
+                    @if($po->sumber)
+                    <span style="padding:.05rem .4rem;border-radius:999px;font-size:.62rem;font-weight:700;{{ $po->sumber==='pengajuan' ? 'background:rgba(217,164,65,.12);color:var(--gold2);' : 'background:rgba(111,177,224,.12);color:var(--blue);' }}">{{ $po->sumber==='pengajuan' ? 'via Pengajuan' : 'Input Langsung' }}</span>
+                    @endif
+                </div>
+                @endif
             </div>
             <div style="text-align:right; flex-shrink:0;">
                 <div class="font-mono" style="font-size:1.1rem; font-weight:700; color:var(--emer2);">

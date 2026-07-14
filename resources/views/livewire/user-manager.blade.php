@@ -279,6 +279,29 @@
                     @error('role')<div class="um-err">{{ $message }}</div>@enderror
                 </div>
 
+                {{-- Lingkup obat: kronis / non-kronis / keduanya --}}
+                <div class="um-field" @if($role==='admin') style="opacity:.55;pointer-events:none;" @endif>
+                    <label class="form-label">Lingkup Obat *
+                        <span style="font-weight:400;color:var(--mut);font-size:.68rem;">— jenis obat yang boleh diadakan/diajukan user ini</span>
+                    </label>
+                    <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+                        @foreach(\App\Models\User::LINGKUP_META as $key => $m)
+                        <label style="flex:1;min-width:120px;cursor:pointer;border-radius:.6rem;padding:.6rem .75rem;transition:all .15s;
+                            border:1px solid {{ $lingkup_obat===$key ? $m['border'] : 'var(--line2)' }};
+                            background:{{ $lingkup_obat===$key ? $m['bg'] : 'transparent' }};">
+                            <input type="radio" wire:model.live="lingkup_obat" value="{{ $key }}" style="display:none;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:.4rem;">
+                                <span style="font-weight:700;font-size:.82rem;color:{{ $lingkup_obat===$key ? $m['color'] : 'var(--ink)' }};">{{ $m['label'] }}</span>
+                                @if($lingkup_obat===$key)<span style="color:{{ $m['color'] }};"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:middle"><polyline points="20 6 9 17 4 12"/></svg></span>@endif
+                            </div>
+                            <span style="font-size:.66rem;color:var(--mut);line-height:1.4;display:block;margin-top:.2rem;">{{ $m['desc'] }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                    @if($role==='admin')<div style="font-size:.66rem;color:var(--gold2);margin-top:.35rem;">Admin selalu berlingkup "Keduanya".</div>@endif
+                    @error('lingkup_obat')<div class="um-err">{{ $message }}</div>@enderror
+                </div>
+
                 {{-- Status --}}
                 <div class="um-field">
                     <label class="form-label">Status Akun</label>

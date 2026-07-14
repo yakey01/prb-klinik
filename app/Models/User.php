@@ -10,7 +10,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     protected $fillable = [
-        'name', 'email', 'phone', 'jabatan', 'password', 'role',
+        'name', 'email', 'phone', 'jabatan', 'password', 'role', 'lingkup_obat',
         'is_active', 'last_login_at', 'last_login_ip', 'login_count', 'created_by',
     ];
     protected $hidden   = ['password', 'remember_token'];
@@ -67,6 +67,39 @@ class User extends Authenticatable
     public function isApoteker(): bool { return in_array($this->role, ['admin', 'apoteker']); }
     public function isViewer(): bool   { return $this->role === 'viewer'; }
     public function canEdit(): bool    { return $this->is_active && in_array($this->role, ['admin', 'apoteker']); }
+
+    /* ── Lingkup obat (kronis / non_kronis / keduanya) ──────────── */
+    public const LINGKUP_META = [
+        'kronis'     => ['label' => 'Kronis',      'color' => '#5ce0a4', 'bg' => 'rgba(63,207,142,.15)',  'border' => 'rgba(63,207,142,.3)',  'desc' => 'Hanya boleh mengadakan obat kronis (PRB/BPJS).'],
+        'non_kronis' => ['label' => 'Non-Kronis',  'color' => '#6fb1e0', 'bg' => 'rgba(111,177,224,.15)', 'border' => 'rgba(111,177,224,.3)', 'desc' => 'Hanya boleh mengadakan obat non-kronis (umum).'],
+        'keduanya'   => ['label' => 'Keduanya',    'color' => '#f2c668', 'bg' => 'rgba(217,164,65,.15)',  'border' => 'rgba(217,164,65,.3)',  'desc' => 'Boleh mengadakan obat kronis maupun non-kronis.'],
+    ];
+
+    /** Tipe obat yang boleh diadakan user ini. Admin selalu keduanya. */
+    public function lingkupTipes(): array
+    {
+        if ($this->isAdmin()) return ['kronis', 'non_kronis'];
+        return match ($this->lingkup_obat) {
+            'kronis'     => ['kronis'],
+            'non_kronis' => ['non_kronis'],
+            default      => ['kronis', 'non_kronis'],
+        };
+    }
+
+    public function bisaInput(string $tipe): bool
+    {
+        return in_array($tipe === 'kronis' ? 'kronis' : 'non_kronis', $this->lingkupTipes(), true);
+    }
+
+    public function lingkupMeta(): array
+    {
+        return self::LINGKUP_META[$this->lingkup_obat] ?? self::LINGKUP_META['keduanya'];
+    }
+
+    public function lingkupLabel(): string
+    {
+        return $this->isAdmin() ? 'Keduanya' : $this->lingkupMeta()['label'];
+    }
 
     /* ── Presentation helpers ───────────────────────────────────── */
     public function initials(): string

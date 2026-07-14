@@ -10,6 +10,7 @@ class PurchaseOrder extends Model
     protected $fillable = [
         'distributor_id','nomor_invoice','tanggal_po','total_nilai','catatan',
         'status_bayar','tanggal_jatuh_tempo','tanggal_bayar','jumlah_bayar',
+        'dibuat_oleh_id','dibuat_oleh_nama','sumber',
     ];
     protected $casts = [
         'tanggal_po'          => 'date',

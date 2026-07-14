@@ -20,6 +20,7 @@ class UserManager extends Component
     public string $phone                 = '';
     public string $jabatan               = '';
     public string $role                  = 'apoteker';
+    public string $lingkup_obat          = 'keduanya';   // kronis | non_kronis | keduanya
     public bool   $is_active             = true;
     public string $password              = '';
     public string $password_confirmation = '';
@@ -152,6 +153,7 @@ class UserManager extends Component
         $this->phone     = (string) $user->phone;
         $this->jabatan   = (string) $user->jabatan;
         $this->role      = $user->role;
+        $this->lingkup_obat = $user->lingkup_obat ?: 'keduanya';
         $this->is_active = (bool) $user->is_active;
         $this->password  = '';
         $this->password_confirmation = '';
@@ -186,6 +188,7 @@ class UserManager extends Component
             'phone'   => 'nullable|string|max:30',
             'jabatan' => 'nullable|string|max:120',
             'role'    => 'required|in:admin,apoteker,viewer',
+            'lingkup_obat' => 'required|in:kronis,non_kronis,keduanya',
         ];
         if (!$this->editId || $this->ubahPassword) {
             $rules['password'] = ['required', 'confirmed', Password::min(8)];
@@ -220,12 +223,13 @@ class UserManager extends Component
             $u = User::findOrFail($this->editId);
             $old = $u->only('name', 'email', 'phone', 'jabatan', 'role', 'is_active');
             $data = [
-                'name'      => $this->name,
-                'email'     => $this->email,
-                'phone'     => $this->phone ?: null,
-                'jabatan'   => $this->jabatan ?: null,
-                'role'      => $this->role,
-                'is_active' => $this->is_active,
+                'name'         => $this->name,
+                'email'        => $this->email,
+                'phone'        => $this->phone ?: null,
+                'jabatan'      => $this->jabatan ?: null,
+                'role'         => $this->role,
+                'lingkup_obat' => $this->lingkup_obat,
+                'is_active'    => $this->is_active,
             ];
             if ($this->ubahPassword && $this->password) {
                 $data['password'] = Hash::make($this->password);
@@ -235,14 +239,15 @@ class UserManager extends Component
             $this->dispatch('toast', message: "Data \"{$this->name}\" diperbarui.", type: 'success');
         } else {
             $u = User::create([
-                'name'       => $this->name,
-                'email'      => $this->email,
-                'phone'      => $this->phone ?: null,
-                'jabatan'    => $this->jabatan ?: null,
-                'role'       => $this->role,
-                'is_active'  => $this->is_active,
-                'password'   => Hash::make($this->password),
-                'created_by' => Auth::id(),
+                'name'         => $this->name,
+                'email'        => $this->email,
+                'phone'        => $this->phone ?: null,
+                'jabatan'      => $this->jabatan ?: null,
+                'role'         => $this->role,
+                'lingkup_obat' => $this->lingkup_obat,
+                'is_active'    => $this->is_active,
+                'password'     => Hash::make($this->password),
+                'created_by'   => Auth::id(),
             ]);
             ActivityLog::record('created', "User ditambah: {$this->name} ({$this->role})", 'User', $u->id);
             $this->dispatch('toast', message: "Pengguna \"{$this->name}\" berhasil dibuat.", type: 'success');
@@ -324,6 +329,7 @@ class UserManager extends Component
         $this->phone     = '';
         $this->jabatan   = '';
         $this->role      = 'apoteker';
+        $this->lingkup_obat = 'keduanya';
         $this->is_active = true;
         $this->password  = '';
         $this->password_confirmation = '';

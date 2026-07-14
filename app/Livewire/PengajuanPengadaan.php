@@ -65,8 +65,29 @@ class PengajuanPengadaan extends Component
     #[Computed]
     public function obatList()
     {
-        return Obat::where('is_active', true)->orderBy('nama_obat')
+        // Batasi ke lingkup obat user (kronis/non/keduanya) — user hanya melihat
+        // & bisa memilih obat sesuai izinnya. Admin melihat semua.
+        $tipes = Auth::user()?->lingkupTipes() ?? ['kronis', 'non_kronis'];
+        return Obat::where('is_active', true)
+            ->whereIn('tipe_obat', $tipes)
+            ->orderBy('nama_obat')
             ->get(['id', 'nama_obat', 'kode_obat', 'tipe_obat', 'satuan', 'stok_aktual', 'stok_minimum', 'harga_beli_per_unit', 'harga_jual_per_unit', 'klaim_bpjs_per_unit', 'faktor_jasa_farmasi']);
+    }
+
+    /** Guard lingkup: pastikan semua baris sesuai izin obat user. Return true jika lolos. */
+    private function guardLingkup(array $rows): bool
+    {
+        $u = Auth::user();
+        if (! $u) return true;
+        $tipes = $u->lingkupTipes();
+        foreach ($rows as $r) {
+            $tipe = ($r['tipe_obat'] ?? 'kronis') === 'kronis' ? 'kronis' : 'non_kronis';
+            if (! in_array($tipe, $tipes, true)) {
+                $this->dispatch('toast', type: 'error', message: 'Lingkup Anda "' . $u->lingkupLabel() . '" — tidak boleh mengadakan obat ' . ($tipe === 'kronis' ? 'kronis' : 'non-kronis') . '.');
+                return false;
+            }
+        }
+        return true;
     }
 
     #[Computed]
@@ -282,6 +303,11 @@ class PengajuanPengadaan extends Component
             throw $e;
         }
 
+        // Guard lingkup obat: user hanya boleh mengajukan sesuai izinnya.
+        if (! $this->guardLingkup(collect($this->rows)->filter(fn ($r) => (int) ($r['obat_id'] ?? 0) > 0)->all())) {
+            return;
+        }
+
         $reAppr = false;
         DB::transaction(function () use ($ajukan, &$reAppr) {
             $u = Auth::user();
@@ -403,15 +429,21 @@ class PengajuanPengadaan extends Component
             ->filter(fn ($r) => (int) ($r['obat_id'] ?? 0) > 0 && (int) ($r['jumlah_box'] ?? 0) > 0)
             ->values()->all();
 
-        DB::transaction(function () use ($rows) {
+        if (! $this->guardLingkup($rows)) return;
+
+        $u = Auth::user();
+        DB::transaction(function () use ($rows, $u) {
             $total = array_sum(array_map(fn ($r) => (int) $r['jumlah_box'] * (float) $r['harga_per_box'], $rows));
             $po = PurchaseOrder::create([
-                'distributor_id' => $this->distributor_id,
-                'nomor_invoice'  => null,
-                'tanggal_po'     => $this->tanggal ?: now()->toDateString(),
-                'total_nilai'    => $total,
-                'catatan'        => 'Input langsung (tanpa pengajuan)' . ($this->catatan ? ' · ' . $this->catatan : ''),
-                'status_bayar'   => 'belum',
+                'distributor_id'   => $this->distributor_id,
+                'nomor_invoice'    => null,
+                'tanggal_po'       => $this->tanggal ?: now()->toDateString(),
+                'total_nilai'      => $total,
+                'catatan'          => 'Input langsung (tanpa pengajuan)' . ($this->catatan ? ' · ' . $this->catatan : ''),
+                'status_bayar'     => 'belum',
+                'dibuat_oleh_id'   => $u?->id,
+                'dibuat_oleh_nama' => $u?->name,
+                'sumber'           => 'langsung',
             ]);
             $perTipe = [];
             foreach ($rows as $r) {
@@ -669,12 +701,16 @@ class PengajuanPengadaan extends Component
 
                 $totalAktual = array_sum(array_map(fn ($r) => (int) $r['jumlah_box'] * (float) $r['harga_per_box'], $rows));
                 $po = PurchaseOrder::create([
-                    'distributor_id' => $p->distributor_id,
-                    'nomor_invoice'  => $faktur ?: null,
-                    'tanggal_po'     => $tglPo,
-                    'total_nilai'    => $totalAktual,           // nilai AKTUAL faktur
-                    'catatan'        => 'Realisasi pengajuan ' . $p->no_pengajuan,
-                    'status_bayar'   => 'belum',
+                    'distributor_id'   => $p->distributor_id,
+                    'nomor_invoice'    => $faktur ?: null,
+                    'tanggal_po'       => $tglPo,
+                    'total_nilai'      => $totalAktual,           // nilai AKTUAL faktur
+                    'catatan'          => 'Realisasi pengajuan ' . $p->no_pengajuan,
+                    'status_bayar'     => 'belum',
+                    // Jejak pembuat = pemohon pengajuan (yang menginisiasi pengadaan).
+                    'dibuat_oleh_id'   => $p->pemohon_id,
+                    'dibuat_oleh_nama' => $p->pemohon_nama,
+                    'sumber'           => 'pengajuan',
                 ]);
 
                 foreach ($rows as $r) {
