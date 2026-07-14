@@ -266,6 +266,15 @@
                 @endif
             </div>
             <span style="font-size:.78rem;font-weight:600;color:var(--ink);">{{ $dist->name }}</span>
+            {{-- Siapa yang membuat/mengeksekusi PO (dari pengajuan/input langsung) --}}
+            @if($po && $po->dibuat_oleh_nama)
+            <span title="Dibuat oleh {{ $po->dibuat_oleh_nama }}{{ $po->sumber ? ' · '.($po->sumber==='pengajuan'?'via Pengajuan':'Input Langsung') : '' }}"
+                style="display:inline-flex;align-items:center;gap:.28rem;font-size:.66rem;font-weight:700;padding:.1rem .5rem;border-radius:999px;
+                {{ $po->sumber==='pengajuan' ? 'background:rgba(217,164,65,.12);border:1px solid rgba(217,164,65,.3);color:var(--gold2);' : 'background:rgba(111,177,224,.12);border:1px solid rgba(111,177,224,.3);color:var(--blue);' }}">
+                <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                {{ $po->dibuat_oleh_nama }}
+            </span>
+            @endif
             @if($po)
             <span style="font-size:.7rem;color:var(--mut);">{{ $po->tanggal_po->format('d M Y') }}</span>
             @endif
