@@ -62,8 +62,25 @@
                     @endphp
                     <tr wire:key="korr-{{ $i }}" style="border-top:1px solid rgba(31,61,48,.4);{{ ($row['hapus']??false) ? 'opacity:.45;' : '' }}">
                         <td style="padding:.3rem .4rem;">
-                            <div style="color:var(--ink);">{{ $row['nama_obat'] }}</div>
-                            <span style="font-size:.56rem;font-weight:700;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};">{{ $isK ? 'KRONIS' : 'NON-KRONIS' }}</span>
+                            @if(empty($row['item_id']))
+                                {{-- ITEM BARU: pilih obat --}}
+                                <select wire:model.live="rows.{{ $i }}.obat_id" @disabled($row['hapus']??false)
+                                    style="width:210px;padding:.3rem;border-radius:.4rem;background:var(--card);border:1px solid var(--emer);color:var(--ink);font-size:.72rem;">
+                                    <option value="0">— pilih obat —</option>
+                                    @foreach($this->obatList as $o)
+                                    <option value="{{ $o->id }}">{{ $o->nama_obat }}{{ $o->tipe_obat==='bmhp' ? ' (BMHP)' : '' }}</option>
+                                    @endforeach
+                                </select>
+                                <div style="display:flex;align-items:center;gap:.3rem;margin-top:.15rem;">
+                                    <span style="font-size:.52rem;font-weight:800;padding:.03rem .3rem;border-radius:999px;background:rgba(63,207,142,.16);border:1px solid rgba(63,207,142,.4);color:var(--emer2);">+ BARU</span>
+                                    @if(!empty($row['nama_obat']))
+                                    <span style="font-size:.56rem;font-weight:700;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};">{{ $isK ? 'KRONIS' : 'NON-KRONIS' }}</span>
+                                    @endif
+                                </div>
+                            @else
+                                <div style="color:var(--ink);">{{ $row['nama_obat'] }}</div>
+                                <span style="font-size:.56rem;font-weight:700;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};">{{ $isK ? 'KRONIS' : 'NON-KRONIS' }}</span>
+                            @endif
                         </td>
                         <td style="padding:.3rem .4rem;">
                             <input type="number" min="0" wire:model.live.debounce.400ms="rows.{{ $i }}.jumlah_box" @disabled($row['hapus']??false)
@@ -89,6 +106,15 @@
                     @endforeach
                 </tbody>
             </table>
+            </div>
+
+            {{-- Tambah item obat baru (barang datang tapi belum tercatat di PO) --}}
+            <div style="margin:-.4rem 0 .8rem;">
+                <button type="button" wire:click="tambahItem"
+                    style="display:inline-flex;align-items:center;gap:.35rem;font-size:.7rem;font-weight:700;padding:.35rem .75rem;border-radius:.5rem;cursor:pointer;background:rgba(63,207,142,.1);border:1px solid rgba(63,207,142,.35);color:var(--emer2);">
+                    + Tambah Item Obat
+                </button>
+                <span style="font-size:.62rem;color:var(--mut);margin-left:.5rem;">untuk obat yang datang tapi belum ada di PO — stok & tagihan ikut disesuaikan setelah ACC manajer</span>
             </div>
 
             {{-- Ringkasan selisih --}}

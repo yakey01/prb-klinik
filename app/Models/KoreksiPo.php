@@ -84,10 +84,25 @@ class KoreksiPo extends Model
                 $hbox = (float) ($r['harga'] ?? 0);
                 $delta = ($box * $isi) - $oriUnits;
 
-                $item?->update([
-                    'jumlah_box' => $box, 'isi_per_box' => $isi,
-                    'harga_per_box' => $hbox, 'subtotal' => $box * $hbox,
-                ]);
+                if (empty($r['item_id'])) {
+                    // ITEM BARU (barang datang tapi belum tercatat di PO) → buat item;
+                    // stok bertambah penuh karena ori = 0 (delta = box × isi).
+                    if ((int) ($r['obat_id'] ?? 0) < 1 || $box < 1) continue;
+                    PurchaseOrderItem::create([
+                        'purchase_order_id' => $po->id,
+                        'obat_id'           => (int) $r['obat_id'],
+                        'tipe_obat'         => ($r['tipe'] ?? 'kronis') === 'kronis' ? 'kronis' : 'non_kronis',
+                        'jumlah_box'        => $box,
+                        'isi_per_box'       => $isi,
+                        'harga_per_box'     => $hbox,
+                        'subtotal'          => $box * $hbox,
+                    ]);
+                } else {
+                    $item?->update([
+                        'jumlah_box' => $box, 'isi_per_box' => $isi,
+                        'harga_per_box' => $hbox, 'subtotal' => $box * $hbox,
+                    ]);
+                }
                 $upd = [
                     'harga_beli_per_unit' => $hbox / $isi,
                     'sumber_harga'        => 'PO',
@@ -118,6 +133,26 @@ class KoreksiPo extends Model
                 $dib = (float) $tag->jumlah_dibayar;
                 $status = $dib <= 0 ? 'belum_bayar' : ($dib >= $newTotal ? 'lunas' : 'sebagian');
                 $tag->update(['total_tagihan' => (int) $newTotal, 'status' => $status]);
+            }
+
+            // Item BARU bisa memunculkan TIPE yang belum punya tagihan (mis. non-kronis
+            // ditambahkan ke PO kronis) → buat tagihannya agar utang tetap tercatat.
+            $po->load('tagihan');
+            foreach ($perTipe as $tipe => $val) {
+                if ($val <= 0 || $po->tagihan->firstWhere('tipe_obat', $tipe)) continue;
+                $tglPo = $po->tanggal_po ?? now();
+                Tagihan::create([
+                    'purchase_order_id'   => $po->id,
+                    'distributor_id'      => $po->distributor_id,
+                    'nomor_tagihan'       => Tagihan::generateNomor($tipe),
+                    'tipe_obat'           => $tipe,
+                    'periode_bulan'       => \Carbon\Carbon::parse($tglPo)->format('Y-m'),
+                    'tanggal_tagihan'     => \Carbon\Carbon::parse($tglPo)->toDateString(),
+                    'tanggal_jatuh_tempo' => ($po->tanggal_jatuh_tempo ?: \Carbon\Carbon::parse($tglPo)->addDays(30))->toDateString(),
+                    'total_tagihan'       => (int) $val,
+                    'status'              => 'belum_bayar',
+                    'jumlah_dibayar'      => 0,
+                ]);
             }
 
             $this->update(['applied' => true, 'applied_at' => now()]);

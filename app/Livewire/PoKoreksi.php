@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\KoreksiPo;
+use App\Models\Obat;
 use App\Models\PurchaseOrder;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
@@ -53,6 +54,51 @@ class PoKoreksi extends Component
 
     public function tutup(): void { $this->show = false; $this->poId = null; }
 
+    /** Daftar obat untuk item BARU — dibatasi lingkup user (BMHP ikut non-kronis). */
+    #[Computed]
+    public function obatList()
+    {
+        $tipes = Auth::user()?->lingkupTipes() ?? ['kronis', 'non_kronis'];
+        if (in_array('non_kronis', $tipes, true)) $tipes[] = 'bmhp';
+        return Obat::where('is_active', true)->whereIn('tipe_obat', $tipes)
+            ->orderBy('nama_obat')
+            ->get(['id', 'nama_obat', 'tipe_obat', 'satuan', 'harga_beli_per_unit']);
+    }
+
+    /** Tambah item obat BARU ke PO (barang datang tapi belum tercatat di PO). */
+    public function tambahItem(): void
+    {
+        $this->rows[] = [
+            'item_id'       => null,      // null = item baru
+            'obat_id'       => 0,
+            'nama_obat'     => '',
+            'tipe_obat'     => 'kronis',
+            'ori_box'       => 0,         // belum ada di PO → kontribusi "lama" = 0
+            'ori_isi'       => 1,
+            'ori_harga'     => 0,
+            'jumlah_box'    => 1,
+            'isi_per_box'   => 1,
+            'harga_per_box' => 0,
+            'tanggal_kadaluarsa' => '',
+            'hapus'         => false,
+        ];
+    }
+
+    /** Auto-isi nama/tipe/harga saat obat item baru dipilih. */
+    public function updatedRows($value, $key): void
+    {
+        [$i, $field] = array_pad(explode('.', (string) $key), 2, null);
+        if ($field !== 'obat_id') return;
+        $i = (int) $i;
+        $o = $this->obatList->firstWhere('id', (int) $value);
+        if (! $o) return;
+        $this->rows[$i]['nama_obat']   = $o->nama_obat;
+        // BMHP diperlakukan non-kronis (enum PO/tagihan valid).
+        $this->rows[$i]['tipe_obat']   = ($o->tipe_obat === 'bmhp') ? 'non_kronis' : ($o->tipe_obat ?: 'kronis');
+        $isi = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
+        $this->rows[$i]['harga_per_box'] = (float) ($o->harga_beli_per_unit ?? 0) * $isi;
+    }
+
     #[Computed]
     public function po()
     {
@@ -90,6 +136,17 @@ class PoKoreksi extends Component
         if ($sisa->isEmpty()) {
             $this->dispatch('toast', type: 'error', message: 'PO harus punya minimal 1 item. Hapus PO lewat tombol Hapus bila memang batal.');
             return;
+        }
+        // Item BARU wajib pilih obat & qty > 0.
+        foreach ($sisa as $r) {
+            if ((int) ($r['obat_id'] ?? 0) < 1) {
+                $this->dispatch('toast', type: 'error', message: 'Ada item baru yang belum dipilih obatnya.');
+                return;
+            }
+            if ((int) ($r['jumlah_box'] ?? 0) < 1) {
+                $this->dispatch('toast', type: 'error', message: 'Jumlah box harus minimal 1 (atau tandai ✕ untuk hapus item).');
+                return;
+            }
         }
 
         // Cegah dobel usulan koreksi yang masih menunggu untuk PO yang sama.
