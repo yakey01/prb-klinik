@@ -2,18 +2,32 @@
 
 namespace Tests\Feature;
 
-// use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
+/**
+ * Root "/" mengarahkan ke dashboard (routes/web.php). Dashboard dilindungi
+ * middleware auth — tamu dilempar ke login. Test ini mengunci kedua perilaku.
+ */
 class ExampleTest extends TestCase
 {
-    /**
-     * A basic test example.
-     */
-    public function test_the_application_returns_a_successful_response(): void
-    {
-        $response = $this->get('/');
+    use RefreshDatabase;
 
-        $response->assertStatus(200);
+    public function test_root_redirects_to_dashboard(): void
+    {
+        $this->get('/')->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_dashboard_requires_authentication(): void
+    {
+        $this->get('/dashboard')->assertRedirect(route('login', absolute: false));
+    }
+
+    public function test_authenticated_user_can_open_dashboard(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/dashboard')->assertOk();
     }
 }

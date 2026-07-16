@@ -1,0 +1,1069 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama\.$#'
+			identifier: property.notFound
+			count: 10
+			path: app/Console/Commands/SendNotifikasi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$telepon\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Console/Commands/SendNotifikasi.php
+
+		-
+			message: '#^Parameter \#2 \$pasien of method App\\Services\\NotifikasiService\:\:buildPesanUntuk\(\) expects App\\Models\\Pasien, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Console/Commands/SendNotifikasi.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$bayar_bpjs\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$kadaluarsa_status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$stok_status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$faktor_jasa_farmasi_snapshot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$harga_beli_snapshot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$harga_klaim_bpjs_snapshot\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_unit\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$satuan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Obat\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/Api/PrbManagerController.php
+
+		-
+			message: '#^Parameter \#1 \$user of class Illuminate\\Auth\\Events\\Verified constructor expects Illuminate\\Contracts\\Auth\\MustVerifyEmail, App\\Models\\User\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Http/Controllers/Auth/VerifyEmailController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$kadaluarsa_status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$laba\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Called ''pluck'' on Laravel collection, but could have been retrieved as a query\.$#'
+			identifier: larastan.noUnnecessaryCollectionCall
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>status" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$accuracy\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/HomeVisiteController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$latitude\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/HomeVisiteController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$longitude\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/HomeVisiteController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/HomeVisiteController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Http/Controllers/HomeVisiteController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$recorded_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/HomeVisiteController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\HomeVisite\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Http/Controllers/HomeVisiteController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$harga_per_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/RiwayatController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$isi_per_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/RiwayatController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/RiwayatController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/RiwayatController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/RiwayatController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subtotal\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/RiwayatController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$isi_per_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_dibayar\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$status\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subtotal\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tanggal_jatuh_tempo\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total_tagihan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Offset ''pay'' on array\{rows\: non\-empty\-list\<array\{po\: App\\Models\\PurchaseOrder, fin\: array, approved\: stdClass\|null\}\>, approved\?\: true, beli\: \(float\|int\), klaim\: \(float\|int\), laba\: \(float\|int\), count\: int\<1, max\>, pay\: array\{bills\: int\<0, max\>, lunas\: int\<0, max\>, sebagian\: int\<0, max\>, overdue\: int\<0, max\>, terutang\: float\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>tipe_obat" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/BarangMasukHarian.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\GabungObat\:\:\$current\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Livewire/GabungObat.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\GabungObat\:\:\$groups\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/GabungObat.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\GuardianReview\:\:\$report\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/GuardianReview.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KalkulatorLaba\:\:\$cariObatA\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/KalkulatorLaba.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KalkulatorLaba\:\:\$hasilDraft\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/KalkulatorLaba.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KalkulatorLaba\:\:\$ringkasan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/KalkulatorLaba.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KatalogTable\:\:\$baseList\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/KatalogTable.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KatalogTable\:\:\$obatList\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/KatalogTable.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$dari_resep\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/KatalogTable.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$laba\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/KatalogTable.php
+
+		-
+			message: '#^Dead catch \- Illuminate\\Database\\QueryException is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: app/Livewire/KatalogTable.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KebutuhanObatKronis\:\:\$chartData\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/KebutuhanObatKronis.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KebutuhanObatKronis\:\:\$diagnosisList\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/KebutuhanObatKronis.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KebutuhanObatKronis\:\:\$kebutuhanKronis\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/KebutuhanObatKronis.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KebutuhanObatKronis\:\:\$kebutuhanNonKronis\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/KebutuhanObatKronis.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\KebutuhanObatKronis\:\:\$statsKronis\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/KebutuhanObatKronis.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\LaporanBulanan\:\:\$detailBpjs\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/LaporanBulanan.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\LaporanBulanan\:\:\$detailNonKronis\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/LaporanBulanan.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\LaporanBulanan\:\:\$periode\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/LaporanBulanan.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\LaporanBulanan\:\:\$ringkasan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/LaporanBulanan.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\LaporanBulanan\:\:\$topLaba\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/LaporanBulanan.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>status" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/LaporanBulanan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/NotifikasiManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$telepon\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/NotifikasiManager.php
+
+		-
+			message: '#^Parameter \#2 \$pasien of method App\\Services\\NotifikasiService\:\:buildPesanUntuk\(\) expects App\\Models\\Pasien, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 3
+			path: app/Livewire/NotifikasiManager.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''dijadwalkan''\|''lewat'' and ''batal'' will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Livewire/NotifikasiManager.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between ''selesai'' and ''selesai'' will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 2
+			path: app/Livewire/NotifikasiManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PasienJadwal.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PasienManager\:\:\$drawerPasien\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PasienManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PasienManager\:\:\$pasienList\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Livewire/PasienManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama_obat\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PasienManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$satuan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PasienManager.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_obat" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 2
+			path: app/Livewire/PasienManager.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>satuan" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/PasienManager.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>total_item" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/PasienManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PengadaanForm\:\:\$grandTotal\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengadaanForm.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PengajuanPengadaan\:\:\$obatList\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$catatan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$estimasi_klaim\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$harga_per_box\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$isi_per_box\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_box\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$klaim_bpjs_per_unit\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama_obat\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subtotal_beli\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tanggal_kadaluarsa\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tanggal_po\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tipe_obat\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 2
+			path: app/Livewire/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PengambilanObatForm\:\:\$checklistOk\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PengambilanObatForm\:\:\$dateValid\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PengambilanObatForm\:\:\$maxTanggal\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PengambilanObatForm\:\:\$wajibBelumChecked\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama_obat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Instanceof between Carbon\\Carbon and Carbon\\Carbon will always evaluate to true\.$#'
+			identifier: instanceof.alwaysTrue
+			count: 3
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ResepPasien\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>faktor_jasa_farmasi" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>harga_beli_per_unit" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>klaim_bpjs_per_unit" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>nama_obat" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Property App\\Livewire\\PersyaratanKlaimManager\:\:\$filterDiagnosis \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: app/Livewire/PersyaratanKlaimManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PoKoreksi\:\:\$obatList\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PoKoreksi\:\:\$po\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\PoKoreksi\:\:\$ringkas\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$harga_per_box\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$isi_per_box\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_box\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tipe_obat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Livewire/PoKoreksi.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\ProyeksiSlider\:\:\$totalBiayaOps\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/ProyeksiSlider.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\RekonsiliasiBpjs\:\:\$proyeksi\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/RekonsiliasiBpjs.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\RekonsiliasiiBpjs\:\:\$proyeksi_aktual\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/RekonsiliasiBpjs.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$resepAktif\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/RencanaAmbilObat.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between float and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
+			count: 1
+			path: app/Livewire/RencanaAmbilObat.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>resepAktif" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/RencanaAmbilObat.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\RiwayatPengambilan\:\:\$duplikatIds\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/RiwayatPengambilan.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\StokKeluarManager\:\:\$records\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/StokKeluarManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$kadaluarsa_status\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Livewire/StokTable.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\TagihanManager\:\:\$docIssueIds\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Livewire\\TagihanManager\:\:\$tagihanList\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Tagihan\:\:\$dibayar\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Tagihan\:\:\$total\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$isi_per_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Support\\HigherOrderCollectionProxy\<string, Illuminate\\Database\\Eloquent\\Model, Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\>\>\:\:\$pembayaran\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Relations\\HasMany\:\:aktif\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Parameter \#1 \$tagihan of method App\\Livewire\\TagihanManager\:\:recomputeTagihan\(\) expects App\\Models\\Tagihan, Illuminate\\Database\\Eloquent\\Model\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>sisa_tagihan" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Livewire/TagihanManager.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: app/Livewire/UserManager.php
+
+		-
+			message: '#^Match arm comparison between ''dibatalkan'' and ''dibatalkan'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 2
+			path: app/Models/HomeVisite.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_dibayar\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/KoreksiPo.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subtotal\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/KoreksiPo.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tipe_obat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/KoreksiPo.php
+
+		-
+			message: '#^Match arm comparison between ''ditolak'' and ''ditolak'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 2
+			path: app/Models/KoreksiPo.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$bayar_bpjs\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Models/Obat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$biaya_bulan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Obat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$laba\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Obat.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$pendapatan_bulan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Obat.php
+
+		-
+			message: '#^Method App\\Models\\Pasien\:\:pengambilanTerakhir\(\) should return App\\Models\\PengambilanObat\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/Pasien.php
+
+		-
+			message: '#^Match arm comparison between ''direalisasi'' and ''direalisasi'' is always true\.$#'
+			identifier: match.alwaysTrue
+			count: 1
+			path: app/Models/PengajuanPengadaan.php
+
+		-
+			message: '#^Match arm comparison between ''draft'' and ''dibatalkan'' is always false\.$#'
+			identifier: match.alwaysFalse
+			count: 1
+			path: app/Models/PengajuanPengadaan.php
+
+		-
+			message: '#^Method App\\Models\\PurchaseOrder\:\:koreksiPending\(\) should return App\\Models\\KoreksiPo\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/PurchaseOrder.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$link_bukti\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Tagihan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$link_faktur\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Tagihan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$metode\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Tagihan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$pemutihan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/Tagihan.php
+
+		-
+			message: '#^Offset ''admin''\|''apoteker''\|''viewer'' on array\{admin\: array\{label\: ''Administrator'', desc\: ''Akses penuh\: kelola…'', color\: ''\#f2c668'', bg\: ''rgba\(217,164,65,\.15\)'', border\: ''rgba\(217,164,65,\.3\)'', grad\: ''linear\-gradient…'', ink\: ''\#1a0e00'', perms\: array\{''Kelola pengguna &…'', ''Hapus data permanen'', ''Semua modul &…'', ''Pengaturan sistem''\}\}, apoteker\: array\{label\: ''Apoteker'', desc\: ''Operasional\: input …'', color\: ''\#6fb1e0'', bg\: ''rgba\(111,177,224,…'', border\: ''rgba\(111,177,224,\.3\)'', grad\: ''linear\-gradient…'', ink\: ''\#04121f'', perms\: array\{''Input & edit data…'', ''Buat pengadaan &…'', ''Lihat laporan'', ''Tidak bisa hapus…''\}\}, viewer\: array\{label\: ''Viewer'', desc\: ''Baca saja\: melihat…'', color\: ''\#8fae9f'', bg\: ''rgba\(143,174,159,…'', border\: ''rgba\(143,174,159,…'', grad\: ''linear\-gradient…'', ink\: ''\#eaf3ee'', perms\: array\{''Lihat dashboard &…'', ''Tidak bisa input…'', ''Tidak bisa hapus'', ''Akses baca…''\}\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Offset ''keduanya''\|''kronis''\|''non_kronis'' on array\{kronis\: array\{label\: ''Kronis'', color\: ''\#5ce0a4'', bg\: ''rgba\(63,207,142,\.15\)'', border\: ''rgba\(63,207,142,\.3\)'', desc\: ''Hanya boleh…''\}, non_kronis\: array\{label\: ''Non\-Kronis'', color\: ''\#6fb1e0'', bg\: ''rgba\(111,177,224,…'', border\: ''rgba\(111,177,224,\.3\)'', desc\: ''Hanya boleh…''\}, keduanya\: array\{label\: ''Keduanya'', color\: ''\#f2c668'', bg\: ''rgba\(217,164,65,\.15\)'', border\: ''rgba\(217,164,65,\.3\)'', desc\: ''Boleh mengadakan…''\}\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$distributor_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$harga_per_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$isi_per_box\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_box\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_dibayar\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nomor_tagihan\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat\.$#'
+			identifier: property.notFound
+			count: 16
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subtotal\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tanggal_kadaluarsa\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$tipe_obat\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$total_tagihan\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>harga_beli_per_unit" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Services/Guardian/GuardianEngine.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$biaya_bulan\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/LabaCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$laba\.$#'
+			identifier: property.notFound
+			count: 4
+			path: app/Services/LabaCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$pendapatan_bulan\.$#'
+			identifier: property.notFound
+			count: 3
+			path: app/Services/LabaCalculatorService.php
+
+		-
+			message: '#^Access to an undefined property App\\Models\\Obat\:\:\$status_laba\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Services/LabaCalculatorService.php
+
+		-
+			message: '#^Call to function is_null\(\) with \(int\|string\) will always evaluate to false\.$#'
+			identifier: function.impossibleType
+			count: 1
+			path: app/Services/LabaCalculatorService.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Obat\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Services/LabaCalculatorService.php

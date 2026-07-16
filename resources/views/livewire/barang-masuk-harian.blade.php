@@ -24,6 +24,33 @@
 
         {{-- ═══════════ KALENDER ═══════════ --}}
         <div class="glass-card" style="padding:1rem 1.1rem;">
+            {{-- ── TOGGLE MODE: Barang Masuk (tanggal_po) ↔ Jatuh Tempo (tanggal bayar) ── --}}
+            @php $isTempo = $mode === 'tempo'; @endphp
+            <div style="display:flex;border-radius:.6rem;overflow:hidden;border:1px solid var(--line2);margin-bottom:.85rem;">
+                <button type="button" wire:click="setMode('masuk')" title="Kalender berdasarkan tanggal barang DATANG"
+                    style="flex:1;padding:.5rem .6rem;font-size:.74rem;font-weight:800;cursor:pointer;border:none;transition:all .15s;
+                        {{ ! $isTempo ? 'background:linear-gradient(180deg,rgba(63,207,142,.32),rgba(63,207,142,.14));color:var(--emer2);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.18);' : 'background:transparent;color:var(--mut);' }}">
+                    📦 Barang Masuk
+                </button>
+                <button type="button" wire:click="setMode('tempo')" title="Kalender berdasarkan tanggal JATUH TEMPO tagihan — perencanaan kas"
+                    style="flex:1;padding:.5rem .6rem;font-size:.74rem;font-weight:800;cursor:pointer;border:none;border-left:1px solid var(--line2);transition:all .15s;
+                        {{ $isTempo ? 'background:linear-gradient(180deg,rgba(242,193,78,.4),rgba(224,168,50,.18));color:#ffe8ac;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.22);' : 'background:transparent;color:var(--mut);' }}">
+                    💰 Jatuh Tempo
+                </button>
+            </div>
+            @if($isTempo)
+            @php $tb = $this->tempoBulan; @endphp
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.7rem;padding:.45rem .7rem;border-radius:.5rem;background:rgba(242,193,78,.07);border:1px solid rgba(242,193,78,.25);">
+                <span style="font-size:.68rem;color:var(--mut);">Bulan ini:</span>
+                <span style="font-size:.74rem;font-weight:800;color:var(--gold2);">{{ $tb['bills'] }} faktur</span>
+                <span style="font-size:.68rem;color:var(--mut);">·</span>
+                <span style="font-size:.74rem;font-weight:800;color:{{ $tb['terutang'] > 0 ? 'var(--red2)' : 'var(--emer2)' }};">terutang {{ $rp($tb['terutang']) }}</span>
+                @if($tb['overdue'] > 0)
+                <span style="font-size:.62rem;font-weight:800;padding:.05rem .4rem;border-radius:999px;background:rgba(232,100,90,.16);border:1px solid rgba(232,100,90,.4);color:var(--red2);">{{ $tb['overdue'] }} lewat tempo</span>
+                @endif
+            </div>
+            @endif
+
             {{-- Nav bulan --}}
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.85rem;">
                 <button wire:click="prevMonth" style="background:rgba(255,255,255,.04);border:1px solid var(--line2);color:var(--mut);border-radius:.45rem;width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
@@ -48,21 +75,37 @@
                 @for($d = 1; $d <= $daysInMonth; $d++)
                     @php
                         $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $d);
-                        $info    = $this->monthMap[$dateStr] ?? null;
                         $isSel   = in_array($dateStr, $selected, true);
                         $isToday = $dateStr === $today;
-                        $hasPO   = $info && $info['count'] > 0;
-                        $labaPos = $hasPO && $info['laba'] >= 0;
-                        $pm      = $hasPO ? \App\Livewire\BarangMasukHarian::payMeta($info['pay'] ?? null) : null;
-                        $terut   = $hasPO ? ($info['pay']['terutang'] ?? 0) : 0;
-                        $approved = $hasPO && ! empty($info['approved']);
-                        $sb       = $this->siapBelanja[$dateStr] ?? null;
-                        $hasSB    = (bool) $sb;
+
+                        if ($isTempo) {
+                            // MODE TEMPO: sel = hari JATUH TEMPO tagihan (perencanaan kas).
+                            $ti      = $this->tempoMap[$dateStr] ?? null;
+                            $info    = null;
+                            $hasPO   = $ti && $ti['bills'] > 0;                 // "ada isi" di hari ini
+                            $labaPos = $hasPO && $ti['overdue'] === 0;          // lewat tempo → tint merah
+                            $pm      = $hasPO ? \App\Livewire\BarangMasukHarian::payMeta(['status' => $ti['status']]) : null;
+                            $terut   = $hasPO ? $ti['terutang'] : 0;
+                            $approved = false;
+                            $sb = null; $hasSB = false;
+                        } else {
+                            $info    = $this->monthMap[$dateStr] ?? null;
+                            $ti      = null;
+                            $hasPO   = $info && $info['count'] > 0;
+                            $labaPos = $hasPO && $info['laba'] >= 0;
+                            $pm      = $hasPO ? \App\Livewire\BarangMasukHarian::payMeta($info['pay'] ?? null) : null;
+                            $terut   = $hasPO ? ($info['pay']['terutang'] ?? 0) : 0;
+                            $approved = $hasPO && ! empty($info['approved']);
+                            $sb       = $this->siapBelanja[$dateStr] ?? null;
+                            $hasSB    = (bool) $sb;
+                        }
                     @endphp
                     <div class="bmh-cell {{ $hasPO && $pm ? 'paycell paycell-'.$pm['s'] : '' }} {{ $hasSB && !$hasPO ? 'sb-cell' : '' }}" wire:key="cal-{{ $dateStr }}"
                          style="position:relative;{{ $hasPO && $pm ? '--pc:'.$pm['color'].';--pr:'.$pm['ring'].';' : '' }}">
                         <button type="button" wire:click="toggleDate('{{ $dateStr }}', $event.shiftKey)"
-                            @if($hasPO) title="{{ $info['count'] }} PO · Beli {{ $rp($info['beli']) }} · Klaim {{ $rp($info['klaim']) }} · {{ $info['laba']>=0?'Untung':'Rugi' }} {{ $rp(abs($info['laba'])) }} · Bayar: {{ $pm['label'] }}" @elseif($hasSB) title="{{ $sb['count'] }} pengajuan disetujui · {{ $rp($sb['nilai']) }} — siap dibelanjakan" @endif
+                            @if($hasPO && $isTempo) title="Jatuh tempo: {{ $ti['bills'] }} faktur · total {{ $rp($ti['total']) }} · terutang {{ $rp($ti['terutang']) }}{{ $ti['overdue'] > 0 ? ' · '.$ti['overdue'].' LEWAT TEMPO' : '' }}"
+                            @elseif($hasPO) title="{{ $info['count'] }} PO · Beli {{ $rp($info['beli']) }} · Klaim {{ $rp($info['klaim']) }} · {{ $info['laba']>=0?'Untung':'Rugi' }} {{ $rp(abs($info['laba'])) }} · Bayar: {{ $pm['label'] }}"
+                            @elseif($hasSB) title="{{ $sb['count'] }} pengajuan disetujui · {{ $rp($sb['nilai']) }} — siap dibelanjakan" @endif
                             style="position:relative;width:100%;aspect-ratio:1;border-radius:.5rem;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .12s;font-size:.78rem;
                                 {{ $isSel
                                     ? 'background:rgba(217,164,65,.9);border:1px solid var(--gold);color:#1a0e00;font-weight:800;'
@@ -73,7 +116,10 @@
                                             : 'background:rgba(255,255,255,.015);border:1px solid var(--line);color:var(--mut2);')) }}
                                 {{ $isToday && !$isSel ? 'box-shadow:0 0 0 2px rgba(111,177,224,.4);' : '' }}">
                             <span style="line-height:1;">{{ $d }}</span>
-                            @if($hasPO)
+                            @if($hasPO && $isTempo)
+                            {{-- Mode tempo: tampilkan nominal yang harus dibayar hari itu --}}
+                            <span style="font-size:.5rem;font-weight:800;line-height:1;{{ $isSel ? 'color:#3d2600;' : ($ti['terutang'] > 0 ? 'color:var(--gold2);' : 'color:var(--emer);') }}">{{ $rpShort($ti['terutang'] > 0 ? $ti['terutang'] : $ti['total']) }}</span>
+                            @elseif($hasPO)
                             <span style="font-size:.5rem;font-weight:800;line-height:1;{{ $isSel ? 'color:#3d2600;' : ($labaPos ? 'color:var(--emer);' : 'color:var(--red2);') }}">{{ ($info['laba']>=0?'+':'−').$rpShort(abs($info['laba'])) }}</span>
                             @elseif($hasSB)
                             <span style="font-size:.5rem;font-weight:800;line-height:1;color:var(--gold2);">🛒{{ $sb['count'] }}</span>
@@ -176,6 +222,56 @@
                 <div style="font-size:.76rem;">Klik satu/beberapa hari, atau Shift+klik untuk rentang. Bisa gabung mis. 5 & 7 atau 5–7.</div>
             </div>
             @else
+                @if($mode === 'tempo')
+                {{-- ══ MODE TEMPO: daftar FAKTUR yang jatuh tempo pada tanggal terpilih ══ --}}
+                @forelse($this->tempoGrouped as $tgl => $tg)
+                @php $c = \Carbon\Carbon::parse($tgl); $lewat = $c->lt(\Carbon\Carbon::parse($today)); @endphp
+                <div class="glass-card" style="padding:0;overflow:hidden;margin-bottom:.9rem;" wire:key="tempo-{{ $tgl }}">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;padding:.7rem 1rem;background:linear-gradient(90deg,{{ $lewat ? 'rgba(232,100,90,.09)' : 'rgba(242,193,78,.08)' }},transparent);border-bottom:1px solid var(--line);">
+                        <div style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;">
+                            <div style="width:8px;height:8px;border-radius:50%;background:{{ $lewat ? 'var(--red2)' : 'var(--gold)' }};box-shadow:0 0 6px {{ $lewat ? 'var(--red2)' : 'var(--gold)' }};"></div>
+                            <span class="font-heading" style="font-size:.95rem;color:var(--ink);">{{ $c->translatedFormat('l, d M Y') }}</span>
+                            <span style="font-size:.66rem;padding:.1rem .5rem;border-radius:999px;background:rgba(242,193,78,.12);border:1px solid rgba(242,193,78,.3);color:var(--gold2);">{{ count($tg['rows']) }} faktur</span>
+                            @if($lewat)<span style="font-size:.62rem;font-weight:800;padding:.08rem .45rem;border-radius:999px;background:rgba(232,100,90,.16);border:1px solid rgba(232,100,90,.4);color:var(--red2);">LEWAT TEMPO</span>@endif
+                        </div>
+                        <div style="text-align:right;">
+                            <div class="font-mono" style="font-size:.9rem;font-weight:800;color:{{ ($tg['terutang'] ?? 0) > 0 ? 'var(--red2)' : 'var(--emer2)' }};">Harus bayar {{ $rp($tg['terutang'] ?? 0) }}</div>
+                            <div style="font-size:.62rem;color:var(--mut);">dari total {{ $rp($tg['total'] ?? 0) }}</div>
+                        </div>
+                    </div>
+                    <div style="overflow-x:auto;">
+                    <table style="width:100%;border-collapse:collapse;font-size:.76rem;min-width:620px;">
+                        <thead><tr style="color:var(--mut);">
+                            <th style="text-align:left;padding:.35rem .7rem;font-size:.56rem;text-transform:uppercase;">No. Tagihan</th>
+                            <th style="text-align:left;padding:.35rem .7rem;font-size:.56rem;text-transform:uppercase;">PBF / Faktur</th>
+                            <th style="text-align:center;padding:.35rem .7rem;font-size:.56rem;text-transform:uppercase;">Jenis</th>
+                            <th style="text-align:right;padding:.35rem .7rem;font-size:.56rem;text-transform:uppercase;">Tagihan</th>
+                            <th style="text-align:right;padding:.35rem .7rem;font-size:.56rem;text-transform:uppercase;">Sisa</th>
+                            <th style="text-align:center;padding:.35rem .7rem;font-size:.56rem;text-transform:uppercase;">Status</th>
+                        </tr></thead>
+                        <tbody>
+                        @foreach($tg['rows'] as $t)
+                        @php $isK = $t->tipe_obat === 'kronis'; @endphp
+                        <tr style="border-top:1px solid rgba(31,61,48,.4);">
+                            <td style="padding:.4rem .7rem;"><a href="{{ route('tagihan.index') }}" wire:navigate class="font-mono" style="color:var(--gold2);text-decoration:none;font-weight:700;">{{ $t->nomor_tagihan }}</a></td>
+                            <td style="padding:.4rem .7rem;color:var(--ink);">{{ $t->distributor->name ?? '—' }}<span style="color:var(--mut2);font-size:.64rem;"> · PO #{{ $t->purchase_order_id }}{{ $t->purchaseOrder?->nomor_invoice ? ' · '.$t->purchaseOrder->nomor_invoice : '' }}</span></td>
+                            <td style="padding:.4rem .7rem;text-align:center;"><span style="font-size:.58rem;font-weight:800;padding:.05rem .35rem;border-radius:.25rem;{{ $isK ? 'background:rgba(63,207,142,.12);color:var(--emer2);' : 'background:rgba(111,177,224,.12);color:var(--blue);' }}">{{ $isK ? 'Kronis' : 'Non' }}</span></td>
+                            <td class="font-mono" style="padding:.4rem .7rem;text-align:right;color:var(--ink);">{{ $rp($t->total_tagihan) }}</td>
+                            <td class="font-mono" style="padding:.4rem .7rem;text-align:right;font-weight:700;color:{{ $t->sisa_tagihan > 0 ? 'var(--red2)' : 'var(--emer2)' }};">{{ $rp($t->sisa_tagihan) }}</td>
+                            <td style="padding:.4rem .7rem;text-align:center;">
+                                @php $pmT = \App\Livewire\BarangMasukHarian::payMeta(['status' => $t->status === 'lunas' ? 'lunas' : ($t->status === 'sebagian' ? 'sebagian' : ($lewat ? 'overdue' : 'belum'))]); @endphp
+                                <span style="font-size:.6rem;font-weight:700;padding:.08rem .45rem;border-radius:999px;border:1px solid {{ $pmT['ring'] }};color:{{ $pmT['color'] }};">{{ $pmT['label'] }}</span>
+                            </td>
+                        </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                @empty
+                <div class="glass-card" style="padding:2rem;text-align:center;color:var(--mut);font-size:.84rem;">Tidak ada faktur jatuh tempo pada tanggal terpilih.</div>
+                @endforelse
+                @else
                 @forelse($this->grouped as $tgl => $g)
                 @php $c = \Carbon\Carbon::parse($tgl); @endphp
                 <div class="glass-card" style="padding:0;overflow:hidden;margin-bottom:.9rem;" wire:key="day-{{ $tgl }}">
@@ -268,6 +364,7 @@
                 @empty
                 <div class="glass-card" style="padding:2rem;text-align:center;color:var(--mut);font-size:.84rem;">Tidak ada barang masuk pada tanggal terpilih.</div>
                 @endforelse
+                @endif
             @endif
         </div>
     </div>

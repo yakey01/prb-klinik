@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Tagihan extends Model
 {
@@ -17,9 +18,9 @@ class Tagihan extends Model
     ];
 
     protected $casts = [
-        'tanggal_tagihan'      => 'date',
-        'tanggal_jatuh_tempo'  => 'date',
-        'tanggal_bayar'        => 'date',
+        'tanggal_tagihan' => 'date',
+        'tanggal_jatuh_tempo' => 'date',
+        'tanggal_bayar' => 'date',
     ];
 
     public function purchaseOrder(): BelongsTo
@@ -32,7 +33,7 @@ class Tagihan extends Model
         return $this->belongsTo(Distributor::class);
     }
 
-    public function pembayaran(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function pembayaran(): HasMany
     {
         return $this->hasMany(PembayaranTagihan::class, 'tagihan_id')->orderByDesc('id');
     }
@@ -46,11 +47,20 @@ class Tagihan extends Model
 
     public function getAgingAttribute(): string
     {
-        if ($this->status === 'lunas') return 'lunas';
+        if ($this->status === 'lunas') {
+            return 'lunas';
+        }
         $hari = now()->diffInDays($this->tanggal_jatuh_tempo, false);
-        if ($hari > 30)  return 'aman';
-        if ($hari > 7)   return 'perhatian';
-        if ($hari >= 0)  return 'segera';
+        if ($hari > 30) {
+            return 'aman';
+        }
+        if ($hari > 7) {
+            return 'perhatian';
+        }
+        if ($hari >= 0) {
+            return 'segera';
+        }
+
         return 'overdue';
     }
 
@@ -75,12 +85,21 @@ class Tagihan extends Model
      */
     public function dokumenStatus(): string
     {
-        if (! in_array($this->status, ['lunas', 'sebagian'], true)) return 'na';
-        $pays  = $this->relationLoaded('pembayaran') ? $this->pembayaran : $this->pembayaran()->get();
+        if (! in_array($this->status, ['lunas', 'sebagian'], true)) {
+            return 'na';
+        }
+        $pays = $this->relationLoaded('pembayaran') ? $this->pembayaran : $this->pembayaran()->get();
         $aktif = $pays->where('dibatalkan', false);
-        if ($aktif->isEmpty()) return 'tanpa_arsip';
-        if ($aktif->contains(fn ($p) => ! $p->link_faktur && ! $p->pemutihan)) return 'kurang_faktur';
-        if ($aktif->contains(fn ($p) => $p->metode !== 'tunai' && ! $p->link_bukti)) return 'kurang_bukti';
+        if ($aktif->isEmpty()) {
+            return 'tanpa_arsip';
+        }
+        if ($aktif->contains(fn ($p) => ! $p->link_faktur && ! $p->pemutihan)) {
+            return 'kurang_faktur';
+        }
+        if ($aktif->contains(fn ($p) => $p->metode !== 'tunai' && ! $p->link_bukti)) {
+            return 'kurang_bukti';
+        }
+
         return 'lengkap';
     }
 
@@ -95,18 +114,38 @@ class Tagihan extends Model
     public static function generateNomor(string $tipe): string
     {
         $prefix = $tipe === 'kronis' ? 'TGK' : 'TGN';
-        $ym     = now()->format('Ym');
-        $last   = static::where('nomor_tagihan', 'like', "{$prefix}-{$ym}-%")
-                        ->orderByDesc('id')->first();
-        $seq    = $last ? ((int) substr($last->nomor_tagihan, -4)) + 1 : 1;
-        return "{$prefix}-{$ym}-" . str_pad($seq, 4, '0', STR_PAD_LEFT);
+        $ym = now()->format('Ym');
+        $last = static::where('nomor_tagihan', 'like', "{$prefix}-{$ym}-%")
+            ->orderByDesc('id')->first();
+        $seq = $last ? ((int) substr($last->nomor_tagihan, -4)) + 1 : 1;
+
+        return "{$prefix}-{$ym}-".str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
     }
 
     // ── Scopes ────────────────────────────────────────────────────────
 
-    public function scopeKronis($q)     { return $q->where('tipe_obat', 'kronis'); }
-    public function scopeNonKronis($q)  { return $q->where('tipe_obat', 'non_kronis'); }
-    public function scopeAktif($q)      { return $q->whereIn('status', ['belum_bayar','sebagian']); }
-    public function scopeOverdue($q)    { return $q->where('status','!=','lunas')->where('tanggal_jatuh_tempo','<',now()->toDateString()); }
-    public function scopePeriode($q, string $ym) { return $q->where('periode_bulan', $ym); }
+    public function scopeKronis($q)
+    {
+        return $q->where('tipe_obat', 'kronis');
+    }
+
+    public function scopeNonKronis($q)
+    {
+        return $q->where('tipe_obat', 'non_kronis');
+    }
+
+    public function scopeAktif($q)
+    {
+        return $q->whereIn('status', ['belum_bayar', 'sebagian']);
+    }
+
+    public function scopeOverdue($q)
+    {
+        return $q->where('status', '!=', 'lunas')->where('tanggal_jatuh_tempo', '<', now()->toDateString());
+    }
+
+    public function scopePeriode($q, string $ym)
+    {
+        return $q->where('periode_bulan', $ym);
+    }
 }

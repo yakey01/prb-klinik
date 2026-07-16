@@ -1,0 +1,13 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - app
+
+    # Level 5 = keseimbangan bagus untuk kode berjalan (naikkan bertahap ke 6+ nanti).
+    level: 5
+
+    excludePaths:
+        - app/Console/Kernel.php (?)
