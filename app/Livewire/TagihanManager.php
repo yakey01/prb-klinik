@@ -595,6 +595,30 @@ class TagihanManager extends Component
         $this->dispatch('toast', type: 'success', message: "Tagihan {$no} dihapus.");
     }
 
+    /**
+     * Ubah tanggal jatuh tempo (tempo pembayaran) sesuai term asli PBF.
+     * Cukup atribut tagihan — TIDAK butuh persetujuan (bukan stok/harga).
+     */
+    public function updateJatuhTempo(int $id, ?string $tanggal): void
+    {
+        if (! $tanggal) return;
+        try {
+            $tgl = \Carbon\Carbon::parse($tanggal);
+        } catch (\Throwable $e) {
+            $this->dispatch('toast', type: 'error', message: 'Tanggal jatuh tempo tidak valid.');
+            return;
+        }
+        $t = Tagihan::findOrFail($id);
+        $lama = optional($t->tanggal_jatuh_tempo)->format('d M Y') ?? '-';
+        $t->update(['tanggal_jatuh_tempo' => $tgl->format('Y-m-d')]);
+        Log::info('[Tagihan] Jatuh tempo diubah', [
+            'tagihan_id' => $t->id, 'nomor' => $t->nomor_tagihan,
+            'lama' => $lama, 'baru' => $tgl->format('Y-m-d'), 'oleh' => Auth::user()?->name,
+        ]);
+        \App\Services\Guardian\GuardianEngine::bustCache();
+        $this->dispatch('toast', type: 'success', message: "Jatuh tempo {$t->nomor_tagihan} → " . $tgl->format('d M Y') . '.');
+    }
+
     public function konfirm(int $id): void
     {
         // Ubah status draft → belum_bayar

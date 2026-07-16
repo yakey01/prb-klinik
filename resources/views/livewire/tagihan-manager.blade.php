@@ -459,13 +459,29 @@
                 <td class="font-mono" style="padding:.55rem .75rem;text-align:right;font-size:.82rem;font-weight:700;color:{{ $t->sisa_tagihan>0 ? 'var(--red2)' : 'var(--emer2)' }};">
                     Rp {{ number_format($t->sisa_tagihan,0,',','.') }}
                 </td>
-                <td style="padding:.55rem .75rem;text-align:center;min-width:110px;">
-                    <div style="font-size:.76rem;font-weight:600;color:{{ $agingColor }};">{{ $t->tanggal_jatuh_tempo->format('d M Y') }}</div>
-                    <div style="font-size:.63rem;color:{{ $agingColor }};">
-                        @if($aging==='overdue') {{ abs($agingH) }} hari lewat
-                        @elseif($aging==='lunas') Lunas
-                        @else {{ $agingH }} hari lagi
-                        @endif
+                <td style="padding:.55rem .75rem;text-align:center;min-width:128px;">
+                    <div x-data="{ edit:false }">
+                        {{-- Tampilan: klik untuk ubah jatuh tempo (tempo PBF) --}}
+                        <div x-show="!edit" @click="edit=true" title="Klik untuk ubah jatuh tempo (tempo pembayaran PBF)" style="cursor:pointer;">
+                            <div style="font-size:.76rem;font-weight:600;color:{{ $agingColor }};display:inline-flex;align-items:center;gap:.28rem;">
+                                {{ $t->tanggal_jatuh_tempo->format('d M Y') }}
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.6;"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>
+                            </div>
+                            <div style="font-size:.63rem;color:{{ $agingColor }};">
+                                @if($aging==='overdue') {{ abs($agingH) }} hari lewat
+                                @elseif($aging==='lunas') Lunas
+                                @else {{ $agingH }} hari lagi
+                                @endif
+                            </div>
+                        </div>
+                        {{-- Edit: date picker inline --}}
+                        <div x-show="edit" x-cloak style="display:flex;align-items:center;gap:.25rem;justify-content:center;">
+                            <input type="date" value="{{ $t->tanggal_jatuh_tempo->format('Y-m-d') }}"
+                                @change="$wire.call('updateJatuhTempo', {{ $t->id }}, $event.target.value); edit=false"
+                                @keydown.escape="edit=false"
+                                style="background:var(--card);border:1px solid var(--gold);color:var(--ink);border-radius:.35rem;padding:.2rem .3rem;font-size:.7rem;">
+                            <button type="button" @click="edit=false" title="Batal" style="background:none;border:none;color:var(--mut);cursor:pointer;font-size:.7rem;">✕</button>
+                        </div>
                     </div>
                 </td>
                 <td style="padding:.55rem .75rem;text-align:center;width:95px;">
