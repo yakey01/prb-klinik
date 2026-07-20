@@ -4,7 +4,7 @@
 
 **Produksi PINDAH: Biznet VPS → Mac Mini (Docker + Cloudflare Tunnel).** apotik PRB kini dilayani dari **Mac Mini** di **`apotik.klinikdokterku.id`** — via Cloudflare Tunnel. Biznet `103.93.133.244` = **FALLBACK 2 bulan**.
 
-**DEPLOY sekarang:** edit di MacBook → `git push`; lalu **DI MAC MINI** jalankan **`~/production/deploy.sh apotik`** (atau `all`) → git pull+composer+build+migrate+optimize+queue:restart. `bin/ship`→Biznet dipakai hanya untuk jaga fallback sinkron. Stack: `~/production` (nginx:8090+php-fpm 48w+mariadb 2G+redis). Runbook: `~/production/RUNBOOK.md`. Detail: memory `project_vps_to_macmini_migration` (di Mac Mini).
+**DEPLOY sekarang:** edit di MacBook → `git push`; lalu **DI MAC MINI** jalankan **`~/production/deploy.sh apotik`** (atau `all`) → git pull+composer+build+migrate+optimize+queue:restart. `bin/ship`→Biznet dipakai hanya untuk jaga fallback sinkron. Stack: `~/production` (nginx:8090+php-fpm 48w+mariadb 2G+redis+JIT). Hardening AKTIF (auto-start reboot): tunnel/backup-02:00/monitor-5mnt via launchd, OrbStack start-at-login, `pmset` no-sleep+autorestart. Mac Mini kini DEDIKASI klinik (stack trading dimatikan, ~8,4GB bebas; WhatsApp/personal tetap jalan). Runbook: `~/production/RUNBOOK.md`. Detail: memory `project_vps_to_macmini_migration` (di Mac Mini).
 
 ---
 
