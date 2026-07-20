@@ -49,7 +49,7 @@
         <label class="form-label">Cari Nama / No. BPJS</label>
         <div style="position:relative;">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input wire:model.live="searchPasien" type="text" placeholder="Ketik nama atau no. BPJS..."
+            <input wire:model.live.debounce.400ms="searchPasien" type="text" placeholder="Ketik nama atau no. BPJS..."
                 class="form-input" style="padding-left:2.1rem;" wire:focus="$set('showPasienDropdown',true)">
         </div>
         @error('selectedPasienId')<div style="color:var(--red);font-size:.7rem;margin-top:.2rem;">{{ $message }}</div>@enderror

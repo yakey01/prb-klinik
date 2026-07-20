@@ -10,7 +10,7 @@
             <p style="font-size:.73rem;color:var(--mut);margin:0;">Semua obat keluar dari 2 channel — <strong style="color:var(--emer2);">PRB/Kronis</strong> (diserahkan langsung di apotik) &amp; <strong style="color:#a78bfa;">RME</strong> (resep dari SIM). Keduanya mengurangi stok total yang sama.</p>
         </div>
         <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;">
-            <input wire:model.live="search" type="text" placeholder="Cari obat / pasien..." class="form-input" style="max-width:210px;font-size:.8rem;">
+            <input wire:model.live.debounce.400ms="search" type="text" placeholder="Cari obat / pasien..." class="form-input" style="max-width:210px;font-size:.8rem;">
             <input wire:model.live="filterBulan" type="month" class="form-input font-mono" style="max-width:150px;font-size:.8rem;">
         </div>
     </div>

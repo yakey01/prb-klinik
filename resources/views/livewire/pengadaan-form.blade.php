@@ -216,17 +216,17 @@ mark.hl{background:rgba(217,164,65,.3);color:var(--gold2);border-radius:2px;font
                         @error("rows.$i.obat_id") <div style="color:var(--red2);font-size:.68rem;margin-top:.2rem;">Pilih obat terlebih dahulu</div> @enderror
                     </td>
                     <td style="padding:.5rem .75rem;">
-                        <input wire:model.live="rows.{{ $i }}.jumlah_box" type="number" min="1" class="form-input font-mono"
+                        <input wire:model.blur="rows.{{ $i }}.jumlah_box" type="number" min="1" class="form-input font-mono"
                             style="text-align:right;font-size:.82rem;width:70px;{{ $errors->has('rows.'.$i.'.jumlah_box') ? 'border-color:var(--red2);' : '' }}">
                         @error("rows.$i.jumlah_box") <div style="color:var(--red2);font-size:.65rem;margin-top:.15rem;">Wajib ≥ 1</div> @enderror
                     </td>
                     <td style="padding:.5rem .75rem;">
-                        <input wire:model.live="rows.{{ $i }}.isi_per_box" type="number" min="1" class="form-input font-mono"
+                        <input wire:model.blur="rows.{{ $i }}.isi_per_box" type="number" min="1" class="form-input font-mono"
                             style="text-align:right;font-size:.82rem;width:70px;{{ $errors->has('rows.'.$i.'.isi_per_box') ? 'border-color:var(--red2);' : '' }}">
                         @error("rows.$i.isi_per_box") <div style="color:var(--red2);font-size:.65rem;margin-top:.15rem;">Wajib ≥ 1</div> @enderror
                     </td>
                     <td style="padding:.5rem .75rem;">
-                        <input wire:model.live="rows.{{ $i }}.harga_per_box" type="number" min="1" step="any" class="form-input font-mono"
+                        <input wire:model.blur="rows.{{ $i }}.harga_per_box" type="number" min="1" step="any" class="form-input font-mono"
                             style="text-align:right;font-size:.82rem;{{ $errors->has('rows.'.$i.'.harga_per_box') ? 'border-color:var(--red2);' : '' }}">
                         @error("rows.$i.harga_per_box") <div style="color:var(--red2);font-size:.65rem;margin-top:.15rem;">Wajib diisi</div> @enderror
                     </td>

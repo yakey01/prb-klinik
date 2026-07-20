@@ -241,7 +241,7 @@
                 <div class="um-field-grid">
                     <div class="um-field">
                         <label class="form-label">Nama Lengkap *</label>
-                        <input wire:model.live="name" type="text" placeholder="mis. dr. Budi Santoso" class="form-input">
+                        <input wire:model.blur="name" type="text" placeholder="mis. dr. Budi Santoso" class="form-input">
                         @error('name')<div class="um-err">{{ $message }}</div>@enderror
                     </div>
                     <div class="um-field">
