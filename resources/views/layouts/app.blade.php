@@ -219,6 +219,10 @@
 
         /* ── Mobile Drawer Navigation ── */
         .mobile-nav-overlay {
+            /* WAJIB display:none — Alpine baru boot setelah @livewireScripts di akhir body.
+               Tanpa ini, overlay tampil sejak HTML ter-render → SELURUH halaman gelap+blur
+               & tak bisa diklik (z-index 300) sampai Alpine jalan. Fail-safe bila Alpine gagal. */
+            display: none;
             position: fixed; inset: 0; background: rgba(0,0,0,.6);
             backdrop-filter: blur(4px); z-index: 300;
             transition: opacity .25s;
