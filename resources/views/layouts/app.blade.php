@@ -219,9 +219,11 @@
 
         /* ── Mobile Drawer Navigation ── */
         .mobile-nav-overlay {
-            /* WAJIB display:none — Alpine baru boot setelah @livewireScripts di akhir body.
-               Tanpa ini, overlay tampil sejak HTML ter-render → SELURUH halaman gelap+blur
-               & tak bisa diklik (z-index 300) sampai Alpine jalan. Fail-safe bila Alpine gagal. */
+            /* WAJIB display:none — Alpine baru boot setelah skrip Livewire di akhir body.
+               Tanpa ini, overlay tampil sejak HTML ter-render, SELURUH halaman gelap+blur
+               dan tak bisa diklik (z-index 300) sampai Alpine jalan. Fail-safe bila Alpine gagal.
+               JANGAN tulis nama direktif Blade ber-awalan @ di komentar file .blade.php:
+               Blade tetap meng-compile-nya walau di dalam komentar CSS. */
             display: none;
             position: fixed; inset: 0; background: rgba(0,0,0,.6);
             backdrop-filter: blur(4px); z-index: 300;
