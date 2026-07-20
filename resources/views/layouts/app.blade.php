@@ -350,80 +350,80 @@
             </button>
         </div>
         <div class="mobile-drawer-section" style="flex:1; overflow-y:auto; padding-bottom:1rem;">
-            <a wire:navigate href="{{ route('dashboard') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('dashboard') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                 Dashboard
             </a>
 
             <div class="mobile-drawer-group-label">Pengadaan</div>
-            <a wire:navigate href="{{ route('pengadaan.pengajuan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.pengajuan') || request()->routeIs('pengadaan.create') || request()->routeIs('pengadaan.store') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('pengadaan.pengajuan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.pengajuan') || request()->routeIs('pengadaan.create') || request()->routeIs('pengadaan.store') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
                 Pengadaan &amp; Pengajuan
             </a>
-            <a wire:navigate href="{{ route('riwayat.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('riwayat.*') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('riwayat.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('riwayat.*') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 Riwayat PO
             </a>
-            <a wire:navigate href="{{ route('pengadaan.harian') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.harian') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('pengadaan.harian') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.harian') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 Barang Masuk Harian
             </a>
-            <a wire:navigate href="{{ route('pengadaan.kebutuhan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.kebutuhan') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('pengadaan.kebutuhan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengadaan.kebutuhan') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 Kebutuhan Obat Kronis
             </a>
 
             <div class="mobile-drawer-group-label">Inventori</div>
-            <a wire:navigate href="{{ route('katalog.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('katalog.index') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('katalog.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('katalog.index') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
                 Katalog Obat
             </a>
-            <a wire:navigate href="{{ route('katalog.gabung') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('katalog.gabung') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('katalog.gabung') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('katalog.gabung') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
                 Gabung Obat
             </a>
-            <a wire:navigate href="{{ route('stok.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('stok.index') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('stok.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('stok.index') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
                 Stok Obat
             </a>
-            <a wire:navigate href="{{ route('stok-keluar.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('stok-keluar.*') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('stok-keluar.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('stok-keluar.*') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
                 Stok Keluar
             </a>
-            <a wire:navigate href="{{ route('distributor.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('distributor.*') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('distributor.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('distributor.*') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                 Distributor
             </a>
 
             <div class="mobile-drawer-group-label">Pasien</div>
-            <a wire:navigate href="{{ route('pasien.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.index') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('pasien.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.index') ? 'active' : '' }}">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                 Daftar Pasien
             </a>
-            <a wire:navigate href="{{ route('pasien.pengambilan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.pengambilan') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('pasien.pengambilan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.pengambilan') ? 'active' : '' }}">
                 Pengambilan Obat
             </a>
-            <a wire:navigate href="{{ route('pasien.riwayat') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('pasien.riwayat') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}">
                 Riwayat Pengambilan
             </a>
-            <a wire:navigate href="{{ route('pasien.jadwal') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.jadwal') ? 'active' : '' }}">
+            <a wire:navigate.hover href="{{ route('pasien.jadwal') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pasien.jadwal') ? 'active' : '' }}">
                 Jadwal & Reminder
             </a>
 
             <div class="mobile-drawer-group-label">Keuangan</div>
-            <a wire:navigate href="{{ route('tagihan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('tagihan.*') ? 'active' : '' }}">Tagihan</a>
-            <a wire:navigate href="{{ route('guardian.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('guardian.*') ? 'active' : '' }}">Guardian AI</a>
+            <a wire:navigate.hover href="{{ route('tagihan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('tagihan.*') ? 'active' : '' }}">Tagihan</a>
+            <a wire:navigate.hover href="{{ route('guardian.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('guardian.*') ? 'active' : '' }}">Guardian AI</a>
             <a href="{{ route('laporan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}">Laporan Bulanan</a>
-            <a wire:navigate href="{{ route('rekonsiliasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">Rekonsiliasi BPJS</a>
-            <a wire:navigate href="{{ route('kalkulator.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
+            <a wire:navigate.hover href="{{ route('rekonsiliasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">Rekonsiliasi BPJS</a>
+            <a wire:navigate.hover href="{{ route('kalkulator.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                 Kalkulator Laba
             </a>
 
             <div class="mobile-drawer-group-label">Manajemen</div>
-            <a wire:navigate href="{{ route('notifikasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('notifikasi.*') ? 'active' : '' }}">Notifikasi</a>
-            <a wire:navigate href="{{ route('audit.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('audit.*') ? 'active' : '' }}">Audit Log</a>
-            <a wire:navigate href="{{ route('pengaturan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengaturan.*') ? 'active' : '' }}">Pengaturan</a>
+            <a wire:navigate.hover href="{{ route('notifikasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('notifikasi.*') ? 'active' : '' }}">Notifikasi</a>
+            <a wire:navigate.hover href="{{ route('audit.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('audit.*') ? 'active' : '' }}">Audit Log</a>
+            <a wire:navigate.hover href="{{ route('pengaturan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('pengaturan.*') ? 'active' : '' }}">Pengaturan</a>
         </div>
         <div style="padding:.75rem 1.25rem; border-top:1px solid var(--line);">
             <form method="POST" action="{{ route('logout') }}">
@@ -446,7 +446,7 @@
                     </button>
                     {{-- Brand: Logo + Name --}}
                     <div style="display:flex;align-items:center;gap:.85rem;">
-                        <a wire:navigate href="{{ route('dashboard') }}" style="display:flex;align-items:center;flex-shrink:0;">
+                        <a wire:navigate.hover href="{{ route('dashboard') }}" style="display:flex;align-items:center;flex-shrink:0;">
                             <img src="/img/logo-klinik.png" alt="Klinik Dokterku"
                                  style="height:48px;width:48px;object-fit:contain;border-radius:.5rem;
                                         filter:drop-shadow(0 2px 8px rgba(74,144,217,.35)) drop-shadow(0 2px 6px rgba(242,192,0,.2));">
@@ -486,7 +486,7 @@
             <div style="display:flex; gap:.15rem; margin-top:.25rem; align-items:stretch;" id="nav-tabs">
 
                 {{-- Dashboard --}}
-                <a wire:navigate href="{{ route('dashboard') }}" class="nav-tab {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <a wire:navigate.hover href="{{ route('dashboard') }}" class="nav-tab {{ request()->routeIs('dashboard') ? 'active' : '' }}">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                     Dashboard
                 </a>
@@ -500,21 +500,21 @@
                         <svg class="nav-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="nav-dropdown" id="dd-pengadaan" style="display:none;">
-                        <a wire:navigate href="{{ route('pengadaan.pengajuan') }}" class="{{ request()->routeIs('pengadaan.pengajuan') || request()->routeIs('pengadaan.create') || request()->routeIs('pengadaan.store') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pengadaan.pengajuan') }}" class="{{ request()->routeIs('pengadaan.pengajuan') || request()->routeIs('pengadaan.create') || request()->routeIs('pengadaan.store') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15l2 2 4-4"/></svg>
                             Pengadaan &amp; Pengajuan
                             @if($siapBelanjaCount > 0)<span style="margin-left:auto;display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:999px;background:linear-gradient(180deg,#f2c668,#d9a441);color:#1a0e00;font-size:.62rem;font-weight:900;">{{ $siapBelanjaCount }}</span>@endif
                         </a>
-                        <a wire:navigate href="{{ route('riwayat.index') }}" class="{{ request()->routeIs('riwayat.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('riwayat.index') }}" class="{{ request()->routeIs('riwayat.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             Riwayat PO
                         </a>
-                        <a wire:navigate href="{{ route('pengadaan.harian') }}" class="{{ request()->routeIs('pengadaan.harian') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pengadaan.harian') }}" class="{{ request()->routeIs('pengadaan.harian') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             Barang Masuk Harian
                         </a>
                         <div class="sep"></div>
-                        <a wire:navigate href="{{ route('pengadaan.kebutuhan') }}" class="{{ request()->routeIs('pengadaan.kebutuhan') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pengadaan.kebutuhan') }}" class="{{ request()->routeIs('pengadaan.kebutuhan') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                             Kebutuhan Obat Kronis
                         </a>
@@ -529,28 +529,28 @@
                         <svg class="nav-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="nav-dropdown" id="dd-inventori" style="display:none;">
-                        <a wire:navigate href="{{ route('katalog.index') }}" class="{{ request()->routeIs('katalog.index') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('katalog.index') }}" class="{{ request()->routeIs('katalog.index') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
                             Katalog Obat
                         </a>
-                        <a wire:navigate href="{{ route('katalog.gabung') }}" class="{{ request()->routeIs('katalog.gabung') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('katalog.gabung') }}" class="{{ request()->routeIs('katalog.gabung') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>
                             Gabung Obat
                         </a>
-                        <a wire:navigate href="{{ route('stok.index') }}" class="{{ request()->routeIs('stok.index') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('stok.index') }}" class="{{ request()->routeIs('stok.index') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                             Stok Obat
                         </a>
-                        <a wire:navigate href="{{ route('bmhp.index') }}" class="{{ request()->routeIs('bmhp.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('bmhp.index') }}" class="{{ request()->routeIs('bmhp.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
                             BMHP
                         </a>
-                        <a wire:navigate href="{{ route('stok-keluar.index') }}" class="{{ request()->routeIs('stok-keluar.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('stok-keluar.index') }}" class="{{ request()->routeIs('stok-keluar.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14m-7-7 7 7-7 7"/></svg>
                             Stok Keluar
                         </a>
                         <div class="sep"></div>
-                        <a wire:navigate href="{{ route('distributor.index') }}" class="{{ request()->routeIs('distributor.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('distributor.index') }}" class="{{ request()->routeIs('distributor.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                             Distributor
                         </a>
@@ -565,11 +565,11 @@
                         <svg class="nav-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="nav-dropdown" id="dd-keuangan" style="display:none;">
-                        <a wire:navigate href="{{ route('tagihan.index') }}" class="{{ request()->routeIs('tagihan.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('tagihan.index') }}" class="{{ request()->routeIs('tagihan.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
                             Tagihan
                         </a>
-                        <a wire:navigate href="{{ route('guardian.index') }}" class="{{ request()->routeIs('guardian.*') ? 'active' : '' }}" style="{{ request()->routeIs('guardian.*') ? '' : 'color:var(--emer2);' }}">
+                        <a wire:navigate.hover href="{{ route('guardian.index') }}" class="{{ request()->routeIs('guardian.*') ? 'active' : '' }}" style="{{ request()->routeIs('guardian.*') ? '' : 'color:var(--emer2);' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
                             Guardian AI
                         </a>
@@ -577,12 +577,12 @@
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                             Laporan Bulanan
                         </a>
-                        <a wire:navigate href="{{ route('rekonsiliasi.index') }}" class="{{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('rekonsiliasi.index') }}" class="{{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>
                             Rekonsiliasi BPJS
                         </a>
                         <div class="sep"></div>
-                        <a wire:navigate href="{{ route('kalkulator.index') }}" class="{{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
+                        <a wire:navigate.hover href="{{ route('kalkulator.index') }}" class="{{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
                             Kalkulator Laba
                         </a>
@@ -597,19 +597,19 @@
                         <svg class="nav-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="nav-dropdown" id="dd-pasien" style="display:none;">
-                        <a wire:navigate href="{{ route('pasien.index') }}" class="{{ request()->routeIs('pasien.index') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pasien.index') }}" class="{{ request()->routeIs('pasien.index') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                             Daftar Pasien
                         </a>
-                        <a wire:navigate href="{{ route('pasien.pengambilan') }}" class="{{ request()->routeIs('pasien.pengambilan') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pasien.pengambilan') }}" class="{{ request()->routeIs('pasien.pengambilan') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-3-3v6m-7 4h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                             Pengambilan Obat
                         </a>
-                        <a wire:navigate href="{{ route('pasien.riwayat') }}" class="{{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pasien.riwayat') }}" class="{{ request()->routeIs('pasien.riwayat') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="9"/></svg>
                             Riwayat Pengambilan
                         </a>
-                        <a wire:navigate href="{{ route('pasien.jadwal') }}" class="{{ request()->routeIs('pasien.jadwal') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pasien.jadwal') }}" class="{{ request()->routeIs('pasien.jadwal') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             Jadwal & Reminder
                         </a>
@@ -624,26 +624,26 @@
                         <svg class="nav-chevron" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" style="transition:transform .15s;"><polyline points="6 9 12 15 18 9"/></svg>
                     </button>
                     <div class="nav-dropdown" id="dd-manajemen" style="display:none;">
-                        <a wire:navigate href="{{ route('notifikasi.index') }}" class="{{ request()->routeIs('notifikasi.*') ? 'active' : '' }}" style="position:relative;">
+                        <a wire:navigate.hover href="{{ route('notifikasi.index') }}" class="{{ request()->routeIs('notifikasi.*') ? 'active' : '' }}" style="position:relative;">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
                             Notifikasi
                             @php $notifBadge = \App\Models\PengambilanObat::where('jadwal_berikutnya', today()->toDateString())->whereNotIn('status', ['selesai','batal'])->count() + \App\Models\PengambilanObat::where('jadwal_berikutnya', '<', today()->toDateString())->whereNotIn('status', ['selesai','batal'])->whereNotNull('jadwal_berikutnya')->count(); @endphp
                             @if($notifBadge > 0)<span style="position:absolute;top:4px;right:-2px;background:var(--red);color:#fff;border-radius:50%;width:14px;height:14px;font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;">{{ min($notifBadge, 9) }}</span>@endif
                         </a>
-                        <a wire:navigate href="{{ route('persyaratan-klaim.index') }}" class="{{ request()->routeIs('persyaratan-klaim.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('persyaratan-klaim.index') }}" class="{{ request()->routeIs('persyaratan-klaim.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
                             Persyaratan Klaim
                         </a>
-                        <a wire:navigate href="{{ route('audit.index') }}" class="{{ request()->routeIs('audit.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('audit.index') }}" class="{{ request()->routeIs('audit.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
                             Audit Log
                         </a>
                         <div class="sep"></div>
-                        <a wire:navigate href="{{ route('pengaturan.index') }}" class="{{ request()->routeIs('pengaturan.*') ? 'active' : '' }}">
+                        <a wire:navigate.hover href="{{ route('pengaturan.index') }}" class="{{ request()->routeIs('pengaturan.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                             Pengaturan
                         </a>
-                        <a wire:navigate href="{{ route('deploy.index') }}" class="{{ request()->routeIs('deploy.*') ? 'active' : '' }}" style="color:var(--gold);">
+                        <a wire:navigate.hover href="{{ route('deploy.index') }}" class="{{ request()->routeIs('deploy.*') ? 'active' : '' }}" style="color:var(--gold);">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                             Deploy Panel
                         </a>
