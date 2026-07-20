@@ -21,6 +21,23 @@ Fitur: manajemen pasien & resep, katalog obat, stok, pengadaan, kebutuhan obat k
 
 ---
 
+## ⚡ PRODUKSI & DEPLOY (2026-07-20) — WAJIB BACA
+
+**Produksi PINDAH: Biznet VPS → Mac Mini** (`~/production`, Docker + Cloudflare Tunnel). Domain `apotik.klinikdokterku.id` kini dilayani Mac Mini. Biznet `103.93.133.244` = fallback 2 bulan.
+
+**🚀 DEPLOY 1-BARIS DARI MACBOOK (SSH via Tailscale) — sudah aktif:**
+```bash
+git add -A && git commit -m "..." && git push                  # di MacBook (repo prb-klinik)
+ssh macmini '~/production/deploy.sh apotik && ~/production/validate.sh apotik'
+```
+Semua app sekaligus: `ssh macmini '~/production/deploy.sh all && ~/production/validate.sh all'`.
+`deploy.sh` = git pull ff-only → composer → npm build → migrate --force → optimize → queue:restart. `validate.sh` = smoke HTTP 200.
+- **MacBook→Mac Mini** via **Tailscale**: `~/.ssh/config` Host `macmini` → `yaya@100.67.124.96`, `IdentityFile ~/.ssh/macmini` (`IdentitiesOnly yes`).
+- **Mac Mini→GitHub**: deploy key `~/.ssh/github_deploy` di Mac Mini = **Account SSH key** `yakey01` ("Mac Mini Produksi Klinik", cover 3 repo). Remote 3 app di `~/production/apps/{sim,dokterku,apotik}` = **SSH** `git@github.com:...` (repo apotik = `prb-klinik`).
+- 🔴 **Gotcha**: remote HTTPS → `deploy.sh` git-pull GAGAL non-interaktif (`could not read Username for github.com`) → WAJIB remote SSH + account key. ⚠️ skrip pemanggil `docker` WAJIB `export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"`.
+
+---
+
 ## Arsitektur
 
 ```
