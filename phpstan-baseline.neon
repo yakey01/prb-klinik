@@ -483,7 +483,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$harga_per_box\.$#'
 			identifier: property.notFound
-			count: 3
+			count: 4
 			path: app/Livewire/PengajuanPengadaan.php
 
 		-
@@ -495,7 +495,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$isi_per_box\.$#'
 			identifier: property.notFound
-			count: 2
+			count: 4
 			path: app/Livewire/PengajuanPengadaan.php
 
 		-
