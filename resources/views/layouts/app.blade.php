@@ -413,7 +413,8 @@
             <div class="mobile-drawer-group-label">Keuangan</div>
             <a wire:navigate.hover href="{{ route('tagihan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('tagihan.*') ? 'active' : '' }}">Tagihan</a>
             <a wire:navigate.hover href="{{ route('guardian.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('guardian.*') ? 'active' : '' }}">Guardian AI</a>
-            <a href="{{ route('laporan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('laporan.*') ? 'active' : '' }}">Laporan Bulanan</a>
+            <a href="{{ route('laporan.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('laporan.index') ? 'active' : '' }}">Laporan Bulanan</a>
+            <a wire:navigate.hover href="{{ route('laporan.pengadaan') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('laporan.pengadaan') ? 'active' : '' }}">Rekap Pengadaan Kronis</a>
             <a wire:navigate.hover href="{{ route('rekonsiliasi.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">Rekonsiliasi BPJS</a>
             <a wire:navigate.hover href="{{ route('kalkulator.index') }}" @click="mobileNav=false" class="mobile-drawer-link {{ request()->routeIs('kalkulator.*') ? 'active' : '' }}" style="{{ request()->routeIs('kalkulator.*') ? '' : 'color:var(--gold);' }}">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -573,9 +574,13 @@
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
                             Guardian AI
                         </a>
-                        <a href="{{ route('laporan.index') }}" class="{{ request()->routeIs('laporan.*') ? 'active' : '' }}">
+                        <a href="{{ route('laporan.index') }}" class="{{ request()->routeIs('laporan.index') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                             Laporan Bulanan
+                        </a>
+                        <a wire:navigate.hover href="{{ route('laporan.pengadaan') }}" class="{{ request()->routeIs('laporan.pengadaan') ? 'active' : '' }}" style="{{ request()->routeIs('laporan.pengadaan') ? '' : 'color:var(--emer2);' }}">
+                            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 9l-5 5-3-3-4 4"/></svg>
+                            Rekap Pengadaan Kronis
                         </a>
                         <a wire:navigate.hover href="{{ route('rekonsiliasi.index') }}" class="{{ request()->routeIs('rekonsiliasi.*') ? 'active' : '' }}">
                             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>

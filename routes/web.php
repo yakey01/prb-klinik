@@ -3,8 +3,8 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ObatController;
 use App\Http\Controllers\PengadaanController;
-use App\Http\Controllers\RiwayatController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RiwayatController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('dashboard'));
@@ -28,25 +28,26 @@ Route::middleware(['auth', 'throttle:60,1'])->group(function () {
 
     Route::get('/distributor', fn () => view('distributor.index'))->name('distributor.index');
 
-    Route::get('/stok',         fn () => view('stok.index'))->name('stok.index');
-    Route::get('/bmhp',         fn () => view('bmhp.index'))->name('bmhp.index');
-    Route::get('/stok-keluar',  fn () => view('stok-keluar.index'))->name('stok-keluar.index');
-    Route::get('/laporan',      fn () => view('laporan.index'))->name('laporan.index');
-    Route::get('/tagihan',      fn () => view('keuangan.tagihan'))->name('tagihan.index');
-    Route::get('/guardian',     fn () => view('guardian.index'))->name('guardian.index');
-    Route::get('/kalkulator',   fn () => view('keuangan.kalkulator'))->name('kalkulator.index');
+    Route::get('/stok', fn () => view('stok.index'))->name('stok.index');
+    Route::get('/bmhp', fn () => view('bmhp.index'))->name('bmhp.index');
+    Route::get('/stok-keluar', fn () => view('stok-keluar.index'))->name('stok-keluar.index');
+    Route::get('/laporan', fn () => view('laporan.index'))->name('laporan.index');
+    Route::get('/laporan/pengadaan', fn () => view('laporan.pengadaan'))->name('laporan.pengadaan');
+    Route::get('/tagihan', fn () => view('keuangan.tagihan'))->name('tagihan.index');
+    Route::get('/guardian', fn () => view('guardian.index'))->name('guardian.index');
+    Route::get('/kalkulator', fn () => view('keuangan.kalkulator'))->name('kalkulator.index');
     Route::get('/rekonsiliasi', fn () => view('rekonsiliasi.index'))->name('rekonsiliasi.index');
-    Route::get('/audit',        fn () => view('audit.index'))->name('audit.index');
+    Route::get('/audit', fn () => view('audit.index'))->name('audit.index');
 
-    Route::get('/pasien',             fn () => view('pasien.index'))->name('pasien.index');
+    Route::get('/pasien', fn () => view('pasien.index'))->name('pasien.index');
     Route::get('/pasien/pengambilan', fn () => view('pasien.pengambilan'))->name('pasien.pengambilan');
-    Route::get('/pasien/jadwal',      fn () => view('pasien.jadwal'))->name('pasien.jadwal');
-    Route::get('/pasien/riwayat',     fn () => view('pasien.riwayat'))->name('pasien.riwayat');
-    Route::get('/persyaratan-klaim',  fn () => view('persyaratan-klaim.index'))->name('persyaratan-klaim.index');
+    Route::get('/pasien/jadwal', fn () => view('pasien.jadwal'))->name('pasien.jadwal');
+    Route::get('/pasien/riwayat', fn () => view('pasien.riwayat'))->name('pasien.riwayat');
+    Route::get('/persyaratan-klaim', fn () => view('persyaratan-klaim.index'))->name('persyaratan-klaim.index');
     Route::get('/notifikasi', fn () => view('notifikasi.index'))->name('notifikasi.index');
 
     Route::get('/diagnosis', fn () => view('diagnosis.index'))->name('diagnosis.index');
-    Route::get('/users',     fn () => view('users.index'))->name('users.index');
+    Route::get('/users', fn () => view('users.index'))->name('users.index');
     Route::get('/pengadaan', fn () => redirect()->route('pengadaan.pengajuan'))->name('pengadaan.index');
 
     Route::get('/pengaturan', fn () => view('pengaturan.index'))->name('pengaturan.index');
