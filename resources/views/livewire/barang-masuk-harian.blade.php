@@ -342,7 +342,7 @@
                                 <tbody>
                                     @foreach($po->items as $it)
                                     @php $o = $it->obat; $iKronis = (($it->tipe_obat ?? $o->tipe_obat ?? 'kronis') === 'kronis'); @endphp
-                                    @if(! $iKronis) @continue @endif
+                                    @continue(! $iKronis)
                                     @php
                                         $units = (float)$it->jumlah_box * max(1,(float)$it->isi_per_box);
                                         $iBeli = (float)$it->subtotal;
