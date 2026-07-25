@@ -720,6 +720,16 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
     $kRugi       = $this->detailBpjs->filter(fn($x) => $x['laba'] < 0)->count();
 @endphp
 
+{{-- CATATAN PEMBEDA — cegah bingung dgn Rekap Pengadaan (margin pembelian) --}}
+<div style="display:flex;gap:.7rem;align-items:flex-start;margin-bottom:1.2rem;padding:.75rem 1rem;border-radius:.7rem;background:rgba(63,207,142,.07);border:1px solid rgba(63,207,142,.25);">
+    <span style="font-size:1rem;line-height:1;">📊</span>
+    <div style="font-size:.74rem;color:var(--mut);line-height:1.55;">
+        Angka di sini = <strong style="color:var(--emer2);">laba PROGRAM</strong> obat kronis dari <u>konsumsi pasien</u> per bulan (klaim BPJS − beli untuk obat yang dipakai; termasuk obat rugi beli&gt;klaim).
+        Untuk <strong style="color:var(--ink);">margin PEMBELIAN</strong> (barang yang dibeli/PO per bulan), buka
+        <a wire:navigate.hover href="{{ route('laporan.pengadaan') }}" style="color:var(--gold2);font-weight:700;text-decoration:underline;">Rekap Pengadaan Kronis</a>. Dua angka ini <strong style="color:var(--ink);">wajar berbeda</strong> — beda yang diukur.
+    </div>
+</div>
+
 <div class="grid-kpi" style="margin-bottom:1.35rem;">
     <div class="lpr-kpi" style="border:1px solid rgba(63,207,142,.22); background:rgba(63,207,142,.06);">
         <div class="lpr-label">Proyeksi Pendapatan</div>

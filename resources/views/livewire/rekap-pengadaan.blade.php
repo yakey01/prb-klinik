@@ -10,9 +10,9 @@
         <div>
             <div class="font-label" style="font-size:.7rem;color:var(--mut);margin-bottom:.25rem;">Laporan</div>
             <h2 class="font-heading" style="font-size:1.5rem;color:var(--ink);margin:0;">Rekap Pengadaan Obat Kronis</h2>
-            <p style="color:var(--mut);font-size:.78rem;margin-top:.3rem;max-width:640px;">
-                Untung/rugi pengadaan obat <strong style="color:var(--emer2);">kronis (PRB/BPJS)</strong> —
-                <strong style="color:var(--ink);">nilai klaim BPJS − nilai beli</strong>, dihitung saat barang masuk. Riwayat per bulan untuk analisa & laporan direksi.
+            <p style="color:var(--mut);font-size:.78rem;margin-top:.3rem;max-width:660px;">
+                Margin <strong style="color:var(--emer2);">PEMBELIAN</strong> obat kronis (PRB/BPJS) —
+                <strong style="color:var(--ink);">nilai klaim BPJS − nilai beli</strong>, dihitung <strong style="color:var(--ink);">saat barang masuk (proyeksi)</strong>. Riwayat per bulan untuk direksi.
             </p>
         </div>
         <div style="display:flex;gap:.5rem;align-items:center;">
@@ -22,6 +22,16 @@
                 @endforeach
             </select>
             <button type="button" onclick="window.print()" class="btn-outline" style="padding:.5rem .9rem;font-size:.8rem;">🖨️ Cetak</button>
+        </div>
+    </div>
+
+    {{-- BANNER PEMBEDA — cegah bingung 2 angka laba kronis --}}
+    <div style="display:flex;gap:.7rem;align-items:flex-start;margin-bottom:1.2rem;padding:.75rem 1rem;border-radius:.7rem;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.28);">
+        <span style="font-size:1rem;line-height:1;">ℹ️</span>
+        <div style="font-size:.74rem;color:var(--mut);line-height:1.55;">
+            Halaman ini = <strong style="color:#7cc4ff;">margin PEMBELIAN</strong> (barang yang <u>dibeli</u> per bulan · proyeksi saat beli).
+            Untuk <strong style="color:var(--ink);">laba PROGRAM</strong> (dari obat yang benar-benar <u>dipakai pasien</u>, termasuk obat yang beli&gt;klaim/rugi),
+            buka <a wire:navigate.hover href="{{ route('laporan.index') }}" style="color:var(--gold2);font-weight:700;text-decoration:underline;">Laporan Bulanan → Obat Kronis</a>. Dua angka ini <strong style="color:var(--ink);">wajar berbeda</strong> — beda yang diukur.
         </div>
     </div>
 
@@ -38,7 +48,7 @@
             <div style="font-size:.66rem;color:var(--mut);margin-top:.25rem;">klaim + jasa farmasi</div>
         </div>
         <div class="kpi-card" style="border-color:{{ $s['untung'] >= 0 ? 'rgba(63,207,142,.4)' : 'rgba(232,100,90,.4)' }};background:linear-gradient(135deg,{{ $s['untung'] >= 0 ? 'rgba(63,207,142,.12)' : 'rgba(232,100,90,.12)' }},var(--panel));">
-            <div class="font-label" style="font-size:.62rem;color:var(--mut);">Untung Kronis {{ $tahun }}</div>
+            <div class="font-label" style="font-size:.62rem;color:var(--mut);">Untung Pembelian {{ $tahun }} <span style="font-weight:400;text-transform:none;">(proyeksi)</span></div>
             <div class="font-heading" style="font-size:1.7rem;color:{{ $s['untung'] >= 0 ? 'var(--emer2)' : 'var(--red2)' }};margin-top:.3rem;font-variant-numeric:tabular-nums;">{{ $s['untung'] >= 0 ? '+' : '' }}{{ $rp($s['untung']) }}</div>
             <div style="font-size:.66rem;color:var(--mut);margin-top:.25rem;">rata-rata {{ $rp($s['rata_untung']) }}/bulan</div>
         </div>
