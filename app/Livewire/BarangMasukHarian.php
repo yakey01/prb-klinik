@@ -89,15 +89,17 @@ class BarangMasukHarian extends Component
             ->join('purchase_orders as po', 'poi.purchase_order_id', '=', 'po.id')
             ->join('obat as o', 'o.id', '=', 'poi.obat_id')
             ->whereBetween('po.tanggal_po', [$start->toDateString(), $end->toDateString()])
-            ->selectRaw("
+            // 🔴 KHUSUS OBAT KRONIS (BPJS). Item non-kronis dalam PO yang sama TIDAK
+            // dihitung — non-kronis pakai harga jual (proyeksi retail), bukan uang nyata,
+            // & sudah jelas di tempat lain. Kalender ini = untung BPJS nyata (klaim − beli).
+            ->whereRaw("COALESCE(poi.tipe_obat, o.tipe_obat) = 'kronis'")
+            ->selectRaw('
                 DATE(po.tanggal_po) as d,
                 COUNT(DISTINCT po.id) as c,
                 COALESCE(SUM(poi.subtotal),0) as beli,
                 COALESCE(SUM(
-                    poi.jumlah_box * GREATEST(poi.isi_per_box,1) *
-                    CASE WHEN COALESCE(poi.tipe_obat, o.tipe_obat) = 'kronis'
-                         THEN COALESCE(o.klaim_bpjs_per_unit,0) * ".Obat::jfSql('o.faktor_jasa_farmasi').'
-                         ELSE COALESCE(o.harga_jual_per_unit,0) END
+                    poi.jumlah_box * GREATEST(poi.isi_per_box,1)
+                    * COALESCE(o.klaim_bpjs_per_unit,0) * '.Obat::jfSql('o.faktor_jasa_farmasi').'
                 ),0) as klaim
             ')
             ->groupBy('d')
@@ -318,18 +320,25 @@ class BarangMasukHarian extends Component
     {
         $beli = 0.0;
         $klaim = 0.0;
+        $nonCount = 0;      // item non-kronis (umum) — tidak dihitung di sini
+        $nonBeli = 0.0;
+        $kronisN = 0;
         foreach ($po->items as $it) {
             $o = $it->obat;
+            $isKronis = (($it->tipe_obat ?? $o?->tipe_obat ?? 'kronis') === 'kronis');
+            if (! $isKronis) {
+                $nonCount++;
+                $nonBeli += (float) $it->subtotal;
+
+                continue; // 🔴 non-kronis diabaikan — kalender khusus BPJS
+            }
+            $kronisN++;
             $units = (float) $it->jumlah_box * max(1, (float) $it->isi_per_box);
             $beli += (float) $it->subtotal;
-            $isKronis = (($it->tipe_obat ?? $o?->tipe_obat ?? 'kronis') === 'kronis');
-            $perUnit = $isKronis
-                ? (float) ($o->klaim_bpjs_per_unit ?? 0) * self::faktorMul($o->faktor_jasa_farmasi)
-                : (float) ($o->harga_jual_per_unit ?? 0);
-            $klaim += $units * $perUnit;
+            $klaim += $units * (float) ($o->klaim_bpjs_per_unit ?? 0) * self::faktorMul($o->faktor_jasa_farmasi);
         }
 
-        return ['beli' => $beli, 'klaim' => $klaim, 'laba' => $klaim - $beli];
+        return ['beli' => $beli, 'klaim' => $klaim, 'laba' => $klaim - $beli, 'kronis_n' => $kronisN, 'non_count' => $nonCount, 'non_beli' => $nonBeli];
     }
 
     public function toggleDate(string $date, bool $shift = false): void

@@ -219,7 +219,7 @@ parameters:
 		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$subtotal\.$#'
 			identifier: property.notFound
-			count: 1
+			count: 2
 			path: app/Livewire/BarangMasukHarian.php
 
 		-

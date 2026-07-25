@@ -2,8 +2,11 @@
     {{-- HEADER --}}
     <div style="margin-bottom:1.4rem;">
         <div class="font-label" style="font-size:.7rem;color:var(--mut);margin-bottom:.25rem;">Pengadaan</div>
-        <h2 class="font-heading" style="font-size:1.5rem;color:var(--ink);margin:0;">Barang Masuk Harian</h2>
-        <p style="color:var(--mut);font-size:.78rem;margin-top:.3rem;">Foto barang masuk (PO) per hari. Klik tanggal untuk pilih · <strong style="color:var(--ink);">Shift+klik</strong> untuk rentang · bisa gabung tanggal lepas + rentang.</p>
+        <h2 class="font-heading" style="font-size:1.5rem;color:var(--ink);margin:0;display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;">
+            Barang Masuk Harian
+            <span style="font-size:.62rem;font-weight:800;letter-spacing:.03em;padding:.2rem .55rem;border-radius:999px;background:rgba(63,207,142,.14);border:1px solid rgba(63,207,142,.3);color:var(--emer2);">🩺 KHUSUS OBAT KRONIS (BPJS)</span>
+        </h2>
+        <p style="color:var(--mut);font-size:.78rem;margin-top:.3rem;">Untung = <strong style="color:var(--ink);">klaim BPJS − beli</strong>, hanya item <strong style="color:var(--emer2);">kronis</strong> (walau 1 PO campur, non-kronis diabaikan — retail, sudah jelas). Klik tanggal untuk pilih · <strong style="color:var(--ink);">Shift+klik</strong> rentang.</p>
     </div>
 
     @php
@@ -196,8 +199,8 @@
                 @foreach([
                     ['Hari', $sm['hari'] . ' hari', 'var(--gold2)'],
                     ['Total PO', $sm['po'] . ' PO', 'var(--blue)'],
-                    ['Nilai Beli (HPP)', $rp($sm['beli']), 'var(--red2)'],
-                    ['Nilai Klaim/Jual', $rp($sm['klaim']), 'var(--blue)'],
+                    ['Beli Kronis (HPP)', $rp($sm['beli']), 'var(--red2)'],
+                    ['Klaim BPJS', $rp($sm['klaim']), 'var(--blue)'],
                 ] as [$lbl,$val,$col])
                 <div class="glass-card" style="padding:.7rem 1rem;flex:1;min-width:120px;">
                     <div style="font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut);margin-bottom:.3rem;">{{ $lbl }}</div>
@@ -208,10 +211,10 @@
                 <div style="flex:1.4;min-width:170px;border-radius:1rem;padding:.7rem 1.1rem;background:{{ $oBg }};border:1px solid {{ $oBd }};">
                     <div style="font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:{{ $oCol }};margin-bottom:.3rem;display:flex;align-items:center;gap:.3rem;">
                         <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">@if($oLaba>=0)<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>@else<polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/>@endif</svg>
-                        {{ $oLaba>=0 ? 'Untung' : 'Rugi' }} Pengadaan
+                        {{ $oLaba>=0 ? 'Untung' : 'Rugi' }} Kronis (BPJS)
                     </div>
                     <div class="font-mono" style="font-size:1.1rem;font-weight:900;color:{{ $oCol }};line-height:1.1;">{{ ($oLaba>=0?'+':'−').$rp(abs($oLaba)) }}</div>
-                    <div style="font-size:.62rem;color:var(--mut);margin-top:.15rem;">margin {{ number_format(abs($sm['margin']),1) }}% · klaim vs beli</div>
+                    <div style="font-size:.62rem;color:var(--mut);margin-top:.15rem;">margin {{ number_format(abs($sm['margin']),1) }}% · klaim BPJS vs beli · non-kronis tak dihitung</div>
                 </div>
             </div>
 
@@ -316,7 +319,7 @@
                                     @endif
                                 </div>
                                 <div style="font-size:.66rem;color:var(--mut2);">
-                                    @if($po->nomor_invoice)<span class="font-mono">#{{ $po->nomor_invoice }}</span> · @endif{{ $po->items->count() }} item
+                                    @if($po->nomor_invoice)<span class="font-mono">#{{ $po->nomor_invoice }}</span> · @endif<span style="color:var(--emer2);">{{ $fin['kronis_n'] }} kronis</span>@if(($fin['non_count'] ?? 0) > 0) · {{ $fin['non_count'] }} umum@endif
                                     @if(isset($po->status_bayar))<span style="margin-left:.3rem;color:{{ $po->status_bayar==='lunas'?'var(--emer)':'var(--gold2)' }};">{{ ucfirst($po->status_bayar) }}</span>@endif
                                 </div>
                             </div>
@@ -333,18 +336,17 @@
                                     <th style="text-align:left;padding:.3rem .5rem;font-size:.6rem;text-transform:uppercase;">Obat</th>
                                     <th style="text-align:right;padding:.3rem .5rem;font-size:.6rem;text-transform:uppercase;">Box</th>
                                     <th style="text-align:right;padding:.3rem .5rem;font-size:.6rem;text-transform:uppercase;">Beli</th>
-                                    <th style="text-align:right;padding:.3rem .5rem;font-size:.6rem;text-transform:uppercase;">Klaim/Jual</th>
+                                    <th style="text-align:right;padding:.3rem .5rem;font-size:.6rem;text-transform:uppercase;">Klaim BPJS</th>
                                     <th style="text-align:right;padding:.3rem .5rem;font-size:.6rem;text-transform:uppercase;">Laba/Rugi</th>
                                 </tr></thead>
                                 <tbody>
                                     @foreach($po->items as $it)
+                                    @php $o = $it->obat; $iKronis = (($it->tipe_obat ?? $o->tipe_obat ?? 'kronis') === 'kronis'); @endphp
+                                    @if(! $iKronis) @continue @endif
                                     @php
-                                        $o = $it->obat;
                                         $units = (float)$it->jumlah_box * max(1,(float)$it->isi_per_box);
                                         $iBeli = (float)$it->subtotal;
-                                        $iKronis = (($it->tipe_obat ?? $o->tipe_obat ?? 'kronis') === 'kronis');
-                                        $iPer = $iKronis ? (float)($o->klaim_bpjs_per_unit ?? 0) * \App\Livewire\BarangMasukHarian::faktorMul($o->faktor_jasa_farmasi) : (float)($o->harga_jual_per_unit ?? 0);
-                                        $iKlaim = $units * $iPer;
+                                        $iKlaim = $units * (float)($o->klaim_bpjs_per_unit ?? 0) * \App\Livewire\BarangMasukHarian::faktorMul($o->faktor_jasa_farmasi);
                                         $iLaba = $iKlaim - $iBeli; $iCol = $iLaba>0?'var(--emer2)':($iLaba<0?'var(--red2)':'var(--mut)');
                                     @endphp
                                     <tr style="border-top:1px solid rgba(31,61,48,.35);">
@@ -355,6 +357,12 @@
                                         <td class="font-mono" style="padding:.3rem .5rem;text-align:right;font-weight:700;color:{{ $iCol }};">{{ ($iLaba>=0?'+':'−').$rp(abs($iLaba)) }}</td>
                                     </tr>
                                     @endforeach
+                                    @if(($fin['kronis_n'] ?? 0) === 0)
+                                    <tr><td colspan="5" style="padding:.5rem;text-align:center;color:var(--mut2);font-size:.68rem;">Tidak ada obat kronis di PO ini (semua umum).</td></tr>
+                                    @endif
+                                    @if(($fin['non_count'] ?? 0) > 0)
+                                    <tr><td colspan="5" style="padding:.4rem .5rem;color:var(--mut2);font-size:.64rem;font-style:italic;border-top:1px dashed rgba(31,61,48,.5);">+ {{ $fin['non_count'] }} obat umum (non-kronis) · beli {{ $rp($fin['non_beli']) }} — tak dihitung di sini (retail, sudah jelas)</td></tr>
+                                    @endif
                                 </tbody>
                             </table>
                         </div>
