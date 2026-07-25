@@ -732,21 +732,21 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
 
 <div class="grid-kpi" style="margin-bottom:1.35rem;">
     <div class="lpr-kpi" style="border:1px solid rgba(63,207,142,.22); background:rgba(63,207,142,.06);">
-        <div class="lpr-label">Proyeksi Pendapatan</div>
+        <div class="lpr-label">💰 Klaim BPJS Masuk</div>
         <div class="lpr-num lpr-kpi-val" style="color:var(--emer2);">Rp {{ number_format($kTotalPend,0,',','.') }}</div>
-        <div style="font-size:.63rem; color:var(--mut);">BPJS/JKN · Formula PMK 3/2023</div>
+        <div style="font-size:.63rem; color:var(--mut);">uang MASUK dari BPJS (obat yang dipakai pasien)</div>
     </div>
     <div class="lpr-kpi" style="border:1px solid rgba(232,100,90,.18); background:rgba(232,100,90,.05);">
-        <div class="lpr-label">Total HPP</div>
+        <div class="lpr-label">🛒 Modal Beli</div>
         <div class="lpr-num lpr-kpi-val" style="color:var(--mut2);">(Rp {{ number_format($kTotalBiaya,0,',','.') }})</div>
-        <div style="font-size:.63rem; color:var(--mut);">Biaya beli seluruh obat kronis</div>
+        <div style="font-size:.63rem; color:var(--mut);">uang KELUAR beli obat yang dipakai</div>
     </div>
     <div class="lpr-kpi" style="border:1px solid rgba(217,164,65,.22); background:rgba(217,164,65,.06);">
-        <div class="lpr-label">Laba Segmen Kronis</div>
+        <div class="lpr-label">{{ $kTotalLaba >= 0 ? '📈 Untung Kronis' : '📉 Rugi Kronis' }}</div>
         <div class="lpr-num lpr-kpi-val" style="color:{{ $kTotalLaba >= 0 ? 'var(--gold2)' : 'var(--red2)' }};">
-            {{ $kTotalLaba >= 0 ? '+' : '' }}Rp {{ number_format($kTotalLaba,0,',','.') }}
+            {{ $kTotalLaba >= 0 ? '+' : '−' }}Rp {{ number_format(abs($kTotalLaba),0,',','.') }}
         </div>
-        <div style="font-size:.63rem; color:var(--mut);">Margin {{ $kTotalPend > 0 ? round($kTotalLaba/$kTotalPend*100,1) : 0 }}%</div>
+        <div style="font-size:.63rem; color:var(--mut);">klaim − modal · {{ $kTotalLaba >= 0 ? 'untung' : 'tekor' }} {{ $kTotalPend > 0 ? abs(round($kTotalLaba/$kTotalPend*100,1)) : 0 }}%</div>
     </div>
     <div class="lpr-kpi" style="border:1px solid var(--line2); background:rgba(0,0,0,.15);">
         <div class="lpr-label">Status Obat</div>
