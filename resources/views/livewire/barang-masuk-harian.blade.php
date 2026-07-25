@@ -319,7 +319,7 @@
                                     @endif
                                 </div>
                                 <div style="font-size:.66rem;color:var(--mut2);">
-                                    @if($po->nomor_invoice)<span class="font-mono">#{{ $po->nomor_invoice }}</span> · @endif<span style="color:var(--emer2);">{{ $fin['kronis_n'] }} kronis</span>@if(($fin['non_count'] ?? 0) > 0) · {{ $fin['non_count'] }} umum@endif
+                                    @if($po->nomor_invoice)<span class="font-mono">#{{ $po->nomor_invoice }}</span> · @endif<span style="color:var(--emer2);">{{ $fin['kronis_n'] }} kronis</span>@if(($fin['non_count'] ?? 0) > 0) · {{ $fin['non_count'] }} umum @endif
                                     @if(isset($po->status_bayar))<span style="margin-left:.3rem;color:{{ $po->status_bayar==='lunas'?'var(--emer)':'var(--gold2)' }};">{{ ucfirst($po->status_bayar) }}</span>@endif
                                 </div>
                             </div>
@@ -342,7 +342,7 @@
                                 <tbody>
                                     @foreach($po->items as $it)
                                     @php $o = $it->obat; $iKronis = (($it->tipe_obat ?? $o->tipe_obat ?? 'kronis') === 'kronis'); @endphp
-                                    @continue(! $iKronis)
+                                    @if($iKronis)
                                     @php
                                         $units = (float)$it->jumlah_box * max(1,(float)$it->isi_per_box);
                                         $iBeli = (float)$it->subtotal;
@@ -356,6 +356,7 @@
                                         <td class="font-mono" style="padding:.3rem .5rem;text-align:right;color:var(--blue);">{{ $rp($iKlaim) }}</td>
                                         <td class="font-mono" style="padding:.3rem .5rem;text-align:right;font-weight:700;color:{{ $iCol }};">{{ ($iLaba>=0?'+':'−').$rp(abs($iLaba)) }}</td>
                                     </tr>
+                                    @endif
                                     @endforeach
                                     @if(($fin['kronis_n'] ?? 0) === 0)
                                     <tr><td colspan="5" style="padding:.5rem;text-align:center;color:var(--mut2);font-size:.68rem;">Tidak ada obat kronis di PO ini (semua umum).</td></tr>
