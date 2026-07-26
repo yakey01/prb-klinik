@@ -704,7 +704,8 @@ class PengajuanPengadaan extends Component
     {
         $p = PR::with('items')->findOrFail($id);
         if (! $p->bisaRealisasi()) {
-            $this->dispatch('toast', type: 'error', message: 'Hanya pengajuan DISETUJUI yang bisa dibuatkan faktur/PO.');
+            $sudahPo = $p->purchase_order_id ? ' — sepertinya SUDAH jadi PO, cek Riwayat PO.' : '.';
+            $this->dispatch('toast', type: 'info', message: 'Pengajuan ini tak bisa dibuatkan faktur/PO'.$sudahPo);
 
             return;
         }
@@ -941,7 +942,12 @@ class PengajuanPengadaan extends Component
                 $p->update(['status' => 'direalisasi', 'purchase_order_id' => $po->id]);
             });
         } catch (\RuntimeException $e) {
-            $this->dispatch('toast', type: 'error', message: 'Pengajuan sudah direalisasikan sebelumnya (dicegah dobel).');
+            // BUKAN kegagalan — PO-nya SUDAH dibuat (klik ganda / halaman lama).
+            // Beri tahu jelas + tutup modal biar staf tak coba lagi.
+            $this->showFaktur = false;
+            $this->fakturPrId = null;
+            $this->fakturMode = 'buat';
+            $this->dispatch('toast', type: 'info', message: 'Pengajuan ini SUDAH jadi PO — cek menu Riwayat PO. Tak perlu dibuat ulang (dicegah dobel).');
 
             return;
         }

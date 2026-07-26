@@ -185,7 +185,7 @@
                             <span title="Menunggu keputusan manajer di SIM · masih bisa diedit" style="font-size:.64rem;color:#5b9bd5;padding:.25rem .5rem;">⏳ di manajer SIM</span>
                         @endif
                         @if($p->bisaRealisasi())
-                            <button wire:click="mintaRealisasi({{ $p->id }})" title="Input faktur pengadaan → buat PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
+                            <button wire:click="mintaRealisasi({{ $p->id }})" wire:loading.attr="disabled" wire:target="mintaRealisasi({{ $p->id }})" title="Input faktur pengadaan → buat PO" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:linear-gradient(180deg,rgba(63,207,142,.9),rgba(63,207,142,.7));border:1px solid rgba(63,207,142,.5);color:#04150d;cursor:pointer;font-weight:800;">🛒 Belanja (PO)</button>
                         @endif
                         @if($p->poTanpaFaktur())
                             <button wire:click="mintaLengkapiFaktur({{ $p->id }})" title="PO sudah dibuat tapi nomor faktur belum diinput — klik untuk lengkapi" style="font-size:.66rem;padding:.25rem .6rem;border-radius:.5rem;background:rgba(217,164,65,.14);border:1px solid rgba(217,164,65,.4);color:var(--gold2);cursor:pointer;font-weight:800;">🧾 Lengkapi Faktur</button>
@@ -203,7 +203,7 @@
                                     <button type="button" wire:click="ajukan({{ $p->id }})" class="pr-menu-item" style="color:#5b9bd5;">📤 Ajukan untuk Persetujuan</button>
                                     @endif
                                     @if($p->bisaRealisasi())
-                                    <button type="button" wire:click="mintaRealisasi({{ $p->id }})" class="pr-menu-item" style="color:var(--emer2);">🧾 Input Faktur → Buat PO</button>
+                                    <button type="button" wire:click="mintaRealisasi({{ $p->id }})" wire:loading.attr="disabled" wire:target="mintaRealisasi({{ $p->id }})" class="pr-menu-item" style="color:var(--emer2);">🧾 Input Faktur → Buat PO</button>
                                     @endif
                                     @if($p->poTanpaFaktur())
                                     <button type="button" wire:click="mintaLengkapiFaktur({{ $p->id }})" class="pr-menu-item" style="color:var(--gold2);">🧾 Lengkapi Faktur PO</button>
