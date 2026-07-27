@@ -101,7 +101,8 @@ class PengambilanObatForm extends Component
                 'no_bpjs' => $p->pasien->no_bpjs,
                 'diagnosis' => $p->pasien->kategori_diagnosis,
                 'jadwal' => $p->jadwal_berikutnya->format('Y-m-d'),
-                'telat' => (int) $today->diffInDays($p->jadwal_berikutnya),  // 0 = hari ini
+                // telat = hari sejak jadwal s/d hari ini (>=0 krn jadwal<=today). 0 = hari ini.
+                'telat' => (int) $p->jadwal_berikutnya->startOfDay()->diffInDays($today),
             ])
             ->sortByDesc('telat')
             ->values();
