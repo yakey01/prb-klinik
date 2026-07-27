@@ -43,10 +43,42 @@
         <span class="font-heading" style="font-size:.88rem;color:{{ $hasPatient ? 'var(--emer)' : 'var(--gold2)' }};">Pasien & Resep Obat</span>
     </div>
 
+    {{-- ═══ PAPAN "AMBIL OBAT HARI INI" — pasien jatuh tempo, 1-klik tanpa cari ═══ --}}
+    @if(!$hasPatient)
+    @php $due = $this->pasienHariIni; @endphp
+    @if($due->count() > 0)
+    <div style="margin-bottom:1rem;border:1px solid rgba(217,164,65,.3);border-radius:.8rem;overflow:hidden;background:rgba(217,164,65,.05);">
+        <div style="padding:.6rem .85rem;display:flex;align-items:center;gap:.5rem;border-bottom:1px solid rgba(217,164,65,.2);">
+            <span style="font-size:1rem;">🔔</span>
+            <span class="font-heading" style="font-size:.82rem;color:var(--gold2);">Jatuh Tempo Ambil Obat</span>
+            <span style="margin-left:auto;background:var(--gold2);color:#1a0e00;font-size:.66rem;font-weight:900;padding:.1rem .5rem;border-radius:999px;">{{ $due->count() }} pasien</span>
+        </div>
+        <div style="max-height:230px;overflow-y:auto;">
+            @foreach($due as $d)
+            <button type="button" wire:click="selectPasien({{ $d['pasien_id'] }})" wire:loading.attr="disabled"
+                style="width:100%;display:flex;align-items:center;gap:.6rem;padding:.55rem .85rem;background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.03);cursor:pointer;text-align:left;transition:background .15s;"
+                onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:.8rem;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ $d['nama'] }}</div>
+                    <div style="font-size:.64rem;color:var(--mut);">{{ $d['diagnosis'] ?: '—' }} · {{ $d['no_bpjs'] ?: 'tanpa BPJS' }}</div>
+                </div>
+                @if($d['telat'] == 0)
+                    <span style="flex-shrink:0;font-size:.62rem;font-weight:800;color:var(--emer2);background:rgba(63,207,142,.12);padding:.12rem .5rem;border-radius:999px;">HARI INI</span>
+                @else
+                    <span style="flex-shrink:0;font-size:.62rem;font-weight:800;color:var(--red2);background:rgba(232,100,90,.12);padding:.12rem .5rem;border-radius:999px;">telat {{ $d['telat'] }} hr</span>
+                @endif
+                <svg width="14" height="14" fill="none" stroke="var(--gold2)" stroke-width="2.2" viewBox="0 0 24 24" style="flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+            @endforeach
+        </div>
+    </div>
+    @endif
+    @endif
+
     {{-- Search --}}
     @if(!$hasPatient)
     <div style="margin-bottom:.85rem;">
-        <label class="form-label">Cari Nama / No. BPJS</label>
+        <label class="form-label">Cari Nama / No. BPJS <span style="font-weight:400;color:var(--mut);">(atau pilih dari daftar di atas)</span></label>
         <div style="position:relative;">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--mut);pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input wire:model.live.debounce.400ms="searchPasien" type="text" placeholder="Ketik nama atau no. BPJS..."

@@ -577,7 +577,31 @@ parameters:
 			path: app/Livewire/PengambilanObatForm.php
 
 		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_aktif\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$kategori_diagnosis\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama_obat\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$no_bpjs\.$#'
 			identifier: property.notFound
 			count: 1
 			path: app/Livewire/PengambilanObatForm.php
@@ -586,6 +610,18 @@ parameters:
 			message: '#^Instanceof between Carbon\\Carbon and Carbon\\Carbon will always evaluate to true\.$#'
 			identifier: instanceof.alwaysTrue
 			count: 3
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Method App\\Livewire\\PengambilanObatForm\:\:pasienHariIni\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{pasien_id\: mixed, nama\: mixed, no_bpjs\: mixed, diagnosis\: mixed, jadwal\: mixed, telat\: int\}\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\PengambilanObat\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
 			path: app/Livewire/PengambilanObatForm.php
 
 		-

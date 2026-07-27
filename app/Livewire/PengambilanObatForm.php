@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Livewire;
 
 use App\Models\ActivityLog;
@@ -9,6 +10,8 @@ use App\Models\PengambilanObat;
 use App\Models\PersyaratanKlaim;
 use App\Models\ResepPasien;
 use App\Models\StokKeluar;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
@@ -17,18 +20,28 @@ use Livewire\Component;
 class PengambilanObatForm extends Component
 {
     public string $searchPasien = '';
+
     public ?int $selectedPasienId = null;
+
     public bool $showPasienDropdown = false;
+
     public string $tanggalPengambilan = '';
+
     public string $catatan = '';
+
     public array $rows = [];
+
     public ?string $jadwalBerikutnya = null;
+
     public bool $jadwalSudahDibuat = false;
+
     public ?int $lastPengambilanId = null;
 
     // Jadwal constraint
     public ?string $minTanggalPengambilan = null;   // jadwal terjadwal (advisory utk klaim BPJS)
+
     public ?string $floorTanggalPengambilan = null; // batas mundur keras = penyerahan terakhir
+
     public ?string $jadwalInfoLabel = null;
 
     // Checklist persyaratan: [['id'=>x,'nama'=>y,'tipe'=>z,'is_wajib'=>bool,'terpenuhi'=>false,'catatan'=>'']]
@@ -42,14 +55,17 @@ class PengambilanObatForm extends Component
     #[Computed]
     public function pasienSuggestions()
     {
-        if (strlen($this->searchPasien) < 2) return collect();
+        if (strlen($this->searchPasien) < 2) {
+            return collect();
+        }
+
         return Pasien::aktif()
             ->where(function ($q) {
                 $q->where('nama', 'like', "%{$this->searchPasien}%")
-                  ->orWhere('no_bpjs', 'like', "%{$this->searchPasien}%");
+                    ->orWhere('no_bpjs', 'like', "%{$this->searchPasien}%");
             })
             ->limit(8)
-            ->get(['id','nama','no_bpjs','kategori_diagnosis']);
+            ->get(['id', 'nama', 'no_bpjs', 'kategori_diagnosis']);
     }
 
     #[Computed]
@@ -58,10 +74,43 @@ class PengambilanObatForm extends Component
         return $this->selectedPasienId ? Pasien::find($this->selectedPasienId) : null;
     }
 
+    /**
+     * Pasien yang JATUH TEMPO ambil obat hari ini / telat — dari jadwal_berikutnya
+     * pengambilan TERAKHIR tiap pasien. Untuk papan "Ambil Obat Hari Ini" (1-klik,
+     * tak perlu cari manual). Diurut yang paling telat dulu.
+     *
+     * @return Collection<int, array<string, mixed>>
+     */
+    #[Computed]
+    public function pasienHariIni(): Collection
+    {
+        $today = now()->startOfDay();
+        $latestIds = PengambilanObat::selectRaw('MAX(id) as id')
+            ->whereNotNull('jadwal_berikutnya')
+            ->groupBy('pasien_id')
+            ->pluck('id');
+
+        return PengambilanObat::with('pasien:id,nama,no_bpjs,kategori_diagnosis,is_aktif')
+            ->whereIn('id', $latestIds)
+            ->whereDate('jadwal_berikutnya', '<=', $today->toDateString())
+            ->get()
+            ->filter(fn ($p) => $p->pasien && $p->pasien->is_aktif)
+            ->map(fn ($p) => [
+                'pasien_id' => $p->pasien_id,
+                'nama' => $p->pasien->nama,
+                'no_bpjs' => $p->pasien->no_bpjs,
+                'diagnosis' => $p->pasien->kategori_diagnosis,
+                'jadwal' => $p->jadwal_berikutnya->format('Y-m-d'),
+                'telat' => (int) $today->diffInDays($p->jadwal_berikutnya),  // 0 = hari ini
+            ])
+            ->sortByDesc('telat')
+            ->values();
+    }
+
     #[Computed]
     public function obatList()
     {
-        return Obat::where('is_active', true)->where('tipe_obat', 'kronis')->orderBy('nama_obat')->get(['id','nama_obat','satuan','unit_per_bulan','kategori_diagnosis']);
+        return Obat::where('is_active', true)->where('tipe_obat', 'kronis')->orderBy('nama_obat')->get(['id', 'nama_obat', 'satuan', 'unit_per_bulan', 'kategori_diagnosis']);
     }
 
     /** Preview dampak stok per baris (sebelum → sesudah) — keyed by row index. Live saat jumlah diubah. */
@@ -69,32 +118,38 @@ class PengambilanObatForm extends Component
     public function rowsPreview(): array
     {
         $ids = collect($this->rows)->pluck('obat_id')->filter()->unique()->values();
-        if ($ids->isEmpty()) return [];
+        if ($ids->isEmpty()) {
+            return [];
+        }
         $obats = Obat::whereIn('id', $ids)->get()->keyBy('id');
         $out = [];
         foreach ($this->rows as $i => $row) {
-            $o    = $obats[$row['obat_id'] ?? 0] ?? null;
+            $o = $obats[$row['obat_id'] ?? 0] ?? null;
             $stok = (int) ($o->stok_aktual ?? 0);
-            $min  = (int) ($o->stok_minimum ?? 0);
-            $isi  = max(1, (int) ($o->isi_per_box ?? 1));
-            $jml  = (int) ($row['jumlah_unit'] ?? 0);
+            $min = (int) ($o->stok_minimum ?? 0);
+            $isi = max(1, (int) ($o->isi_per_box ?? 1));
+            $jml = (int) ($row['jumlah_unit'] ?? 0);
             $out[$i] = [
-                'stok'    => $stok,
+                'stok' => $stok,
                 'sesudah' => $stok - $jml,
-                'min'     => $min,
-                'isi'     => $isi,
-                'cukup'   => $stok >= $jml,
-                'low'     => ($stok - $jml) >= 0 && ($stok - $jml) <= $min,
-                'satuan'  => $o->satuan ?? ($row['satuan'] ?? 'tablet'),
+                'min' => $min,
+                'isi' => $isi,
+                'cukup' => $stok >= $jml,
+                'low' => ($stok - $jml) >= 0 && ($stok - $jml) <= $min,
+                'satuan' => $o->satuan ?? ($row['satuan'] ?? 'tablet'),
             ];
         }
+
         return $out;
     }
 
     #[Computed]
     public function riwayatPasien()
     {
-        if (!$this->selectedPasienId) return collect();
+        if (! $this->selectedPasienId) {
+            return collect();
+        }
+
         return PengambilanObat::where('pasien_id', $this->selectedPasienId)
             ->with('items.obat')
             ->latest('tanggal_pengambilan')
@@ -120,15 +175,15 @@ class PengambilanObatForm extends Component
 
         // Load persyaratan checklist per diagnosis
         $syarats = PersyaratanKlaim::forDiagnosis($p->kategori_diagnosis);
-        $this->checklist = $syarats->map(fn($s) => [
-            'id'         => $s->id,
-            'nama'       => $s->nama_syarat,
-            'deskripsi'  => $s->deskripsi ?? '',
-            'tipe'       => $s->tipe,
-            'periode'    => $s->periode_bulan,
-            'is_wajib'   => $s->is_wajib,
-            'terpenuhi'  => false,
-            'catatan'    => '',
+        $this->checklist = $syarats->map(fn ($s) => [
+            'id' => $s->id,
+            'nama' => $s->nama_syarat,
+            'deskripsi' => $s->deskripsi ?? '',
+            'tipe' => $s->tipe,
+            'periode' => $s->periode_bulan,
+            'is_wajib' => $s->is_wajib,
+            'terpenuhi' => false,
+            'catatan' => '',
         ])->toArray();
 
         // Load drug rows from patient resep (managed in patient detail)
@@ -139,12 +194,12 @@ class PengambilanObatForm extends Component
             ->get();
 
         if ($resep->isNotEmpty()) {
-            $this->rows = $resep->map(fn($r) => [
-                'obat_id'     => $r->obat_id,
-                'nama_obat'   => $r->obat?->nama_obat ?? '—',
+            $this->rows = $resep->map(fn ($r) => [
+                'obat_id' => $r->obat_id,
+                'nama_obat' => $r->obat?->nama_obat ?? '—',
                 'jumlah_unit' => $r->jumlah_default,
-                'satuan'      => $r->satuan,
-                'catatan'     => '',
+                'satuan' => $r->satuan,
+                'catatan' => '',
             ])->toArray();
         } else {
             $this->rows = [];
@@ -155,8 +210,11 @@ class PengambilanObatForm extends Component
     public function checklistOk(): bool
     {
         foreach ($this->checklist as $item) {
-            if ($item['is_wajib'] && !$item['terpenuhi']) return false;
+            if ($item['is_wajib'] && ! $item['terpenuhi']) {
+                return false;
+            }
         }
+
         return true;
     }
 
@@ -180,9 +238,16 @@ class PengambilanObatForm extends Component
     #[Computed]
     public function dateValid(): bool
     {
-        if ($this->tanggalPengambilan === '') return false;
-        if ($this->tanggalPengambilan > $this->maxTanggal) return false;
-        if ($this->floorTanggalPengambilan && $this->tanggalPengambilan < $this->floorTanggalPengambilan) return false;
+        if ($this->tanggalPengambilan === '') {
+            return false;
+        }
+        if ($this->tanggalPengambilan > $this->maxTanggal) {
+            return false;
+        }
+        if ($this->floorTanggalPengambilan && $this->tanggalPengambilan < $this->floorTanggalPengambilan) {
+            return false;
+        }
+
         return true;
     }
 
@@ -206,7 +271,7 @@ class PengambilanObatForm extends Component
     public function readyToDispense(): bool
     {
         return $this->selectedPasienId !== null
-            && !empty($this->rows)
+            && ! empty($this->rows)
             && $this->checklistOk
             && $this->dateValid;
     }
@@ -214,14 +279,14 @@ class PengambilanObatForm extends Component
     public function toggleChecklist(int $index): void
     {
         if (isset($this->checklist[$index])) {
-            $this->checklist[$index]['terpenuhi'] = !(bool)($this->checklist[$index]['terpenuhi'] ?? false);
+            $this->checklist[$index]['terpenuhi'] = ! (bool) ($this->checklist[$index]['terpenuhi'] ?? false);
         }
     }
 
     public function updatedSearchPasien(): void
     {
         $this->showPasienDropdown = strlen($this->searchPasien) >= 2;
-        if (!$this->showPasienDropdown) {
+        if (! $this->showPasienDropdown) {
             $this->selectedPasienId = null;
             $this->checklist = [];
             $this->rows = [];
@@ -251,7 +316,7 @@ class PengambilanObatForm extends Component
             ->first();
         if ($lastDone) {
             $tgl = $lastDone->tanggal_pengambilan;
-            $this->floorTanggalPengambilan = $tgl instanceof \Carbon\Carbon ? $tgl->format('Y-m-d') : $tgl;
+            $this->floorTanggalPengambilan = $tgl instanceof Carbon ? $tgl->format('Y-m-d') : $tgl;
         } else {
             $this->floorTanggalPengambilan = null;
         }
@@ -264,8 +329,9 @@ class PengambilanObatForm extends Component
 
         if ($dijadwalkan) {
             $tgl = $dijadwalkan->tanggal_pengambilan;
-            $this->minTanggalPengambilan = $tgl instanceof \Carbon\Carbon ? $tgl->format('Y-m-d') : $tgl;
-            $this->jadwalInfoLabel = 'Jadwal terdaftar: ' . \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y');
+            $this->minTanggalPengambilan = $tgl instanceof Carbon ? $tgl->format('Y-m-d') : $tgl;
+            $this->jadwalInfoLabel = 'Jadwal terdaftar: '.Carbon::parse($this->minTanggalPengambilan)->format('d M Y');
+
             return;
         }
 
@@ -278,8 +344,9 @@ class PengambilanObatForm extends Component
 
         if ($lastSelesai && $lastSelesai->jadwal_berikutnya) {
             $tgl = $lastSelesai->jadwal_berikutnya;
-            $this->minTanggalPengambilan = $tgl instanceof \Carbon\Carbon ? $tgl->format('Y-m-d') : $tgl;
-            $this->jadwalInfoLabel = 'Jadwal berikutnya: ' . \Carbon\Carbon::parse($this->minTanggalPengambilan)->format('d M Y');
+            $this->minTanggalPengambilan = $tgl instanceof Carbon ? $tgl->format('Y-m-d') : $tgl;
+            $this->jadwalInfoLabel = 'Jadwal berikutnya: '.Carbon::parse($this->minTanggalPengambilan)->format('d M Y');
+
             return;
         }
 
@@ -291,116 +358,124 @@ class PengambilanObatForm extends Component
     public function save(): void
     {
         $this->validate([
-            'selectedPasienId'   => 'required|exists:pasien,id',
+            'selectedPasienId' => 'required|exists:pasien,id',
             'tanggalPengambilan' => 'required|date',
-            'rows'               => 'required|array|min:1',
+            'rows' => 'required|array|min:1',
             'rows.*.jumlah_unit' => 'required|integer|min:1',
         ], [
             'selectedPasienId.required' => 'Pilih pasien terlebih dahulu.',
-            'rows.required'             => 'Pasien belum memiliki resep obat. Tambahkan dulu di halaman Daftar Pasien.',
+            'rows.required' => 'Pasien belum memiliki resep obat. Tambahkan dulu di halaman Daftar Pasien.',
         ]);
 
         // Backdate diizinkan (petugas catat telat), tapi tetap ada batas KERAS:
         // (1) tak boleh di masa depan, (2) tak boleh sebelum penyerahan terakhir.
         if ($this->tanggalPengambilan > $this->maxTanggal) {
             $this->addError('tanggalPengambilan', 'Tanggal penyerahan tidak boleh di masa depan.');
+
             return;
         }
         if ($this->floorTanggalPengambilan && $this->tanggalPengambilan < $this->floorTanggalPengambilan) {
-            $tglFormatted = \Carbon\Carbon::parse($this->floorTanggalPengambilan)->format('d M Y');
+            $tglFormatted = Carbon::parse($this->floorTanggalPengambilan)->format('d M Y');
             $this->addError('tanggalPengambilan', "Tidak boleh sebelum penyerahan terakhir ({$tglFormatted}).");
+
             return;
         }
 
         // Validate semua persyaratan wajib sudah dicentang
-        if (!$this->checklistOk) {
+        if (! $this->checklistOk) {
             $this->dispatch('toast', type: 'error',
                 message: "Lengkapi dulu {$this->wajibBelumChecked} persyaratan klaim yang wajib.");
+
             return;
         }
 
-        $jadwal = date('Y-m-d', strtotime($this->tanggalPengambilan . ' +30 days'));
+        $jadwal = date('Y-m-d', strtotime($this->tanggalPengambilan.' +30 days'));
 
         $checklistSnapshot = count($this->checklist) > 0 ? $this->checklist : null;
         $persyaratanOk = count($this->checklist) > 0 ? $this->checklistOk : null;
 
         $pasienNama = $this->selectedPasien?->nama ?? '';
 
-        try { DB::transaction(function () use ($jadwal, $checklistSnapshot, $persyaratanOk, $pasienNama) {
-            // Validasi stok dengan row-level lock (cegah race condition)
-            $stokErrors = [];
-            foreach ($this->rows as $row) {
-                $obat = Obat::lockForUpdate()->find($row['obat_id']);
-                if (!$obat) continue;
-                $jumlah = (int) $row['jumlah_unit'];
-                if ($obat->stok_aktual < $jumlah) {
-                    $stokErrors[] = "{$obat->nama_obat} (tersedia: {$obat->stok_aktual}, diminta: {$jumlah})";
+        try {
+            DB::transaction(function () use ($jadwal, $checklistSnapshot, $persyaratanOk, $pasienNama) {
+                // Validasi stok dengan row-level lock (cegah race condition)
+                $stokErrors = [];
+                foreach ($this->rows as $row) {
+                    $obat = Obat::lockForUpdate()->find($row['obat_id']);
+                    if (! $obat) {
+                        continue;
+                    }
+                    $jumlah = (int) $row['jumlah_unit'];
+                    if ($obat->stok_aktual < $jumlah) {
+                        $stokErrors[] = "{$obat->nama_obat} (tersedia: {$obat->stok_aktual}, diminta: {$jumlah})";
+                    }
                 }
-            }
-            if ($stokErrors) {
-                throw new \RuntimeException("Stok tidak cukup:\n" . implode("\n", $stokErrors));
-            }
+                if ($stokErrors) {
+                    throw new \RuntimeException("Stok tidak cukup:\n".implode("\n", $stokErrors));
+                }
 
-            $pengambilan = PengambilanObat::create([
-                'pasien_id'           => $this->selectedPasienId,
-                'tanggal_pengambilan' => $this->tanggalPengambilan,
-                'jadwal_berikutnya'   => $jadwal,
-                'status'              => 'selesai',
-                'total_item'          => count($this->rows),
-                'dicatat_oleh'        => auth()->id(),
-                'catatan'             => $this->catatan ?: null,
-                'checklist_json'      => $checklistSnapshot,
-                'persyaratan_ok'      => $persyaratanOk,
-            ]);
-
-            foreach ($this->rows as $row) {
-                $obat     = Obat::find($row['obat_id']);
-                $jumlah   = (int) $row['jumlah_unit'];
-                $satuan   = $row['satuan'] ?? 'tablet';
-                $beliBeli = (float) ($obat?->harga_beli_per_unit ?? 0);
-                $klaim    = (float) ($obat?->klaim_bpjs_per_unit ?? 0);
-                $faktor   = (float) ($obat?->faktor_jasa_farmasi ?? 1.15);
-
-                ItemPengambilan::create([
-                    'pengambilan_obat_id'          => $pengambilan->id,
-                    'obat_id'                      => $row['obat_id'],
-                    'jumlah_unit'                  => $jumlah,
-                    'satuan'                       => $satuan,
-                    'catatan'                      => $row['catatan'] ?? null,
-                    'harga_beli_snapshot'          => $beliBeli,
-                    'harga_klaim_bpjs_snapshot'    => $klaim,
-                    'faktor_jasa_farmasi_snapshot' => $faktor,
+                $pengambilan = PengambilanObat::create([
+                    'pasien_id' => $this->selectedPasienId,
+                    'tanggal_pengambilan' => $this->tanggalPengambilan,
+                    'jadwal_berikutnya' => $jadwal,
+                    'status' => 'selesai',
+                    'total_item' => count($this->rows),
+                    'dicatat_oleh' => auth()->id(),
+                    'catatan' => $this->catatan ?: null,
+                    'checklist_json' => $checklistSnapshot,
+                    'persyaratan_ok' => $persyaratanOk,
                 ]);
 
-                $stokSblm = (int) Obat::where('id', $row['obat_id'])->value('stok_aktual');
-                StokKeluar::create([
-                    'obat_id'              => $row['obat_id'],
-                    'tanggal_keluar'       => $this->tanggalPengambilan,
-                    'jumlah_unit'          => $jumlah,
-                    'stok_sebelum'         => $stokSblm,
-                    'stok_sesudah'         => $stokSblm - $jumlah,
-                    'satuan'               => $satuan,
-                    'harga_beli_snapshot'  => $beliBeli,
-                    'harga_jual_per_unit'  => round($klaim * $faktor, 2),
-                    'keterangan'           => 'Pengambilan: ' . $pasienNama,
-                    'sumber'               => 'pengambilan',
-                    'pengambilan_obat_id'  => $pengambilan->id,
-                    'pasien_id'            => $this->selectedPasienId,
-                    'dicatat_oleh'         => auth()->id(),
-                ]);
+                foreach ($this->rows as $row) {
+                    $obat = Obat::find($row['obat_id']);
+                    $jumlah = (int) $row['jumlah_unit'];
+                    $satuan = $row['satuan'] ?? 'tablet';
+                    $beliBeli = (float) ($obat?->harga_beli_per_unit ?? 0);
+                    $klaim = (float) ($obat?->klaim_bpjs_per_unit ?? 0);
+                    $faktor = (float) ($obat?->faktor_jasa_farmasi ?? 1.15);
 
-                // GERBANG ANTI-MINUS: kurangi atomik; bila stok tak cukup → batalkan transaksi.
-                if (! Obat::kurangiStok((int) $row['obat_id'], (int) $jumlah)) {
-                    $o = Obat::find($row['obat_id']);
-                    throw new \RuntimeException("Stok tidak cukup untuk {$o?->nama_obat}. Tersedia {$o?->stok_aktual}, diminta {$jumlah}. Catat stok masuk dulu.");
+                    ItemPengambilan::create([
+                        'pengambilan_obat_id' => $pengambilan->id,
+                        'obat_id' => $row['obat_id'],
+                        'jumlah_unit' => $jumlah,
+                        'satuan' => $satuan,
+                        'catatan' => $row['catatan'] ?? null,
+                        'harga_beli_snapshot' => $beliBeli,
+                        'harga_klaim_bpjs_snapshot' => $klaim,
+                        'faktor_jasa_farmasi_snapshot' => $faktor,
+                    ]);
+
+                    $stokSblm = (int) Obat::where('id', $row['obat_id'])->value('stok_aktual');
+                    StokKeluar::create([
+                        'obat_id' => $row['obat_id'],
+                        'tanggal_keluar' => $this->tanggalPengambilan,
+                        'jumlah_unit' => $jumlah,
+                        'stok_sebelum' => $stokSblm,
+                        'stok_sesudah' => $stokSblm - $jumlah,
+                        'satuan' => $satuan,
+                        'harga_beli_snapshot' => $beliBeli,
+                        'harga_jual_per_unit' => round($klaim * $faktor, 2),
+                        'keterangan' => 'Pengambilan: '.$pasienNama,
+                        'sumber' => 'pengambilan',
+                        'pengambilan_obat_id' => $pengambilan->id,
+                        'pasien_id' => $this->selectedPasienId,
+                        'dicatat_oleh' => auth()->id(),
+                    ]);
+
+                    // GERBANG ANTI-MINUS: kurangi atomik; bila stok tak cukup → batalkan transaksi.
+                    if (! Obat::kurangiStok((int) $row['obat_id'], (int) $jumlah)) {
+                        $o = Obat::find($row['obat_id']);
+                        throw new \RuntimeException("Stok tidak cukup untuk {$o?->nama_obat}. Tersedia {$o?->stok_aktual}, diminta {$jumlah}. Catat stok masuk dulu.");
+                    }
                 }
-            }
 
-            ActivityLog::record('dibuat', "Pengambilan obat: {$pasienNama} ({$this->tanggalPengambilan})", 'pengambilan_obat', $pengambilan->id);
+                ActivityLog::record('dibuat', "Pengambilan obat: {$pasienNama} ({$this->tanggalPengambilan})", 'pengambilan_obat', $pengambilan->id);
 
-            $this->lastPengambilanId = $pengambilan->id;
-        }); } catch (\RuntimeException $e) {
+                $this->lastPengambilanId = $pengambilan->id;
+            });
+        } catch (\RuntimeException $e) {
             $this->dispatch('toast', type: 'error', message: $e->getMessage());
+
             return;
         }
 
@@ -408,7 +483,7 @@ class PengambilanObatForm extends Component
         $this->jadwalSudahDibuat = false;
         $this->dispatch('toast', type: 'success', message: "Obat diserahkan ke {$pasienNama}. Klik tombol untuk jadwalkan kunjungan berikutnya.");
 
-        $this->reset(['selectedPasienId','searchPasien','catatan','rows','checklist']);
+        $this->reset(['selectedPasienId', 'searchPasien', 'catatan', 'rows', 'checklist']);
         $this->minTanggalPengambilan = null;
         $this->floorTanggalPengambilan = null;
         $this->jadwalInfoLabel = null;
@@ -417,31 +492,34 @@ class PengambilanObatForm extends Component
 
     public function buatJadwal(): void
     {
-        if (!$this->jadwalBerikutnya || $this->jadwalSudahDibuat) return;
+        if (! $this->jadwalBerikutnya || $this->jadwalSudahDibuat) {
+            return;
+        }
 
         $lastP = $this->lastPengambilanId
             ? PengambilanObat::find($this->lastPengambilanId)
             : null;
 
         $pasienId = $lastP?->pasien_id;
-        if (!$pasienId) {
+        if (! $pasienId) {
             $this->dispatch('toast', type: 'error', message: 'Data pengambilan tidak ditemukan.');
+
             return;
         }
 
         // IDEMPOTEN: cegah jadwal ganda (mis. klik dobel) — 1 dijadwalkan per pasien+tanggal.
         $jadwal = PengambilanObat::firstOrCreate(
             [
-                'pasien_id'           => $pasienId,
+                'pasien_id' => $pasienId,
                 'tanggal_pengambilan' => $this->jadwalBerikutnya,
-                'status'              => 'dijadwalkan',
+                'status' => 'dijadwalkan',
             ],
             ['total_item' => 0],
         );
 
         $this->jadwalSudahDibuat = true;
         $this->dispatch('toast', type: 'success',
-            message: 'Jadwal berikutnya dibuat: ' . date('d M Y', strtotime($this->jadwalBerikutnya)));
+            message: 'Jadwal berikutnya dibuat: '.date('d M Y', strtotime($this->jadwalBerikutnya)));
     }
 
     public function render()
