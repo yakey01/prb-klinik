@@ -97,8 +97,26 @@ parameters:
 			path: app/Http/Controllers/DashboardController.php
 
 		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$kategori_diagnosis\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$nama\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
 			message: '#^Called ''pluck'' on Laravel collection, but could have been retrieved as a query\.$#'
 			identifier: larastan.noUnnecessaryCollectionCall
+			count: 1
+			path: app/Http/Controllers/DashboardController.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\PengambilanObat\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
 			count: 1
 			path: app/Http/Controllers/DashboardController.php
 
@@ -577,12 +595,6 @@ parameters:
 			path: app/Livewire/PengambilanObatForm.php
 
 		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_aktif\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Livewire/PengambilanObatForm.php
-
-		-
 			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$kategori_diagnosis\.$#'
 			identifier: property.notFound
 			count: 1
@@ -613,19 +625,25 @@ parameters:
 			path: app/Livewire/PengambilanObatForm.php
 
 		-
-			message: '#^Method App\\Livewire\\PengambilanObatForm\:\:pasienHariIni\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{pasien_id\: mixed, nama\: mixed, no_bpjs\: mixed, diagnosis\: mixed, jadwal\: mixed, telat\: int\}\>\.$#'
+			message: '#^Method App\\Livewire\\PengambilanObatForm\:\:pasienHariIni\(\) should return Illuminate\\Support\\Collection\<int, array\<string, mixed\>\> but returns Illuminate\\Support\\Collection\<int, array\{pasien_id\: int, nama\: mixed, no_bpjs\: mixed, diagnosis\: mixed, jadwal\: string, telat\: int\}\>\.$#'
 			identifier: return.type
 			count: 1
 			path: app/Livewire/PengambilanObatForm.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\PengambilanObat\>\:\:map\(\) contains unresolvable type\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ResepPasien\>\:\:map\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Livewire/PengambilanObatForm.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\ResepPasien\>\:\:map\(\) contains unresolvable type\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,App\\Models\\PengambilanObat\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: app/Livewire/PengambilanObatForm.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,array\<string, mixed\>\>\:\:sortByDesc\(\) contains unresolvable type\.$#'
 			identifier: argument.unresolvableType
 			count: 1
 			path: app/Livewire/PengambilanObatForm.php
@@ -929,6 +947,18 @@ parameters:
 			identifier: match.alwaysFalse
 			count: 1
 			path: app/Models/PengajuanPengadaan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$is_aktif\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Models/PengambilanObat.php
+
+		-
+			message: '#^Method App\\Models\\PengambilanObat\:\:jatuhTempo\(\) should return Illuminate\\Support\\Collection\<int, App\\Models\\PengambilanObat\> but returns Illuminate\\Database\\Eloquent\\Collection\<int, static\(App\\Models\\PengambilanObat\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/PengambilanObat.php
 
 		-
 			message: '#^Method App\\Models\\PurchaseOrder\:\:koreksiPending\(\) should return App\\Models\\KoreksiPo\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'

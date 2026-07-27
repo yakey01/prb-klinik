@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\LabaCalculatorService;
 use App\Models\Obat;
 use App\Models\Pasien;
+use App\Models\PengajuanPengadaan;
+use App\Models\PengambilanObat;
 use App\Models\PurchaseOrder;
 use App\Models\RekonsiliasiiBpjs;
+use App\Services\LabaCalculatorService;
 use App\Support\Periode;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -41,7 +43,7 @@ class DashboardController extends Controller
                 SUM(ip.jumlah_unit) AS qty,
                 SUM(ip.jumlah_unit * COALESCE(ip.harga_beli_snapshot, 0)) AS hpp,
                 SUM(CASE WHEN o.tipe_obat = "kronis"
-                    THEN ip.jumlah_unit * COALESCE(ip.harga_klaim_bpjs_snapshot, 0) * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . '
+                    THEN ip.jumlah_unit * COALESCE(ip.harga_klaim_bpjs_snapshot, 0) * '.Obat::jfSql('ip.faktor_jasa_farmasi_snapshot').'
                     ELSE 0 END) AS klaim
             ')
             ->get()
@@ -58,7 +60,7 @@ class DashboardController extends Controller
             ->whereBetween('po.tanggal_pengambilan', Periode::bulan($tahun, $bulan))
             ->whereNotExists(function ($q) {
                 $q->select(DB::raw(1))->from('item_pengambilan as ip')
-                  ->whereColumn('ip.pengambilan_obat_id', 'po.id');
+                    ->whereColumn('ip.pengambilan_obat_id', 'po.id');
             })
             ->groupBy('o.id', 'o.nama_obat', 'o.tipe_obat', 'po.status')
             ->selectRaw('
@@ -66,7 +68,7 @@ class DashboardController extends Controller
                 SUM(rp.jumlah_default) AS qty,
                 SUM(rp.jumlah_default * COALESCE(o.harga_beli_per_unit, 0)) AS hpp,
                 SUM(CASE WHEN o.tipe_obat = "kronis"
-                    THEN rp.jumlah_default * COALESCE(o.klaim_bpjs_per_unit, 0) * ' . \App\Models\Obat::jfSql('o.faktor_jasa_farmasi') . '
+                    THEN rp.jumlah_default * COALESCE(o.klaim_bpjs_per_unit, 0) * '.Obat::jfSql('o.faktor_jasa_farmasi').'
                     ELSE 0 END) AS klaim
             ')
             ->get()
@@ -75,19 +77,19 @@ class DashboardController extends Controller
         // Gabung + merge per (obat, status) agar 1 obat = 1 baris per status
         $merged = [];
         foreach ($items->concat($resep) as $row) {
-            $key = $row['obat_id'] . '|' . $row['status'];
-            if (!isset($merged[$key])) {
+            $key = $row['obat_id'].'|'.$row['status'];
+            if (! isset($merged[$key])) {
                 $merged[$key] = [
                     'obat_id' => (int) $row['obat_id'],
-                    'nama'    => $row['nama'],
-                    'tipe'    => $row['tipe'] ?: 'non_kronis',
-                    'status'  => $row['status'],
-                    'source'  => $row['source'],
-                    'qty'     => 0.0, 'hpp' => 0.0, 'klaim' => 0.0,
+                    'nama' => $row['nama'],
+                    'tipe' => $row['tipe'] ?: 'non_kronis',
+                    'status' => $row['status'],
+                    'source' => $row['source'],
+                    'qty' => 0.0, 'hpp' => 0.0, 'klaim' => 0.0,
                 ];
             }
-            $merged[$key]['qty']   += (float) $row['qty'];
-            $merged[$key]['hpp']   += (float) $row['hpp'];
+            $merged[$key]['qty'] += (float) $row['qty'];
+            $merged[$key]['hpp'] += (float) $row['hpp'];
             $merged[$key]['klaim'] += (float) $row['klaim'];
         }
 
@@ -112,8 +114,9 @@ class DashboardController extends Controller
     private function financialsForStatuses(array $statuses, int $bulan, int $tahun): array
     {
         $rows = $this->financialBreakdown($statuses, $bulan, $tahun);
+
         return [
-            'hpp'   => array_sum(array_column($rows, 'hpp')),
+            'hpp' => array_sum(array_column($rows, 'hpp')),
             'klaim' => array_sum(array_column($rows, 'klaim')),
         ];
     }
@@ -136,24 +139,24 @@ class DashboardController extends Controller
         $realRows = array_values(array_filter($breakdownRows, fn ($r) => $r['status'] === 'selesai'));
         $projRows = array_values(array_filter($breakdownRows, fn ($r) => $r['status'] === 'dijadwalkan'));
 
-        $hppRealisasi   = $sumBy($realRows, 'hpp');
+        $hppRealisasi = $sumBy($realRows, 'hpp');
         $klaimRealisasi = $sumBy($realRows, 'klaim');
-        $hppProyeksi    = $sumBy($projRows, 'hpp');
-        $klaimProyeksi  = $sumBy($projRows, 'klaim');
+        $hppProyeksi = $sumBy($projRows, 'hpp');
+        $klaimProyeksi = $sumBy($projRows, 'klaim');
 
         // Total bulan ini = realisasi + proyeksi
-        $hppBulanIni      = $hppRealisasi + $hppProyeksi;
+        $hppBulanIni = $hppRealisasi + $hppProyeksi;
         $proyeksiBulanIni = $klaimRealisasi + $klaimProyeksi;
 
         // ── Rekonsiliasi BPJS bulan ini ────────────────────────────
         $rekon = RekonsiliasiiBpjs::where('bulan', $bulan)->where('tahun', $tahun)->first();
         $rekonData = [
-            'proyeksi'    => $proyeksiBulanIni,
-            'diajukan'    => $rekon ? (float) $rekon->tagihan_diajukan : 0.0,
-            'dibayar'     => $rekon ? (float) $rekon->tagihan_dibayar  : 0.0,
-            'selisih'     => $rekon ? (float) ($rekon->tagihan_dibayar - $rekon->tagihan_diajukan) : 0.0,
-            'status'      => $rekon?->status ?? 'belum_diajukan',
-            'is_pending'  => !$rekon || $rekon->tagihan_dibayar == 0,
+            'proyeksi' => $proyeksiBulanIni,
+            'diajukan' => $rekon ? (float) $rekon->tagihan_diajukan : 0.0,
+            'dibayar' => $rekon ? (float) $rekon->tagihan_dibayar : 0.0,
+            'selisih' => $rekon ? (float) ($rekon->tagihan_dibayar - $rekon->tagihan_diajukan) : 0.0,
+            'status' => $rekon?->status ?? 'belum_diajukan',
+            'is_pending' => ! $rekon || $rekon->tagihan_dibayar == 0,
         ];
 
         $pendapatanBpjs = $rekonData['dibayar'] > 0 ? $rekonData['dibayar'] : $proyeksiBulanIni;
@@ -187,7 +190,7 @@ class DashboardController extends Controller
             ->whereNotNull('o.kategori_diagnosis')
             ->where('o.kategori_diagnosis', '!=', '')
             ->groupBy('o.kategori_diagnosis')
-            ->select('o.kategori_diagnosis', DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') as total'))
+            ->select('o.kategori_diagnosis', DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * '.Obat::jfSql('ip.faktor_jasa_farmasi_snapshot').') as total'))
             ->orderByDesc('total')
             ->havingRaw('total > 0')
             ->get()
@@ -206,26 +209,26 @@ class DashboardController extends Controller
             ->select(
                 'ip.obat_id as id',
                 'o.nama_obat as nama',
-                DB::raw('ROUND(SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * ' . \App\Models\Obat::jfSql('ip.faktor_jasa_farmasi_snapshot') . ') - SUM(ip.jumlah_unit * ip.harga_beli_snapshot)) as laba')
+                DB::raw('ROUND(SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * '.Obat::jfSql('ip.faktor_jasa_farmasi_snapshot').') - SUM(ip.jumlah_unit * ip.harga_beli_snapshot)) as laba')
             )
             ->orderByDesc('laba')
             ->limit(20)
             ->get()
             ->filter(fn ($row) => (int) $row->laba !== 0)
             ->map(fn ($row) => [
-                'id'     => $row->id,
-                'nama'   => $row->nama,
-                'laba'   => (int) $row->laba,
+                'id' => $row->id,
+                'nama' => $row->nama,
+                'laba' => (int) $row->laba,
                 'status' => $row->laba >= 0 ? 'Laba' : 'Rugi',
             ])
             ->values()
             ->toArray();
 
         // Use real transaction data when available; fall back to catalog projection
-        if (!empty($byDiagnosisReal)) {
+        if (! empty($byDiagnosisReal)) {
             $data['by_diagnosis'] = $byDiagnosisReal;
         }
-        if (!empty($rankingObatReal)) {
+        if (! empty($rankingObatReal)) {
             $data['ranking_obat'] = $rankingObatReal;
         }
 
@@ -238,11 +241,21 @@ class DashboardController extends Controller
         // Alert counts
         $obatAktif = Obat::where('is_active', true)->get();
         $alerts = [
-            'rugi'       => $obatAktif->filter(fn ($o) => $o->laba < 0)->count(),
+            'rugi' => $obatAktif->filter(fn ($o) => $o->laba < 0)->count(),
             'stok_habis' => $obatAktif->filter(fn ($o) => $o->stok_aktual <= 0)->count(),
-            'stok_kritis'=> $obatAktif->filter(fn ($o) => $o->stok_aktual > 0 && $o->stok_aktual <= $o->stok_minimum)->count(),
+            'stok_kritis' => $obatAktif->filter(fn ($o) => $o->stok_aktual > 0 && $o->stok_aktual <= $o->stok_minimum)->count(),
             'kadaluarsa' => $obatAktif->filter(fn ($o) => in_array($o->kadaluarsa_status, ['kadaluarsa', 'segera']))->count(),
         ];
+
+        // Pasien JATUH TEMPO ambil obat (akuntabilitas) — belum diserahkan padahal
+        // jadwal sudah lewat. Muncul di dashboard agar terlihat & tak terlupakan.
+        $jatuhTempo = PengambilanObat::jatuhTempo();
+        $jatuhTempoCount = $jatuhTempo->count();
+        $jatuhTempoTop = $jatuhTempo->take(6)->map(fn ($p) => [
+            'nama' => $p->pasien->nama,
+            'diagnosis' => $p->pasien->kategori_diagnosis,
+            'telat' => (int) Carbon::parse($p->jadwal_berikutnya)->startOfDay()->diffInDays(now()->startOfDay()),
+        ])->values()->all();
 
         // 6-month trend — cached for 1 hour (12 queries otherwise)
         $cacheKey = "dashboard-tren-6m-{$tahun}-{$bulan}";
@@ -259,35 +272,38 @@ class DashboardController extends Controller
                         ->sum('total_nilai')
                 );
             }
+
             return [$labels, $pendapatan, $pengeluaran];
         });
 
         return view('dashboard.index', array_merge($data, [
-            'pendapatan_bpjs'       => round($pendapatanBpjs),
-            'biaya_beli'            => round($hppBulanIni),
-            'laba_kotor'            => round($labaKotor),
+            'pendapatan_bpjs' => round($pendapatanBpjs),
+            'biaya_beli' => round($hppBulanIni),
+            'laba_kotor' => round($labaKotor),
             // Rincian realisasi (selesai) vs proyeksi (dijadwalkan)
-            'hpp_realisasi'         => round($hppRealisasi),
-            'klaim_realisasi'       => round($klaimRealisasi),
-            'laba_realisasi'        => round($klaimRealisasi - $hppRealisasi),
-            'hpp_proyeksi'          => round($hppProyeksi),
-            'klaim_proyeksi'        => round($klaimProyeksi),
-            'laba_proyeksi'         => round($klaimProyeksi - $hppProyeksi),
+            'hpp_realisasi' => round($hppRealisasi),
+            'klaim_realisasi' => round($klaimRealisasi),
+            'laba_realisasi' => round($klaimRealisasi - $hppRealisasi),
+            'hpp_proyeksi' => round($hppProyeksi),
+            'klaim_proyeksi' => round($klaimProyeksi),
+            'laba_proyeksi' => round($klaimProyeksi - $hppProyeksi),
             // Tabel rincian per obat (pembukti rekonsiliasi kartu)
-            'breakdown_rows'        => $breakdownRows,
-            'total_pasien'          => $totalPasienKronis,
-            'pasien_bulan_ini'      => $pasienBulanIni,
-            'rekon_bpjs'            => $rekonData,
+            'breakdown_rows' => $breakdownRows,
+            'total_pasien' => $totalPasienKronis,
+            'pasien_bulan_ini' => $pasienBulanIni,
+            'rekon_bpjs' => $rekonData,
             'pengeluaran_bulan_ini' => round($pengeluaranBulanIni),
-            'jumlah_po_bulan_ini'   => $jumlahPoBulanIni,
-            'alerts'                => $alerts,
-            'tren_labels'           => $trenLabels,
-            'tren_pendapatan'       => $trenPendapatan,
-            'tren_pengeluaran'      => $trenPengeluaran,
+            'jumlah_po_bulan_ini' => $jumlahPoBulanIni,
+            'alerts' => $alerts,
+            'jatuh_tempo_count' => $jatuhTempoCount,
+            'jatuh_tempo_top' => $jatuhTempoTop,
+            'tren_labels' => $trenLabels,
+            'tren_pendapatan' => $trenPendapatan,
+            'tren_pengeluaran' => $trenPengeluaran,
             // Pengadaan disetujui menunggu direalisasikan jadi PO (siap belanja)
-            'siap_belanja'          => \Schema::hasTable('pengajuan_pengadaan') ? [
-                'count' => \App\Models\PengajuanPengadaan::where('status', 'disetujui')->count(),
-                'nilai' => (float) \App\Models\PengajuanPengadaan::where('status', 'disetujui')->sum('total_beli'),
+            'siap_belanja' => \Schema::hasTable('pengajuan_pengadaan') ? [
+                'count' => PengajuanPengadaan::where('status', 'disetujui')->count(),
+                'nilai' => (float) PengajuanPengadaan::where('status', 'disetujui')->sum('total_beli'),
             ] : ['count' => 0, 'nilai' => 0],
         ]));
     }

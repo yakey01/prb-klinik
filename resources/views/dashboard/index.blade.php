@@ -180,6 +180,25 @@
     </a>
     @endif
 
+    {{-- ══ AKUNTABILITAS: pasien JATUH TEMPO ambil obat (belum diserahkan) ══ --}}
+    @if(($jatuh_tempo_count ?? 0) > 0)
+    <a href="{{ route('pasien.pengambilan') }}" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;text-decoration:none;padding:.9rem 1.3rem;margin-bottom:1.5rem;border-radius:1rem;background:linear-gradient(100deg,rgba(232,100,90,.16),rgba(232,100,90,.04));border:1px solid rgba(232,100,90,.45);box-shadow:0 0 22px rgba(232,100,90,.14);">
+        <div style="width:42px;height:42px;border-radius:12px;background:linear-gradient(180deg,#f2857b,#e8645a);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.2rem;box-shadow:0 0 12px rgba(232,100,90,.5);">🔔</div>
+        <div style="flex:1;min-width:220px;">
+            <div class="font-heading" style="font-size:1rem;color:var(--red2);font-weight:800;">{{ $jatuh_tempo_count }} pasien JATUH TEMPO — obat belum diserahkan</div>
+            <div style="font-size:.78rem;color:var(--mut);margin-top:.2rem;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;">
+                @foreach(($jatuh_tempo_top ?? []) as $jt)
+                    <span style="display:inline-flex;align-items:center;gap:.3rem;padding:.12rem .55rem;border-radius:999px;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.25);font-size:.68rem;color:var(--ink);">
+                        {{ $jt['nama'] }} <span style="color:var(--red2);font-weight:700;">{{ $jt['telat'] == 0 ? 'hari ini' : '+'.$jt['telat'].'h' }}</span>
+                    </span>
+                @endforeach
+                @if($jatuh_tempo_count > count($jatuh_tempo_top ?? []))<span style="font-size:.68rem;color:var(--mut2);">+{{ $jatuh_tempo_count - count($jatuh_tempo_top) }} lainnya</span>@endif
+            </div>
+        </div>
+        <span style="display:inline-flex;align-items:center;gap:.4rem;padding:.55rem 1.1rem;border-radius:.7rem;background:linear-gradient(180deg,#f2857b,#e8645a);color:#1a0e00;font-weight:800;font-size:.82rem;white-space:nowrap;">Serahkan sekarang →</span>
+    </a>
+    @endif
+
     {{-- ══════════════ RINCIAN LABA PER OBAT (pembukti kartu) ══════════════ --}}
     <style>
         .ob-wrap { margin-bottom:1.5rem; }

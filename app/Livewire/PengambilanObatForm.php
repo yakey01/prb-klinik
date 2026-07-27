@@ -85,27 +85,16 @@ class PengambilanObatForm extends Component
     public function pasienHariIni(): Collection
     {
         $today = now()->startOfDay();
-        $latestIds = PengambilanObat::selectRaw('MAX(id) as id')
-            ->whereNotNull('jadwal_berikutnya')
-            ->groupBy('pasien_id')
-            ->pluck('id');
 
-        return PengambilanObat::with('pasien:id,nama,no_bpjs,kategori_diagnosis,is_aktif')
-            ->whereIn('id', $latestIds)
-            ->whereDate('jadwal_berikutnya', '<=', $today->toDateString())
-            ->get()
-            ->filter(fn ($p) => $p->pasien && $p->pasien->is_aktif)
-            ->map(fn ($p) => [
-                'pasien_id' => $p->pasien_id,
-                'nama' => $p->pasien->nama,
-                'no_bpjs' => $p->pasien->no_bpjs,
-                'diagnosis' => $p->pasien->kategori_diagnosis,
-                'jadwal' => $p->jadwal_berikutnya->format('Y-m-d'),
-                // telat = hari sejak jadwal s/d hari ini (>=0 krn jadwal<=today). 0 = hari ini.
-                'telat' => (int) $p->jadwal_berikutnya->startOfDay()->diffInDays($today),
-            ])
-            ->sortByDesc('telat')
-            ->values();
+        return PengambilanObat::jatuhTempo()->map(fn ($p) => [
+            'pasien_id' => $p->pasien_id,
+            'nama' => $p->pasien->nama,
+            'no_bpjs' => $p->pasien->no_bpjs,
+            'diagnosis' => $p->pasien->kategori_diagnosis,
+            'jadwal' => $p->jadwal_berikutnya->format('Y-m-d'),
+            // telat = hari sejak jadwal s/d hari ini (>=0 krn jadwal<=today). 0 = hari ini.
+            'telat' => (int) $p->jadwal_berikutnya->startOfDay()->diffInDays($today),
+        ])->sortByDesc('telat')->values();
     }
 
     #[Computed]
