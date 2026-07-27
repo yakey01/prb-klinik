@@ -793,6 +793,18 @@ parameters:
 			path: app/Livewire/RiwayatPengambilan.php
 
 		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$jumlah_unit\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/RiwayatPengambilan.php
+
+		-
+			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$obat_id\.$#'
+			identifier: property.notFound
+			count: 1
+			path: app/Livewire/RiwayatPengambilan.php
+
+		-
 			message: '#^Access to an undefined property App\\Livewire\\StokKeluarManager\:\:\$records\.$#'
 			identifier: property.notFound
 			count: 1

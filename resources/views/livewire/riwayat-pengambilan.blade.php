@@ -61,6 +61,22 @@
     </div>
     @endif
 
+    {{-- Bulk bersihkan (muncul saat meninjau duplikat) --}}
+    @if($filterDuplikat && $dupCount > 0)
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;padding:.8rem 1rem;border-radius:.7rem;background:rgba(232,100,90,.1);border:1px solid rgba(232,100,90,.35);margin-bottom:1rem;">
+        <div style="flex:1;min-width:220px;font-size:.76rem;color:var(--ink);line-height:1.5;">
+            Meninjau <strong style="color:var(--red2);">{{ $dupCount }}</strong> entri duplikat. Membersihkan akan <strong>menyisakan 1</strong> entri (yang tercatat pertama) per pasien+tanggal, sisanya dihapus & <strong style="color:var(--emer2);">stoknya dikembalikan</strong>. Reversible via filter "Terhapus".
+        </div>
+        <button wire:click="bersihkanSemuaDuplikat"
+            wire:confirm="Bersihkan SEMUA duplikat? Menyisakan 1 entri per pasien+tanggal; sisanya dihapus & stok dikembalikan. Bisa dipulihkan."
+            wire:loading.attr="disabled" wire:target="bersihkanSemuaDuplikat"
+            style="padding:.55rem 1.1rem;border-radius:.6rem;background:linear-gradient(180deg,#f2857b,#e8645a);border:1px solid rgba(232,100,90,.5);color:#1a0e00;font-weight:800;font-size:.8rem;cursor:pointer;white-space:nowrap;">
+            <span wire:loading.remove wire:target="bersihkanSemuaDuplikat">🧹 Bersihkan Semua Duplikat</span>
+            <span wire:loading wire:target="bersihkanSemuaDuplikat">⏳ Membersihkan…</span>
+        </button>
+    </div>
+    @endif
+
     {{-- LIST --}}
     <div class="glass-card" style="padding:0;overflow:hidden;">
         <table style="width:100%;border-collapse:collapse;">
