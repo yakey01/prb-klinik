@@ -769,53 +769,126 @@ $sc = $statusColors[$rekonStatus] ?? $statusColors['belum_diajukan'];
             Bayar BPJS = Klaim/Unit × Faktor JF (PMK 3/2023)
         </div>
     </div>
-    <div style="overflow-x:auto;">
-    <table class="lpr-table" style="font-size:.78rem;">
-        <thead>
-            <tr>
-                <th style="text-align:left;">Nama Obat</th>
-                <th>Diagnosis</th>
-                <th style="text-align:right;">Pasien</th>
-                <th style="text-align:right;">Unit/Bln</th>
-                <th style="text-align:right;">Klaim/Unit</th>
-                <th style="text-align:right;">Faktor JF</th>
-                <th style="text-align:right; color:var(--emer2);">Bayar BPJS</th>
-                <th style="text-align:right;">Harga Beli</th>
-                <th style="text-align:right; color:var(--emer2);">Pend./Bln</th>
-                <th style="text-align:right; color:var(--red2);">Biaya/Bln</th>
-                <th style="text-align:right; color:var(--gold2);">Laba/Bln</th>
-            </tr>
-        </thead>
-        <tbody>
-            @php $totalPend2 = 0; $totalBiaya2 = 0; $totalLaba2 = 0; @endphp
-            @foreach($this->detailBpjs as $row)
-            @php $totalPend2 += $row['pendapatan']; $totalBiaya2 += $row['biaya']; $totalLaba2 += $row['laba']; @endphp
-            <tr>
-                <td style="font-weight:600;">{{ $row['nama'] }}</td>
-                <td><span class="lpr-pill" style="background:var(--bg2); color:var(--mut2); border:1px solid var(--line);">{{ $row['kategori'] }}</span></td>
-                <td class="lpr-num" style="text-align:right;">{{ $row['pasien'] }}</td>
-                <td class="lpr-num" style="text-align:right;">{{ $row['unit'] }}</td>
-                <td class="lpr-num" style="text-align:right; font-size:.74rem;">{{ number_format($row['klaim'],0,',','.') }}</td>
-                <td class="lpr-num" style="text-align:right; font-size:.74rem; color:var(--mut2);">{{ $row['faktor'] }}</td>
-                <td class="lpr-num" style="text-align:right; font-size:.74rem; color:var(--emer2);">{{ number_format($row['bayar_bpjs'],0,',','.') }}</td>
-                <td class="lpr-num" style="text-align:right; font-size:.74rem; color:var(--mut2);">{{ number_format($row['harga_beli'],0,',','.') }}</td>
-                <td class="lpr-num" style="text-align:right; color:var(--emer2);">{{ number_format($row['pendapatan'],0,',','.') }}</td>
-                <td class="lpr-num" style="text-align:right; color:var(--mut2);">{{ number_format($row['biaya'],0,',','.') }}</td>
-                <td class="lpr-num" style="text-align:right; font-weight:700; color:{{ $row['laba'] >= 0 ? 'var(--gold2)' : 'var(--red2)' }};">
-                    {{ $row['laba'] >= 0 ? '+' : '' }}{{ number_format($row['laba'],0,',','.') }}
-                </td>
-            </tr>
-            @endforeach
-        </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="8" style="padding:.65rem .9rem; font-size:.78rem; color:var(--mut);">TOTAL — {{ $this->detailBpjs->count() }} obat kronis aktif</td>
-                <td class="lpr-num" style="text-align:right; color:var(--emer2); padding:.65rem .9rem;">{{ number_format($totalPend2,0,',','.') }}</td>
-                <td class="lpr-num" style="text-align:right; color:var(--mut2); padding:.65rem .9rem;">{{ number_format($totalBiaya2,0,',','.') }}</td>
-                <td class="lpr-num" style="text-align:right; padding:.65rem .9rem; color:{{ $totalLaba2 >= 0 ? 'var(--gold2)' : 'var(--red2)' }};">{{ $totalLaba2 >= 0 ? '+' : '' }}{{ number_format($totalLaba2,0,',','.') }}</td>
-            </tr>
-        </tfoot>
-    </table>
+    @php $gTotPend = 0; $gTotBiaya = 0; $gTotLaba = 0; @endphp
+
+    {{-- Kelompok per diagnosis — grup RUGI di atas biar perhatian tertuju ke masalah dulu --}}
+    @foreach($this->detailBpjsGrouped as $grp)
+    @php
+        $gTotPend  += $grp['pendapatan'];
+        $gTotBiaya += $grp['biaya'];
+        $gTotLaba  += $grp['laba'];
+        $grpRugi = $grp['laba'] < 0;
+    @endphp
+    <div x-data="{ open: {{ $grp['rugi_count'] > 0 ? 'true' : 'false' }} }" style="border-bottom:1px solid var(--line);">
+        {{-- Header grup diagnosis --}}
+        <button type="button" @click="open = !open"
+            style="width:100%; background:{{ $grpRugi ? 'rgba(232,100,90,.06)' : 'rgba(0,0,0,.12)' }}; border:0; cursor:pointer;
+                   display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;
+                   padding:.7rem 1.2rem; text-align:left; color:var(--ink);">
+            <span style="display:flex; align-items:center; gap:.6rem; min-width:0;">
+                <span x-text="open ? '▾' : '▸'" style="color:var(--mut2); font-size:.7rem;"></span>
+                <span style="font-weight:700; font-size:.86rem; color:{{ $grpRugi ? 'var(--red2)' : 'var(--gold2)' }};">{{ $grp['kategori'] }}</span>
+                <span style="font-size:.66rem; color:var(--mut); background:rgba(255,255,255,.04); border:1px solid var(--line); padding:.1rem .45rem; border-radius:.35rem;">{{ $grp['obat_count'] }} obat</span>
+                @if($grp['rugi_count'] > 0)
+                <span style="font-size:.66rem; color:var(--red2); background:rgba(232,100,90,.1); border:1px solid rgba(232,100,90,.25); padding:.1rem .45rem; border-radius:.35rem;">{{ $grp['rugi_count'] }} rugi</span>
+                @endif
+            </span>
+            <span style="display:flex; align-items:center; gap:1.4rem; font-size:.72rem;">
+                <span style="color:var(--mut2);">Klaim <b class="lpr-num" style="color:var(--emer2);">{{ number_format($grp['pendapatan'],0,',','.') }}</b></span>
+                <span style="color:var(--mut2);">Modal <b class="lpr-num" style="color:var(--mut2);">{{ number_format($grp['biaya'],0,',','.') }}</b></span>
+                <span class="lpr-num" style="font-weight:800; font-size:.86rem; color:{{ $grp['laba'] >= 0 ? 'var(--gold2)' : 'var(--red2)' }};">{{ $grp['laba'] >= 0 ? '+' : '' }}{{ number_format($grp['laba'],0,',','.') }}</span>
+            </span>
+        </button>
+
+        {{-- Obat di dalam grup --}}
+        <div x-show="open" style="overflow-x:auto;">
+        <table class="lpr-table" style="font-size:.78rem;">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Nama Obat</th>
+                    <th style="text-align:right;">Pasien</th>
+                    <th style="text-align:right; color:var(--emer2);">Klaim BPJS</th>
+                    <th style="text-align:right; color:var(--red2);">Modal Beli</th>
+                    <th style="text-align:right; color:var(--gold2);">Laba/Bln</th>
+                    <th style="text-align:center; width:5rem;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($grp['obats'] as $row)
+                @php $isOpen = $expandedObatId === $row['obat_id']; @endphp
+                <tr @style(['background:rgba(232,100,90,.04)' => $row['laba'] < 0])>
+                    <td style="font-weight:600;">
+                        {{ $row['nama'] }}
+                        <div style="font-size:.66rem; color:var(--mut); font-weight:400; margin-top:.15rem;">
+                            {{ number_format($row['unit'],0,',','.') }} unit · klaim {{ number_format($row['bayar_bpjs'],0,',','.') }}/unit · beli {{ number_format($row['harga_beli'],0,',','.') }}/unit
+                        </div>
+                    </td>
+                    <td class="lpr-num" style="text-align:right;">{{ $row['pasien'] }}</td>
+                    <td class="lpr-num" style="text-align:right; color:var(--emer2);">{{ number_format($row['pendapatan'],0,',','.') }}</td>
+                    <td class="lpr-num" style="text-align:right; color:var(--mut2);">{{ number_format($row['biaya'],0,',','.') }}</td>
+                    <td class="lpr-num" style="text-align:right; font-weight:700; color:{{ $row['laba'] >= 0 ? 'var(--gold2)' : 'var(--red2)' }};">
+                        {{ $row['laba'] >= 0 ? '+' : '' }}{{ number_format($row['laba'],0,',','.') }}
+                    </td>
+                    <td style="text-align:center;">
+                        <button type="button" wire:click="toggleObatDetail({{ $row['obat_id'] }})" wire:loading.attr="disabled"
+                            style="font-size:.64rem; color:{{ $isOpen ? 'var(--gold2)' : 'var(--mut2)' }}; background:rgba(255,255,255,.04); border:1px solid var(--line); padding:.2rem .5rem; border-radius:.35rem; cursor:pointer; white-space:nowrap;">
+                            {{ $isOpen ? '▲ tutup' : '👤 siapa?' }}
+                        </button>
+                    </td>
+                </tr>
+                @if($isOpen)
+                <tr>
+                    <td colspan="6" style="background:rgba(0,0,0,.22); padding:.6rem 1rem 1rem 2rem;">
+                        <div style="font-size:.66rem; color:var(--mut); text-transform:uppercase; letter-spacing:.05em; margin-bottom:.5rem;">
+                            Rincian per pasien — {{ $row['nama'] }} ({{ count($this->pasienPerObat) }} pasien)
+                        </div>
+                        <table style="width:100%; border-collapse:collapse; font-size:.74rem;">
+                            <thead>
+                                <tr style="color:var(--mut2); text-align:left;">
+                                    <th style="padding:.3rem .5rem; font-weight:600;">Pasien</th>
+                                    <th style="padding:.3rem .5rem; text-align:right; font-weight:600;">Unit</th>
+                                    <th style="padding:.3rem .5rem; text-align:right; font-weight:600; color:var(--emer2);">Klaim BPJS</th>
+                                    <th style="padding:.3rem .5rem; text-align:right; font-weight:600; color:var(--red2);">Modal Beli</th>
+                                    <th style="padding:.3rem .5rem; text-align:right; font-weight:600; color:var(--gold2);">Laba</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($this->pasienPerObat as $pp)
+                                <tr style="border-top:1px solid var(--line);">
+                                    <td style="padding:.35rem .5rem; font-weight:600;">
+                                        {{ $pp['nama'] }}
+                                        <span style="color:var(--mut); font-weight:400; font-size:.68rem;">· {{ $pp['no_bpjs'] }}</span>
+                                    </td>
+                                    <td class="lpr-num" style="padding:.35rem .5rem; text-align:right;">{{ number_format($pp['unit'],0,',','.') }}</td>
+                                    <td class="lpr-num" style="padding:.35rem .5rem; text-align:right; color:var(--emer2);">{{ number_format($pp['pendapatan'],0,',','.') }}</td>
+                                    <td class="lpr-num" style="padding:.35rem .5rem; text-align:right; color:var(--mut2);">{{ number_format($pp['biaya'],0,',','.') }}</td>
+                                    <td class="lpr-num" style="padding:.35rem .5rem; text-align:right; font-weight:700; color:{{ $pp['laba'] >= 0 ? 'var(--gold2)' : 'var(--red2)' }};">
+                                        {{ $pp['laba'] >= 0 ? '+' : '' }}{{ number_format($pp['laba'],0,',','.') }}
+                                    </td>
+                                </tr>
+                                @empty
+                                <tr><td colspan="5" style="padding:.5rem; color:var(--mut);">Tidak ada data pasien.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                @endif
+                @endforeach
+            </tbody>
+        </table>
+        </div>
+    </div>
+    @endforeach
+
+    {{-- Grand total semua diagnosis --}}
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; padding:.85rem 1.2rem; background:rgba(0,0,0,.2);">
+        <span style="font-size:.78rem; color:var(--mut); font-weight:700;">TOTAL — {{ $this->detailBpjs->count() }} obat kronis aktif</span>
+        <span style="display:flex; align-items:center; gap:1.4rem; font-size:.76rem;">
+            <span style="color:var(--mut2);">Klaim <b class="lpr-num" style="color:var(--emer2);">{{ number_format($gTotPend,0,',','.') }}</b></span>
+            <span style="color:var(--mut2);">Modal <b class="lpr-num" style="color:var(--mut2);">{{ number_format($gTotBiaya,0,',','.') }}</b></span>
+            <span class="lpr-num" style="font-weight:800; font-size:.9rem; color:{{ $gTotLaba >= 0 ? 'var(--gold2)' : 'var(--red2)' }};">{{ $gTotLaba >= 0 ? '+' : '' }}{{ number_format($gTotLaba,0,',','.') }}</span>
+        </span>
     </div>
 </div>
 @endif

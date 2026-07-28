@@ -21,6 +21,14 @@ class LaporanBulanan extends Component
 
     public string $activeTab = 'ringkasan';
 
+    /** Obat yang sedang dibuka rincian per-pasiennya di tabel laba (drill-down "siapa"). */
+    public ?int $expandedObatId = null;
+
+    public function toggleObatDetail(int $obatId): void
+    {
+        $this->expandedObatId = $this->expandedObatId === $obatId ? null : $obatId;
+    }
+
     public function mount(): void
     {
         $this->bulan = now()->month;
@@ -162,6 +170,7 @@ class LaporanBulanan extends Component
             ->get();
 
         return $rows->map(fn ($r) => [
+            'obat_id' => (int) $r->obat_id,
             'nama' => $r->nama_obat,
             'kategori' => $r->kategori_diagnosis,
             'pasien' => (int) $r->pasien,
@@ -175,6 +184,80 @@ class LaporanBulanan extends Component
             'biaya' => round((float) $r->biaya, 2),
             'laba' => round((float) $r->proyeksi - (float) $r->biaya, 2),
         ])->values();
+    }
+
+    /**
+     * Laba per obat DIKELOMPOKKAN per diagnosis — standar laporan farmasi ke CEO.
+     * Grup RUGI ditaruh di atas agar perhatian tertuju ke masalah lebih dulu.
+     *
+     * @return array<int, array{kategori: string, obats: array<int, array<string, mixed>>, pendapatan: float, biaya: float, laba: float, obat_count: int, rugi_count: int}>
+     */
+    #[Computed]
+    public function detailBpjsGrouped(): array
+    {
+        $groups = [];
+        foreach ($this->detailBpjs as $r) {
+            $kat = $r['kategori'] ?: 'Tanpa Diagnosis';
+            if (! isset($groups[$kat])) {
+                $groups[$kat] = ['kategori' => $kat, 'obats' => [], 'pendapatan' => 0.0, 'biaya' => 0.0, 'laba' => 0.0, 'obat_count' => 0, 'rugi_count' => 0];
+            }
+            $groups[$kat]['obats'][] = $r;
+            $groups[$kat]['pendapatan'] += $r['pendapatan'];
+            $groups[$kat]['biaya'] += $r['biaya'];
+            $groups[$kat]['laba'] += $r['laba'];
+            $groups[$kat]['obat_count']++;
+            if ($r['laba'] < 0) {
+                $groups[$kat]['rugi_count']++;
+            }
+        }
+        // Urut obat dalam grup: rugi terbesar dulu, lalu laba terbesar.
+        foreach ($groups as &$g) {
+            usort($g['obats'], fn ($a, $b) => $a['laba'] <=> $b['laba']);
+        }
+        unset($g);
+        // Urut grup: total laba terkecil (paling rugi) di atas.
+        uasort($groups, fn ($a, $b) => $a['laba'] <=> $b['laba']);
+
+        return array_values($groups);
+    }
+
+    /**
+     * Rincian per-pasien untuk 1 obat (drill-down "siapa yang bikin rugi").
+     *
+     * @return array<int, array{nama: string, no_bpjs: string, unit: float, pendapatan: float, biaya: float, laba: float}>
+     */
+    #[Computed]
+    public function pasienPerObat(): array
+    {
+        if (! $this->expandedObatId) {
+            return [];
+        }
+
+        return \DB::table('item_pengambilan as ip')
+            ->join('pengambilan_obat as po', 'ip.pengambilan_obat_id', '=', 'po.id')
+            ->join('pasien as p', 'po.pasien_id', '=', 'p.id')
+            ->whereBetween('po.tanggal_pengambilan', Periode::bulan($this->tahun, $this->bulan))
+            ->where('po.status', 'selesai')
+            ->where('ip.obat_id', $this->expandedObatId)
+            ->groupBy('p.id', 'p.nama', 'p.no_bpjs')
+            ->select(
+                'p.nama', 'p.no_bpjs',
+                \DB::raw('SUM(ip.jumlah_unit) AS unit'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_klaim_bpjs_snapshot * '.Obat::jfSql('ip.faktor_jasa_farmasi_snapshot').') AS pendapatan'),
+                \DB::raw('SUM(ip.jumlah_unit * ip.harga_beli_snapshot) AS biaya')
+            )
+            ->get()
+            ->map(fn ($r) => [
+                'nama' => $r->nama,
+                'no_bpjs' => $r->no_bpjs ?: '—',
+                'unit' => (float) $r->unit,
+                'pendapatan' => round((float) $r->pendapatan, 2),
+                'biaya' => round((float) $r->biaya, 2),
+                'laba' => round((float) $r->pendapatan - (float) $r->biaya, 2),
+            ])
+            ->sortBy('laba')
+            ->values()
+            ->all();
     }
 
     #[Computed]
