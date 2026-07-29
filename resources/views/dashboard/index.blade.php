@@ -298,15 +298,6 @@
 
     </div>
 
-    {{-- TREND CHART 6 BULAN --}}
-    <div class="glass-card" style="padding:1.5rem;margin-bottom:2rem;">
-        <div style="margin-bottom:1.2rem;">
-            <div class="font-label" style="font-size:.7rem;color:var(--mut);margin-bottom:.2rem;">Histori</div>
-            <div class="font-heading" style="font-size:1.1rem;color:var(--ink);">Tren Keuangan 6 Bulan Terakhir</div>
-        </div>
-        <canvas id="chartTren6" style="max-height:250px;"></canvas>
-    </div>
-
     {{-- PROYEKSI LABA BERSIH --}}
     <livewire:proyeksi-slider :laba-kotor="$laba_kotor" />
 
@@ -358,26 +349,6 @@
                 row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;font-size:.75rem;';
                 row.innerHTML = '<span style="display:flex;align-items:center;gap:.4rem;color:#8fae9f;"><span style="width:8px;height:8px;border-radius:50%;background:'+palette[i]+';flex-shrink:0;"></span>'+label+'</span><span style="color:#eaf3ee;font-weight:600;">'+pct+'%</span>';
                 legend.appendChild(row);
-            });
-
-            // Tren 6 Bulan Chart
-            new Chart(document.getElementById('chartTren6'), {
-                type: 'bar',
-                data: {
-                    labels: @json($tren_labels),
-                    datasets: [
-                        { label: 'Proyeksi Pendapatan', data: @json($tren_pendapatan), backgroundColor: 'rgba(63,207,142,.55)', borderColor: '#3fcf8e', borderWidth: 1.5, borderRadius: 4 },
-                        { label: 'Pengeluaran PO', data: @json($tren_pengeluaran), backgroundColor: 'rgba(232,100,90,.45)', borderColor: '#e8645a', borderWidth: 1.5, borderRadius: 4 },
-                    ]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#8fae9f', font: { size: 11 } } }, tooltip: { callbacks: { label: ctx => ' '+ctx.dataset.label+': Rp '+new Intl.NumberFormat('id-ID').format(ctx.raw) } } },
-                    scales: {
-                        x: { ticks: { color: '#8fae9f', font: { size: 10 } }, grid: { color: 'rgba(31,61,48,.4)' } },
-                        y: { ticks: { color: '#8fae9f', font: { size: 10 }, callback: v => 'Rp '+Intl.NumberFormat('id').format(v) }, grid: { color: 'rgba(31,61,48,.4)' } }
-                    }
-                }
             });
         })();
     </script>

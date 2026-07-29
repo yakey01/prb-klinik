@@ -11,7 +11,6 @@ use App\Models\RekonsiliasiiBpjs;
 use App\Services\LabaCalculatorService;
 use App\Support\Periode;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -103,22 +102,6 @@ class DashboardController extends Controller
         usort($rows, fn ($a, $b) => $a['laba'] <=> $b['laba']);
 
         return $rows;
-    }
-
-    /**
-     * Total HPP & klaim untuk status tertentu — dijumlahkan dari rincian per obat
-     * agar kartu KPI dan tabel rincian SELALU rekonsiliasi.
-     *
-     * @return array{hpp: float, klaim: float}
-     */
-    private function financialsForStatuses(array $statuses, int $bulan, int $tahun): array
-    {
-        $rows = $this->financialBreakdown($statuses, $bulan, $tahun);
-
-        return [
-            'hpp' => array_sum(array_column($rows, 'hpp')),
-            'klaim' => array_sum(array_column($rows, 'klaim')),
-        ];
     }
 
     public function index()
@@ -257,25 +240,6 @@ class DashboardController extends Controller
             'telat' => (int) Carbon::parse($p->jadwal_berikutnya)->startOfDay()->diffInDays(now()->startOfDay()),
         ])->values()->all();
 
-        // 6-month trend — cached for 1 hour (12 queries otherwise)
-        $cacheKey = "dashboard-tren-6m-{$tahun}-{$bulan}";
-        [$trenLabels, $trenPendapatan, $trenPengeluaran] = Cache::remember($cacheKey, 3600, function () {
-            $labels = $pendapatan = $pengeluaran = [];
-            for ($i = 5; $i >= 0; $i--) {
-                $dt = now()->subMonths($i);
-                $labels[] = $dt->translatedFormat('M Y');
-
-                $pendapatan[] = round($this->financialsForStatuses(['selesai', 'dijadwalkan'], $dt->month, $dt->year)['klaim']);
-
-                $pengeluaran[] = round(
-                    PurchaseOrder::whereBetween('tanggal_po', Periode::bulan($dt->year, $dt->month))
-                        ->sum('total_nilai')
-                );
-            }
-
-            return [$labels, $pendapatan, $pengeluaran];
-        });
-
         return view('dashboard.index', array_merge($data, [
             'pendapatan_bpjs' => round($pendapatanBpjs),
             'biaya_beli' => round($hppBulanIni),
@@ -295,9 +259,6 @@ class DashboardController extends Controller
             'alerts' => $alerts,
             'jatuh_tempo_count' => $jatuhTempoCount,
             'jatuh_tempo_top' => $jatuhTempoTop,
-            'tren_labels' => $trenLabels,
-            'tren_pendapatan' => $trenPendapatan,
-            'tren_pengeluaran' => $trenPengeluaran,
             // Pengadaan disetujui menunggu direalisasikan jadi PO (siap belanja)
             'siap_belanja' => \Schema::hasTable('pengajuan_pengadaan') ? [
                 'count' => PengajuanPengadaan::where('status', 'disetujui')->count(),
