@@ -287,8 +287,6 @@ class DashboardController extends Controller
             'hpp_proyeksi' => round($hppProyeksi),
             'klaim_proyeksi' => round($klaimProyeksi),
             'laba_proyeksi' => round($klaimProyeksi - $hppProyeksi),
-            // Tabel rincian per obat (pembukti rekonsiliasi kartu)
-            'breakdown_rows' => $breakdownRows,
             'total_pasien' => $totalPasienKronis,
             'pasien_bulan_ini' => $pasienBulanIni,
             'rekon_bpjs' => $rekonData,
