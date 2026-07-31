@@ -23,14 +23,14 @@
          siap sebelum form dibuka via morph). --}}
     <script>
         window.PRB_OBAT = @json($obatJson);
-        window.obatPicker = function(uid, tipe, obatId, nama){
+        window.obatPicker = function(uid, kat, obatId, nama){
             return {
-                uid, tipe, query:'', open:false, results:[],
+                uid, kat, query:'', open:false, results:[], creating:false,
                 picked: obatId ? { id:obatId, nama:nama } : null,
                 menuStyle:'',
                 init(){
                     if(this.picked){ const f=(window.PRB_OBAT||[]).find(o=>o.id===this.picked.id); if(f) this.picked=f; }
-                    this.$watch('tipe', ()=>this.reset());
+                    this.$watch('kat', ()=>this.reset());
                 },
                 pos(){
                     const r=this.$root.getBoundingClientRect();
@@ -39,11 +39,31 @@
                 filter(){
                     this.pos();
                     const q=(this.query||'').toLowerCase().trim();
-                    // Non-Kronis mencakup BMHP (bahan medis habis pakai — non-BPJS).
-                    let list=(window.PRB_OBAT||[]).filter(o=> o.tipe===this.tipe || (this.tipe==='non_kronis' && o.tipe==='bmhp'));
+                    // Filter tepat per kategori: kronis | non_kronis (umum murni) | bmhp.
+                    let list=(window.PRB_OBAT||[]).filter(o=> o.tipe===this.kat);
                     if(q) list=list.filter(o=>(o.nama||'').toLowerCase().includes(q)||(o.kode||'').toLowerCase().includes(q));
                     list.sort((a,b)=>((a.stok<=a.min?0:1)-(b.stok<=b.min?0:1)) || (a.nama||'').localeCompare(b.nama||''));
                     this.results=list.slice(0,60);
+                },
+                // BMHP boleh dibuat "on the fly": tawarkan bila nama diketik & belum ada yang persis.
+                get canCreate(){
+                    if(this.kat!=='bmhp') return false;
+                    const q=(this.query||'').trim();
+                    if(!q) return false;
+                    return !this.results.some(o=>(o.nama||'').toLowerCase()===q.toLowerCase());
+                },
+                async createBmhp(){
+                    const q=(this.query||'').trim();
+                    if(!q || this.creating) return;
+                    this.creating=true;
+                    try{
+                        const o=await this.$wire.call('tambahBmhp', this.uid, q);
+                        if(o && o.id){
+                            window.PRB_OBAT=window.PRB_OBAT||[];
+                            if(!window.PRB_OBAT.some(x=>x.id===o.id)) window.PRB_OBAT.push(o);
+                            this.picked=o; this.query=''; this.open=false;
+                        }
+                    } finally { this.creating=false; }
                 },
                 choose(o){ this.picked=o; this.query=''; this.open=false; this.$wire.call('pilihObat', this.uid, o.id); },
                 clearPick(){ this.picked=null; this.query=''; this.open=true; this.$wire.call('pilihObat', this.uid, 0); this.$nextTick(()=>this.filter()); },
@@ -305,30 +325,43 @@
             <tbody>
                 @foreach($rows as $i => $row)
                 <tr wire:key="row-{{ $row['uid'] ?? $i }}" style="border-top:1px solid rgba(31,61,48,.4);">
-                    @php $tp = $row['tipe_obat'] ?? 'kronis'; $isK = $tp === 'kronis'; @endphp
-                    {{-- FIELD TIPE: pilih dulu kategori (menentukan apakah diklaim BPJS) --}}
-                    <td style="padding:.3rem .5rem;vertical-align:top;min-width:210px;">
+                    @php
+                        $tp  = $row['tipe_obat'] ?? 'kronis';
+                        $kat = $row['kategori'] ?? ($tp === 'kronis' ? 'kronis' : 'non_kronis');
+                        $isK = $tp === 'kronis';
+                        [$katTeks, $katWarna] = match ($kat) {
+                            'kronis'  => ['✓ diklaim BPJS', '#8fbdf5'],
+                            'bmhp'    => ['✓ BMHP · non-BPJS', '#c9b0ff'],
+                            default   => ['✓ umum · non-BPJS', '#f2c14e'],
+                        };
+                        $katWord = match ($kat) { 'kronis' => 'obat kronis', 'bmhp' => 'BMHP (mis. kapsul kosong)', default => 'obat umum' };
+                    @endphp
+                    {{-- FIELD KATEGORI: pilih dulu (menentukan klaim BPJS & filter daftar obat) --}}
+                    <td style="padding:.3rem .5rem;vertical-align:top;min-width:250px;">
                         <div style="display:inline-flex;border-radius:.85rem;overflow:hidden;border:1px solid rgba(255,255,255,.14);
                                     background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.08));
                                     box-shadow:inset 0 1.5px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.02), 0 8px 20px -8px rgba(0,0,0,.6);
                                     backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
                             <button type="button" wire:click="setTipeRow('{{ $row['uid'] ?? $i }}','kronis')" title="Obat kronis — diklaim ke BPJS"
-                                style="padding:.62rem 1.35rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;transition:all .15s;
-                                    {{ $isK ? 'background:linear-gradient(180deg,rgba(132,187,245,.42),rgba(132,187,245,.2));color:#d5e8fb;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35),0 0 16px rgba(132,187,245,.3);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Kronis</button>
-                            <button type="button" wire:click="setTipeRow('{{ $row['uid'] ?? $i }}','non_kronis')" title="Obat umum & BMHP — tidak diklaim BPJS"
-                                style="padding:.62rem 1.2rem;font-size:.84rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,.1);transition:all .15s;
-                                    {{ !$isK ? 'background:linear-gradient(180deg,rgba(242,193,78,.45),rgba(224,168,50,.22));color:#ffe8ac;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.4),0 0 16px rgba(242,193,78,.32);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Non-Kronis</button>
+                                style="padding:.6rem .85rem;font-size:.78rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;transition:all .15s;
+                                    {{ $kat==='kronis' ? 'background:linear-gradient(180deg,rgba(132,187,245,.42),rgba(132,187,245,.2));color:#d5e8fb;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.35),0 0 16px rgba(132,187,245,.3);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Kronis</button>
+                            <button type="button" wire:click="setTipeRow('{{ $row['uid'] ?? $i }}','non_kronis')" title="Obat umum — tidak diklaim BPJS"
+                                style="padding:.6rem .8rem;font-size:.78rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,.1);transition:all .15s;
+                                    {{ $kat==='non_kronis' ? 'background:linear-gradient(180deg,rgba(242,193,78,.45),rgba(224,168,50,.22));color:#ffe8ac;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.4),0 0 16px rgba(242,193,78,.32);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">Umum</button>
+                            <button type="button" wire:click="setTipeRow('{{ $row['uid'] ?? $i }}','bmhp')" title="BMHP (bahan medis habis pakai) — mis. kapsul kosong, kapas, spuit — tidak diklaim BPJS"
+                                style="padding:.6rem .8rem;font-size:.78rem;font-weight:800;letter-spacing:.01em;cursor:pointer;border:none;border-left:1px solid rgba(255,255,255,.1);transition:all .15s;
+                                    {{ $kat==='bmhp' ? 'background:linear-gradient(180deg,rgba(180,140,255,.45),rgba(150,110,235,.22));color:#e8dcff;box-shadow:inset 0 1.5px 0 rgba(255,255,255,.4),0 0 16px rgba(180,140,255,.32);text-shadow:0 1px 2px rgba(0,0,0,.35);' : 'background:transparent;color:var(--mut);' }}">BMHP</button>
                         </div>
-                        <div style="font-size:.66rem;color:{{ $isK ? '#8fbdf5' : '#f2c14e' }};margin-top:.4rem;font-weight:800;letter-spacing:.02em;">{{ $isK ? '✓ diklaim BPJS' : '✓ umum · non-BPJS' }}</div>
+                        <div style="font-size:.66rem;color:{{ $katWarna }};margin-top:.4rem;font-weight:800;letter-spacing:.02em;">{{ $katTeks }}</div>
                     </td>
                     {{-- OBAT: combobox cari + stok, difilter sesuai tipe --}}
                     <td style="padding:.3rem .4rem;min-width:250px;vertical-align:top;">
-                        <div wire:key="obat-cb-{{ $row['uid'] ?? $i }}-{{ $tp }}"
-                             x-data="obatPicker(@js($row['uid'] ?? (string)$i), @js($tp), {{ (int)($row['obat_id']??0) }}, @js($row['nama_obat']??''))"
+                        <div wire:key="obat-cb-{{ $row['uid'] ?? $i }}-{{ $kat }}"
+                             x-data="obatPicker(@js($row['uid'] ?? (string)$i), @js($kat), {{ (int)($row['obat_id']??0) }}, @js($row['nama_obat']??''))"
                              @click.outside="open=false" style="position:relative;">
                             <input type="text" x-model="query" @focus="open=true;filter()" @input="open=true;filter()"
                                    autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" name="obat_cari_{{ $i }}"
-                                   :placeholder="picked ? picked.nama : '🔎 ketik nama obat {{ $isK ? 'kronis' : 'non-kronis' }}…'"
+                                   :placeholder="picked ? picked.nama : '🔎 ketik nama {{ $katWord }}…'"
                                    class="obat-cb-input" :class="picked ? 'has-pick' : ''">
                             <template x-if="picked">
                                 <div style="display:flex;align-items:center;gap:.4rem;margin-top:.28rem;flex-wrap:wrap;">
@@ -350,7 +383,16 @@
                                             <div style="font-size:.6rem;color:var(--mut2);" x-text="(o.kode?o.kode+' · ':'')+'min '+o.min"></div>
                                         </button>
                                     </template>
-                                    <div x-show="results.length===0" class="obat-cb-empty">Tak ada obat cocok.</div>
+                                    {{-- BMHP: buat item baru langsung dari sini bila belum ada di katalog --}}
+                                    <template x-if="canCreate">
+                                        <button type="button" class="obat-cb-opt" @click="createBmhp()" :disabled="creating"
+                                                style="border-top:1px solid var(--line2);color:#c9b0ff;font-weight:800;margin-top:.15rem;">
+                                            <span x-show="!creating">➕ Tambah BMHP baru: “<span x-text="query"></span>”</span>
+                                            <span x-show="creating">⏳ menambah ke katalog…</span>
+                                        </button>
+                                    </template>
+                                    <div x-show="results.length===0 && !canCreate" class="obat-cb-empty"
+                                         x-text="kat==='bmhp' ? 'Ketik nama BMHP untuk menambah item baru.' : 'Tak ada obat cocok.'"></div>
                                 </div>
                             </template>
                         </div>

@@ -168,7 +168,7 @@ class PengajuanPengadaan extends Component
 
     public function openEdit(int $id): void
     {
-        $p = PR::with('items')->findOrFail($id);
+        $p = PR::with('items.obat')->findOrFail($id);
         if (! $p->bisaDiedit()) {
             $this->dispatch('toast', type: 'error', message: 'Pengajuan sudah '.$p->statusLabel().' — tidak bisa diedit.');
 
@@ -187,6 +187,9 @@ class PengajuanPengadaan extends Component
             'obat_id' => (int) $it->obat_id,
             'nama_obat' => $it->nama_obat,
             'tipe_obat' => $it->tipe_obat,
+            // Kategori pemilih obat (kronis|non_kronis|bmhp). BMHP disimpan sbg non_kronis
+            // untuk penagihan, jadi dikenali ulang dari tipe obat katalog aslinya.
+            'kategori' => $it->obat?->tipe_obat === 'bmhp' ? 'bmhp' : ($it->tipe_obat === 'kronis' ? 'kronis' : 'non_kronis'),
             'jumlah_box' => (int) $it->jumlah_box,
             'isi_per_box' => (int) $it->isi_per_box,
             'harga_per_box' => (float) $it->harga_per_box,
@@ -209,7 +212,7 @@ class PengajuanPengadaan extends Component
     {
         $this->rows[] = [
             'uid' => 'r'.(++$this->rowSeq),
-            'obat_id' => 0, 'nama_obat' => '', 'tipe_obat' => 'kronis',
+            'obat_id' => 0, 'nama_obat' => '', 'tipe_obat' => 'kronis', 'kategori' => 'kronis',
             'jumlah_box' => 1, 'isi_per_box' => 1, 'harga_per_box' => 0, 'harga_per_unit' => 0,
             'klaim_bpjs_per_unit' => 0, 'faktor_jasa_farmasi' => 1.15, 'harga_jual' => 0,
             'subtotal_beli' => 0, 'estimasi_klaim' => 0, 'tanggal_kadaluarsa' => '', 'catatan' => '',
@@ -246,7 +249,9 @@ class PengajuanPengadaan extends Component
             $o = $this->obatList->firstWhere('id', (int) $value);
             if ($o) {
                 $this->rows[$i]['nama_obat'] = $o->nama_obat;
-                // BMHP diperlakukan sebagai non-kronis untuk PO/tagihan (enum: kronis|non_kronis).
+                // BMHP diperlakukan sebagai non-kronis untuk PO/tagihan (enum: kronis|non_kronis),
+                // tapi kategori pemilih tetap 'bmhp' agar filter & tab BMHP konsisten.
+                $this->rows[$i]['kategori'] = ($o->tipe_obat === 'bmhp') ? 'bmhp' : ($o->tipe_obat ?: 'kronis');
                 $this->rows[$i]['tipe_obat'] = ($o->tipe_obat === 'bmhp') ? 'non_kronis' : ($o->tipe_obat ?: 'kronis');
                 $this->rows[$i]['isi_per_box'] = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
                 $this->rows[$i]['harga_per_unit'] = (float) ($o->harga_beli_per_unit ?? 0);
@@ -323,7 +328,8 @@ class PengajuanPengadaan extends Component
         $o = $obatId > 0 ? $this->obatList->firstWhere('id', $obatId) : null;
         if ($o) {
             $this->rows[$i]['nama_obat'] = $o->nama_obat;
-            // BMHP diperlakukan sebagai non-kronis (enum PO/tagihan valid).
+            // BMHP diperlakukan sebagai non-kronis (enum PO/tagihan valid); kategori tetap 'bmhp'.
+            $this->rows[$i]['kategori'] = ($o->tipe_obat === 'bmhp') ? 'bmhp' : ($o->tipe_obat ?: 'kronis');
             $this->rows[$i]['tipe_obat'] = ($o->tipe_obat === 'bmhp') ? 'non_kronis' : ($o->tipe_obat ?: 'kronis');
             $this->rows[$i]['isi_per_box'] = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
             $this->rows[$i]['harga_per_unit'] = (float) ($o->harga_beli_per_unit ?? 0);
@@ -344,14 +350,20 @@ class PengajuanPengadaan extends Component
         $this->recalcRow($i);
     }
 
-    /** Ganti tipe (kronis/non-kronis) pada baris ber-UID → reset obat. */
-    public function setTipeRow(string $uid, string $tipe): void
+    /**
+     * Ganti kategori pemilih (kronis|non_kronis|bmhp) pada baris ber-UID → reset obat.
+     * BMHP ditagihkan sebagai non_kronis (enum PO/tagihan valid), tapi kategori 'bmhp'
+     * dipertahankan agar combobox memfilter khusus item BMHP.
+     */
+    public function setTipeRow(string $uid, string $kategori): void
     {
         $i = $this->rowIndexByUid($uid);
         if ($i === null) {
             return;
         }
-        $this->rows[$i]['tipe_obat'] = $tipe === 'kronis' ? 'kronis' : 'non_kronis';
+        $kat = in_array($kategori, ['kronis', 'non_kronis', 'bmhp'], true) ? $kategori : 'kronis';
+        $this->rows[$i]['kategori'] = $kat;
+        $this->rows[$i]['tipe_obat'] = $kat === 'kronis' ? 'kronis' : 'non_kronis';
         $this->rows[$i]['obat_id'] = 0;
         $this->rows[$i]['nama_obat'] = '';
         $this->rows[$i]['klaim_bpjs_per_unit'] = 0;
@@ -361,6 +373,89 @@ class PengajuanPengadaan extends Component
         $this->rows[$i]['stok_minimum'] = null;
         $this->rows[$i]['satuan'] = '';
         $this->recalcRow($i);
+    }
+
+    /**
+     * Tambah item BMHP baru "on the fly" dari combobox lalu langsung pilih di baris.
+     * BMHP (bahan medis habis pakai — mis. kapsul kosong, kapas, spuit) belum tentu ada
+     * di katalog; ini membuatnya jadi item katalog (tipe_obat=bmhp) tanpa keluar dari form.
+     *
+     * @return array{id:int,nama:string,kode:?string,tipe:string,stok:int,min:int,satuan:string}|null
+     */
+    public function tambahBmhp(string $uid, string $nama): ?array
+    {
+        $nama = trim(preg_replace('/\s+/', ' ', $nama));
+        if ($nama === '') {
+            $this->dispatch('toast', type: 'error', message: 'Ketik nama BMHP dulu sebelum menambah.');
+
+            return null;
+        }
+        if (mb_strlen($nama) > 120) {
+            $nama = mb_substr($nama, 0, 120);
+        }
+
+        // Lingkup: BMHP ditagih sebagai non-kronis → user wajib punya izin non-kronis.
+        $u = Auth::user();
+        if ($u && ! in_array('non_kronis', $u->lingkupTipes(), true)) {
+            $this->dispatch('toast', type: 'error', message: 'Lingkup Anda "'.$u->lingkupLabel().'" — tidak boleh menambah BMHP (umum/non-kronis).');
+
+            return null;
+        }
+
+        // Anti-duplikat: pakai BMHP yang sudah ada bila namanya sama (case-insensitive).
+        $o = Obat::where('tipe_obat', 'bmhp')
+            ->whereRaw('LOWER(nama_obat) = ?', [mb_strtolower($nama)])
+            ->first();
+        if (! $o) {
+            $o = Obat::create([
+                'nama_obat' => $nama,
+                'kode_obat' => 'BMHP-'.strtoupper(substr(md5($nama), 0, 6)),
+                'tipe_obat' => 'bmhp',
+                'kategori_diagnosis' => 'BMHP',
+                'satuan' => 'pcs',
+                'is_active' => true,
+                'sumber_harga' => 'EST',
+                'faktor_jasa_farmasi' => 1.0,   // BMHP tidak diklaim BPJS
+                'harga_beli_per_unit' => 0,
+                'klaim_bpjs_per_unit' => 0,
+                'stok_aktual' => 0,
+                'stok_minimum' => 0,
+            ]);
+        }
+
+        // Refresh cache computed agar obat baru ikut di obatList untuk aksi berikutnya.
+        unset($this->obatList);
+
+        // Isi baris seperti memilih obat biasa.
+        $i = $this->rowIndexByUid($uid);
+        if ($i !== null) {
+            $this->rows[$i]['obat_id'] = (int) $o->id;
+            $this->rows[$i]['nama_obat'] = $o->nama_obat;
+            $this->rows[$i]['kategori'] = 'bmhp';
+            $this->rows[$i]['tipe_obat'] = 'non_kronis';   // penagihan BMHP = non-kronis
+            $this->rows[$i]['isi_per_box'] = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
+            $this->rows[$i]['harga_per_unit'] = (float) ($o->harga_beli_per_unit ?? 0);
+            $this->rows[$i]['harga_per_box'] = (float) ($o->harga_beli_per_unit ?? 0) * (int) $this->rows[$i]['isi_per_box'];
+            $this->rows[$i]['klaim_bpjs_per_unit'] = 0;
+            $this->rows[$i]['faktor_jasa_farmasi'] = 1.0;
+            $this->rows[$i]['harga_jual'] = (float) ($o->harga_jual_per_unit ?? 0);
+            $this->rows[$i]['stok_aktual'] = (int) ($o->stok_aktual ?? 0);
+            $this->rows[$i]['stok_minimum'] = (int) ($o->stok_minimum ?? 0);
+            $this->rows[$i]['satuan'] = (string) ($o->satuan ?? '');
+            $this->recalcRow($i);
+        }
+
+        $this->dispatch('toast', type: 'success', message: 'BMHP "'.$o->nama_obat.'" ditambahkan ke katalog & dipilih. Lengkapi harga beli/box.');
+
+        return [
+            'id' => (int) $o->id,
+            'nama' => $o->nama_obat,
+            'kode' => $o->kode_obat,
+            'tipe' => 'bmhp',
+            'stok' => (int) $o->stok_aktual,
+            'min' => (int) $o->stok_minimum,
+            'satuan' => $o->satuan ?: 'pcs',
+        ];
     }
 
     #[Computed]
