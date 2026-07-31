@@ -103,4 +103,34 @@ class PengajuanBmhpTest extends TestCase
         $row = $c2->get('rows')[array_key_first($c2->get('rows'))];
         $this->assertSame('bmhp', $row['kategori']);
     }
+
+    /**
+     * Harga/Butir sebagai anchor: ketik 69/pcs + isi 1000 → harga/box 69.000,
+     * BEBAS urutan input (tidak meledak ×isi seperti bila mengetik harga/box saat isi msh 1).
+     */
+    public function test_harga_per_butir_sinkron_dua_arah_bebas_urutan(): void
+    {
+        $this->actingAs(User::factory()->create());
+
+        // Urutan 1: harga/butir dulu (isi msih 1) → baru isi 1000.
+        $c = Livewire::test(PengajuanPengadaan::class)->call('openAdd', 'ajukan');
+        $uid = $this->uidBaris0($c);
+        $c->call('tambahBmhp', $uid, 'Kapsul kosong 0');
+        $key = array_key_first($c->get('rows'));
+        $c->set("rows.$key.harga_per_unit", 69);
+        $c->set("rows.$key.isi_per_box", 1000);
+        $row = $c->get('rows')[$key];
+        $this->assertEquals(69000.0, (float) $row['harga_per_box']);
+        $this->assertEquals(69.0, (float) $row['harga_per_unit']);
+
+        // Urutan 2: isi dulu → baru harga/butir. Hasil sama.
+        $c2 = Livewire::test(PengajuanPengadaan::class)->call('openAdd', 'ajukan');
+        $uid2 = $this->uidBaris0($c2);
+        $c2->call('tambahBmhp', $uid2, 'Kapsul kosong 00');
+        $key2 = array_key_first($c2->get('rows'));
+        $c2->set("rows.$key2.isi_per_box", 1000);
+        $c2->set("rows.$key2.harga_per_unit", 69);
+        $row2 = $c2->get('rows')[$key2];
+        $this->assertEquals(69000.0, (float) $row2['harga_per_box']);
+    }
 }

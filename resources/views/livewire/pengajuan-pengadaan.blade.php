@@ -308,15 +308,19 @@
             <span style="font-size:.7rem;font-weight:700;color:var(--ink);text-transform:uppercase;letter-spacing:.04em;">Daftar Obat Diusulkan</span>
             <button wire:click="addRow" style="font-size:.68rem;padding:.3rem .7rem;border-radius:.5rem;background:rgba(63,207,142,.1);border:1px solid rgba(63,207,142,.3);color:var(--emer2);cursor:pointer;font-weight:700;">+ Baris</button>
         </div>
+        <div style="font-size:.66rem;color:var(--mut);margin-bottom:.6rem;line-height:1.45;">
+            💡 Isi paket besar (mis. BMHP <strong style="color:#c9b0ff;">1 bungkus = 1000 pcs @ Rp69.000</strong>): set <strong>Isi/Box 1000</strong> lalu ketik <strong style="color:var(--emer2);">Harga/Butir 69</strong> — Harga/Box otomatis jadi Rp69.000. Atau isi Harga/Box langsung; keduanya sinkron.
+        </div>
 
         <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:.75rem;min-width:960px;">
+        <table style="width:100%;border-collapse:collapse;font-size:.75rem;min-width:1060px;">
             <thead><tr style="color:var(--mut);">
                 <th style="text-align:left;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Tipe (BPJS?)</th>
                 <th style="text-align:left;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Obat</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Box</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Isi/Box</th>
-                <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Harga Beli/Box</th>
+                <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;color:var(--emer2);" title="Harga beli per BUTIR/pcs — cara termudah (mis. BMHP Rp69/pcs). Harga/Box otomatis = butir × isi.">Harga/Butir</th>
+                <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;" title="Harga beli per BOX/bungkus. Otomatis = harga/butir × isi, atau isi langsung.">Harga Beli/Box</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;" title="Klaim BPJS per unit — hanya obat kronis">Klaim BPJS/unit</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;">Subtotal Beli</th>
                 <th style="text-align:right;padding:.35rem .4rem;font-size:.58rem;text-transform:uppercase;" title="Estimasi klaim BPJS — hanya obat kronis">Est. Klaim BPJS</th>
@@ -400,6 +404,7 @@
                     </td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.jumlah_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="1" wire:model.live.debounce.400ms="rows.{{ $i }}.isi_per_box" style="width:56px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
+                    <td style="padding:.3rem .4rem;"><input type="number" min="0" step="0.01" wire:model.live.debounce.400ms="rows.{{ $i }}.harga_per_unit" placeholder="mis. 69" title="Harga per butir/pcs — cara termudah. Harga/Box otomatis = butir × isi." style="width:84px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid rgba(63,207,142,.4);color:var(--emer2);font-weight:700;font-size:.74rem;text-align:right;"></td>
                     <td style="padding:.3rem .4rem;"><input type="number" min="0" step="1" wire:model.live.debounce.400ms="rows.{{ $i }}.harga_per_box" style="width:92px;padding:.35rem;border-radius:.45rem;background:var(--card);border:1px solid var(--line2);color:var(--ink);font-size:.74rem;text-align:right;"></td>
                     <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:{{ $isK ? 'var(--blue)' : 'var(--mut2)' }};">{{ $isK ? $rp($row['klaim_bpjs_per_unit']??0) : '—' }}</td>
                     <td class="font-mono" style="padding:.3rem .4rem;text-align:right;color:var(--red2);">{{ $rp($row['subtotal_beli']??0) }}</td>

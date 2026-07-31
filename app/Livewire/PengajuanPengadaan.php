@@ -279,6 +279,12 @@ class PengajuanPengadaan extends Component
             $isi = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
             $this->rows[$i]['harga_per_unit'] = (float) $value / $isi;
         }
+        if ($field === 'harga_per_unit') {
+            // User mengetik harga per BUTIR langsung (cara paling intuitif, mis. BMHP Rp69/pcs)
+            // → harga/box = butir × isi. Bebas urutan input, tak pernah meledak ×isi.
+            $isi = max(1, (int) ($this->rows[$i]['isi_per_box'] ?? 1));
+            $this->rows[$i]['harga_per_box'] = (float) $value * $isi;
+        }
         $this->recalcRow($i);
     }
 
